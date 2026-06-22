@@ -1,4 +1,5 @@
-class ApiResponse{
+
+export  class ApiResponse{
     statusCode : number
     message :string
     data: Object

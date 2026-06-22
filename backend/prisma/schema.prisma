@@ -55,6 +55,7 @@ model user {
   userName    String            @unique
   name        String
   email       String            @unique
+  passwordHash String            
   avatar      String?
   timezone    String?
   memberships workspaceMember[]

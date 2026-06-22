@@ -85,3 +85,11 @@ export class GatewayTimeoutError extends ApiError {
 this.name = "GatewayTimeout"
     }
 }
+
+export class UserInputValidationError extends ApiError {
+    invalidationReason: object;
+    constructor(message : string,invalidationReason : object){
+        super(StatusCodes.BAD_REQUEST,message)
+        this.invalidationReason = invalidationReason
+    }
+}
