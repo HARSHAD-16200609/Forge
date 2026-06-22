@@ -4,6 +4,8 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import {env} from "./config/env"
+import { BadRequestError,BadGatewayError, DuplicatePostRequestError, ForbiddenError, GatewayTimeoutError, NotFoundError, ServiceUnavailableError, TooManyRequestsError, UnauthorizedAccessError } from "./utility/errorHandling/customErrors";
+import { globalErrorMiddleware } from "./middlewares/globalErrorHandler";
 const app = express();
 
 
@@ -54,6 +56,6 @@ app.use((_req, res) => {
   });
 });
 
-
+app.use(globalErrorMiddleware);
 
 export default app;
