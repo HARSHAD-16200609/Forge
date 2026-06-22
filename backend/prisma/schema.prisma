@@ -6,15 +6,247 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
+   previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
 
-model Test {
-  id Int @id @default(autoincrement())
- name String
- rollno Int
+enum ConvoType{
+  DM
+  GDM
+}
+
+enum NotificationType {
+  MENTION
+  REPLY
+  REACTION
+  CHANNEL_INVITE
+  WORKSPACE_INVITE
+  DIRECT_MESSAGE
+}
+
+
+enum EntityType {
+  MESSAGE
+  CHANNEL
+  WORKSPACE
+  CONVO
+}
+enum fType{
+  DOC 
+  IMG 
+  VID
+  AUD
+}
+enum Status{
+  ACCEPTED
+  REJECTED
+  PENDING
+}
+model user {
+  id          String            @id @default(uuid())
+  userName    String            @unique
+  name        String
+  email       String            @unique
+  avatar      String?
+  timezone    String?
+  memberships workspaceMember[]
+  messages message[]
+  convoMemberships     conversationMember[]
+  reactions reaction[]
+   notificationsReceived notification[] @relation("NotificationRecipient")
+  notificationsTriggered notification[] @relation("NotificationActor")
+ workspaceInvitesSent     workspaceInvite[] @relation("workspaceInvitesSent")
+  workspaceInvitesReceived workspaceInvite[] @relation("workspaceInvitesReceived")
+  channelInvitesSent       channelInvite[]   @relation("channelInvitesSent")
+  channelInvitesReceived   channelInvite[]   @relation("channelInvitesReceived")
+
+}
+
+model workspace {
+  id          String            @id @default(uuid())
+  visibility  Visibility        @default(PUBLIC)
+  description String?
+  members     workspaceMember[]
+  channels    channel[]
+  invites workspaceInvite[]
+  createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+}
+
+model workspaceMember {
+  id          String    @id @default(uuid())
+  role        Role      @default(MEMBER)
+  joinedAt    DateTime  @default(now())
+
+  userId      String
+  user        user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  channelMemberships channelMember[]
+
+  @@unique([userId, workspaceId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model channel {
+  id          String     @id @default(uuid())
+  visibility  Visibility @default(PUBLIC)
+  channelName String
+  description String?
+  workspace   workspace @relation(fields: [workspaceId], references: [id],onDelete: Cascade)
+  workspaceId String 
+   createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+  messages    message[]
+  members channelMember[]
+  invites channelInvite[]
+  @@unique([workspaceId, channelName])
+
+}
+
+model message {
+  id        String  @id @default(uuid())
+  content String 
+  senderId String?
+  sentAt DateTime @default(now())
+  editedAt DateTime?
+  sender user? @relation(fields: [senderId],references: [id],onDelete: SetNull)
+  channelId String?
+  channel channel? @relation(fields: [channelId], references: [id],onDelete: Cascade)
+  conversationId String?
+  conversation conversation? @relation(fields: [conversationId],references: [id],onDelete: Cascade)
+  reactions reaction[]
+  uploads upload[]
+  parentMsgId String?
+  parentMsg message? @relation("MessageReplies",fields: [parentMsgId],references: [id])
+    replies     message[] @relation("MessageReplies")
+
+@@index([channelId])
+@@index([conversationId])
+  
+}
+
+model channelMember{
+  id String @id @default(uuid())
+  role Role @default(MEMBER)
+  workspaceMemberId String
+  workspaceMember workspaceMember @relation(fields: [workspaceMemberId],references: [id],onDelete: Cascade)
+
+  channelId String
+  channel   channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceMemberId,channelId])
+
+}
+
+model conversation{
+  id String @id @default(uuid())
+  type ConvoType @default(DM)
+  groupName String?
+  messages message[]
+  members conversationMember[]
+  createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+}
+
+model conversationMember{
+ id String @id @default(uuid())
+ userId String
+ user user @relation(fields: [userId],references: [id],onDelete: Cascade)
+ convoId String
+ conversation conversation @relation(fields: [convoId],references: [id],onDelete: Cascade)
+
+   @@unique([userId, convoId])
+
+}
+
+model reaction{
+  id String @id @default(uuid())
+  emoji String
+  messageId String
+  message message @relation(fields: [messageId],references: [id],onDelete: Cascade)
+  userId String
+  reactedBy user @relation(fields: [userId],references: [id],onDelete: Cascade)
+
+   @@unique([userId, messageId, emoji])
+}
+
+model notification{
+id String @id @default(uuid())
+type NotificationType?
+entity EntityType?
+entityId String?
+read      Boolean          @default(false)
+createdAt DateTime         @default(now())
+receipentId String 
+receiver user @relation("NotificationRecipient",fields: [receipentId],references: [id],onDelete: Cascade)
+actorId String?
+actor user? @relation("NotificationActor",fields: [actorId],references: [id])
+
+metadata  Json?
+
+  @@index([receipentId, read])
+ 
+}
+
+model upload {
+  id String @id @default(uuid())
+  fileType fType?
+  filename String
+  fileSize String?
+  messageId String?
+  message message? @relation(fields: [messageId],references: [id],onDelete: Cascade)
+  uploadedAt DateTime @default(now())
+
+
+}
+
+model workspaceInvite {
+  id          String    @id @default(uuid())
+  status      Status    @default(PENDING)
+  sentAt      DateTime  @default(now())
+
+  actorId     String
+  actor       user      @relation("workspaceInvitesSent", fields: [actorId], references: [id], onDelete: Cascade)
+
+  receiverId  String
+  receiver    user      @relation("workspaceInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([receiverId, workspaceId], where: { status: "PENDING" })
+}
+
+model channelInvite {
+  id          String   @id @default(uuid())
+  status      Status   @default(PENDING)
+  sentAt      DateTime @default(now())
+
+  actorId     String
+  actor       user     @relation("channelInvitesSent", fields: [actorId], references: [id], onDelete: Cascade)
+
+  receiverId  String
+  receiver    user     @relation("channelInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  channelId   String
+  channel     channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([receiverId, channelId], where: { status: "PENDING" })
 }
