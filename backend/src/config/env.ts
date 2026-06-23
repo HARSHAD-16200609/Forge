@@ -1,4 +1,5 @@
 import { config } from "dotenv";
+import { CookieOptions } from "express";
 import { z } from "zod";
 
 config();
@@ -42,6 +43,17 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+export const setCookieOptions : CookieOptions = {
+    httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+}
+
+export const clearCookieOptions : CookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production"
+}
 
 export const env = parsed.data;
 
