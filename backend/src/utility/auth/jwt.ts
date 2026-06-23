@@ -1,15 +1,16 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import { env } from "../../config/env";
 
-type jwtPayload = {
-    userId : string,
-    username:string
-}
 
-export function genJwtToken(payload : jwtPayload,expiry : SignOptions["expiresIn"] = "15m"){
+
+export function genJwtToken(payload : jwtPayload,expiry : SignOptions["expiresIn"] = "15m",secret : string){
 
     return jwt.sign(payload,
-        env.JWT_SECRET
+        secret
         ,{expiresIn: expiry})
 
+}
+
+export function compareToken(token : string){
+     
 }

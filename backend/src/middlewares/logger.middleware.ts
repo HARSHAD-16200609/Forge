@@ -27,6 +27,7 @@ export function loggerMiddleware(req : Request,res : Response,next : NextFunctio
         : "info";
 
       logger[level]("← response", {
+        
         method: req.method,
         url: req.originalUrl,
         statusCode: res.statusCode,
