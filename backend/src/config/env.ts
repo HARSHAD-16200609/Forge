@@ -11,6 +11,11 @@ const envSchema = z.object({
     "test",
   ]),
 
+    LOG_LEVEL: z.enum([
+    "info",
+    "warn",
+    "fatal",
+  ]),
 
   PORT: z.coerce.number().int().positive(),
 
@@ -23,6 +28,7 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: z.string().min(32),
 
   REFRESH_TOKEN_EXPIRES_IN: z.string().min(2),
+
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -37,6 +43,7 @@ if (!parsed.success) {
 }
 
 
-
-
 export const env = parsed.data;
+
+
+

@@ -4,6 +4,7 @@ import logger from "../utility/logger/logger";
 import { Prisma } from "../../generated/prisma/client";
 import { loggers } from "../utility/logger/serviceLoggers";
 import { UserInputValidationError } from "../utility/errorHandling/customErrors";
+import { env } from "../config/env";
 
 
 const PRISMA_ERROR_MAP: Record<string, { status: number; message: string }> = {
@@ -56,7 +57,7 @@ export function globalErrorMiddleware(err: Error, req: Request, res: Response, n
     return res.status(err.statusCode).json({
       status: err.statusCode,
       message: err.message,
-      ...(process.env.NODE_ENV === "development" && {
+      ...(env.NODE_ENV === "development" && {
         stack: err.stack,
 
       })

@@ -8,6 +8,8 @@ import { globalErrorMiddleware } from "./middlewares/globalErrorHandler";
 const app = express();
 import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
+import { userRouter } from "./modules/auth/auth.route";
+
 
 
 app.use(
@@ -49,6 +51,7 @@ app.get("/health", (req, res) => {
   });
 });
 
+app.use("/api/v1",userRouter)
 
 
 app.use((_req, res) => {
