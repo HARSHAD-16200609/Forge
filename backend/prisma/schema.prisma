@@ -54,10 +54,10 @@ enum Status {
 
 model user {
   id                       String               @id @default(uuid())
-  userName                 String               @unique
+  username                 String               @unique
   name                     String
   email                    String               @unique
-  passwordHash             String
+  password             String
   avatar                   String?
   timezone                 String?
   memberships              workspaceMember[]

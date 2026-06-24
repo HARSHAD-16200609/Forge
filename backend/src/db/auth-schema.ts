@@ -21,7 +21,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Must contain a number")
     .regex(/[!@#$%^&*(),.?":{}|<>]/, "Must contain a special character"),
 
-  avatar: z.url().nullable().optional(),
+  avatar: z.url().optional(),
 
   timezone: z.string().optional()
 

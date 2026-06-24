@@ -7,7 +7,7 @@ import { env } from "../config/env"
 
 export const verifyJwt = (req: Request, res: Response, next: NextFunction) => {
 
-  const cookieToken = req.cookies?.accessToken;
+  const cookieToken = req.cookies.accessToken;
 
   const bearerToken = req
     .header("Authorization")
