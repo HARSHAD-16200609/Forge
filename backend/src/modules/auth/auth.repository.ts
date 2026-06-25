@@ -4,7 +4,7 @@ import { registerUserInput } from "../../db/auth-schema";
 import {session} from "../../types/auth"
 export class AuthRepository {
 
-  async createUser(userData: Prisma.userCreateInput) {
+  async createUser(userData: registerUserInput) {
     const user = await prisma.user.create({
       data: {
         username: userData.username,
@@ -123,6 +123,16 @@ async deleteSession(userId:string){
   })
 }
 
+ async userExists(username :string){
+  const id = await prisma.user.findFirst({
+    where : {
+      username
+    },select:{
+      id:true
+    }
+  })
+  return id
+ } 
 }
 
 export const authRepository =

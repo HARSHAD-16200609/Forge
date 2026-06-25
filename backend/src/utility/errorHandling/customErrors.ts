@@ -45,7 +45,7 @@ this.name = "InvalidMethod"
 }
 
 
-export class DuplicatePostRequestError extends ApiError {
+export class ConfilctError extends ApiError {
    
     constructor(message: string) {
         super(409, message)

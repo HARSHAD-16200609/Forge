@@ -9,6 +9,7 @@ const app = express();
 import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
 import { userRouter } from "./modules/auth/auth.route";
+import { workspaceRouter } from "./modules/Workspace/workspace.route";
 
 
 
@@ -51,7 +52,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/v1",userRouter)
+app.use("/api/v1",userRouter,workspaceRouter)
 
 
 app.use((_req, res) => {

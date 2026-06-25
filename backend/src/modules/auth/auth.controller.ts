@@ -4,11 +4,21 @@ import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { clearCookieOptions, env, setCookieOptions } from "../../config/env";
 import { authService } from "./auth.service";
+import { loginSchema, registerSchema } from "../../db/auth-schema";
+import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
+import z from "zod";
 
 
-export const register = asyncHandler(async (req, res) => {
 
-  const user = await authService.Register(req.body)
+export const Register = asyncHandler(async (req, res) => {
+  const result = registerSchema.safeParse(req.body);
+
+        if (!result.success) {
+
+            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+        }
+
+  const user = await authService.Register(result.data)
 
   if (user !== undefined) {
     loggers.auth.info("Registration successful", {
@@ -22,16 +32,16 @@ export const register = asyncHandler(async (req, res) => {
 
   }
 
-
-
 })
 
-
-
-
 export const Login = asyncHandler(async (req, res) => {
+    const result = loginSchema.safeParse(req.body);
 
-  const sessionInfo = await authService.Login(req.body)
+        if (!result.success) {
+
+            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+        }
+  const sessionInfo = await authService.Login(result.data)
 
   loggers.auth.info("Login successful", {
     userId: sessionInfo?.userId,
@@ -51,15 +61,14 @@ export const Login = asyncHandler(async (req, res) => {
 
 })
 
+export const RefreshAcessToken = asyncHandler(async (req, res) => {
 
-
-export const RefreshAcessToken = asyncHandler(async (req, res) => { 
   const accessToken = await authService.Refresh(req.cookies)
 
-  loggers.auth.info("AcessTokenRefreshed",{
+  loggers.auth.info("AcessTokenRefreshed", {
     ip: req.ip,
     userAgent: req.get("user-agent"),
-    createdAt : new Date()
+    createdAt: new Date()
   })
   res.cookie("accessToken", accessToken, setCookieOptions)
   return res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "accessToken Generated Sucessfully"))
@@ -67,21 +76,25 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
 
 )
 
+export const Logout = asyncHandler(async (req, res) => {
+ const userIDSchema = z.uuid()
+ const result  = userIDSchema.safeParse(req.user)
+
+ if(!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten())
 
 
-export const Logout = asyncHandler(async(req,res)=>{
-  await authService.Logout(req.user)
+  await authService.Logout(result.data)
 
-loggers.auth.info("Logout Successfully",{
+  loggers.auth.info("Logout Successfully", {
 
-   userId: req.user.userId,
+    userId: req.user.userId,
     username: req.user.username,
     ip: req.ip,
     userAgent: req.get("user-agent"),
-})
+  })
   res.clearCookie("accessToken", clearCookieOptions).clearCookie("refreshToken", clearCookieOptions)
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "Logged Out Successfully"))
-  
+
 })
 
 

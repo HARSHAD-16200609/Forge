@@ -1,13 +1,13 @@
 import { Router } from "express"
 import { verifyJwt } from "../../middlewares/verifyJwt";
-import { Login, Logout,  RefreshAcessToken,  register } from "./auth.controller";
+import { Login, Logout,  RefreshAcessToken,  Register } from "./auth.controller";
 
 
 const userRouter = Router();
 
 
 
-userRouter.route("/auth/register").post(register)
+userRouter.route("/auth/register").post(Register)
 
 userRouter.route("/auth/login").post(Login)
 

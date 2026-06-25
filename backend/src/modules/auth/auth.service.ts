@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { Prisma } from "../../../generated/prisma/client";
-import { loginSchema, registerSchema } from "../../db/auth-schema";
+import { loginSchema, loginUserInput, registerSchema, registerUserInput } from "../../db/auth-schema";
 import { authRepository } from "./auth.repository"
 import bcrypt from "bcryptjs";
 import { ApiError } from "../../utility/errorHandling/ApiError";
@@ -14,14 +14,9 @@ import jwt from "jsonwebtoken"
 
 class AuthService {
 
-    async Register(User: Prisma.userCreateInput) {
-        const result = registerSchema.safeParse(User);
-
-        if (!result.success) {
-
-            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
-        }
-        const { username, name, password, email, avatar, timezone } = User
+    async Register(User: registerUserInput) {
+      
+        const { username, password, email } = User
 
 
         const existingUser = await authRepository.findUserByUsernameorEmail(username, email)
@@ -44,13 +39,8 @@ class AuthService {
         }
 
     }
-    async Login(User: loginInput) {
-        const result = loginSchema.safeParse(User);
-
-        if (!result.success) {
-
-            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
-        }
+    async Login(User: loginUserInput) {
+    
         const { username, password, email } = User
         const identifier = username ?? email ?? "";
 
@@ -105,7 +95,7 @@ async Refresh(Cookies : Record<string,any> ){
            throw new UnauthorizedAccessError("Invalid Token")
          }
       const decoded = jwt.verify(refreshToken,env.REFRESH_TOKEN_SECRET) as jwtPayload
-      console.log(decoded)
+    
       
       const session = await prisma.session.findFirst({
  where :{
@@ -130,8 +120,8 @@ if(!session){
    return accessToken
      
 }
-async Logout(User : jwtPayload){
-    const {userId} = User
+async Logout(userId :string){
+  
     try{
            await prisma.session.delete({
     where: {

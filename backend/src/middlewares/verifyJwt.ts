@@ -2,10 +2,11 @@ import { NextFunction, Request, Response } from "express"
 import jwt from "jsonwebtoken"
 import { UnauthorizedAccessError } from "../utility/errorHandling/customErrors"
 import { env } from "../config/env"
+import { prisma } from "../config/prisma"
 
 
 
-export const verifyJwt = (req: Request, res: Response, next: NextFunction) => {
+export const verifyJwt = async(req: Request, res: Response, next: NextFunction) => {
 
   const cookieToken = req.cookies.accessToken;
 
@@ -22,7 +23,20 @@ export const verifyJwt = (req: Request, res: Response, next: NextFunction) => {
   }
 
   const verify = jwt.verify(token, env.JWT_SECRET) as jwtPayload
-  req.user = verify
+
+ 
+   const user = await prisma.user.findFirst({
+    where:{
+      id:verify.userId
+    },select:{
+      id:true,
+      username:true
+    }
+   })
+
+   if(!user) throw new UnauthorizedAccessError("Unauthorized Acess Please Login First")
+
+  req.user = user
 
 
 

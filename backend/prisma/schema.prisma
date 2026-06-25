@@ -85,6 +85,7 @@ model Session {
 
 model workspace {
   id          String            @id @default(uuid())
+  workspaceName String
   visibility  Visibility        @default(PUBLIC)
   description String?
   members     workspaceMember[]
