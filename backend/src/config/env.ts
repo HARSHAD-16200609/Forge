@@ -43,13 +43,6 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const setCookieOptions : CookieOptions = {
-    httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
-}
-
 export const clearCookieOptions : CookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production"
@@ -59,3 +52,19 @@ export const env = parsed.data;
 
 
 
+const baseCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  path: "/",
+};
+
+export const accessCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+  maxAge: Number(parsed.data.JWT_EXPIRES_IN.replace(/[a-zA-Z]/g, "")) * 60 * 1000,
+};
+
+export const refreshCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+  maxAge: Number(parsed.data.REFRESH_TOKEN_EXPIRES_IN.replace(/[a-zA-Z]/g, "")) * 24 * 60 * 60 * 1000,
+};

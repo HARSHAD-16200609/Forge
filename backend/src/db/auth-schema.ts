@@ -1,6 +1,7 @@
 // schemas/user.schema.ts
 
 import { password } from "bun";
+import { userInfo } from "node:os";
 import { z } from "zod";
 
 export const registerSchema = z.object({
@@ -42,6 +43,11 @@ export const loginSchema = z.object({
     }
   );
 
+  export const reqUserSchema = z.object({
+    userId:z.uuid(),
+    username:z.string()
+  })
 
   export type registerUserInput = z.infer<typeof registerSchema>;
   export type loginUserInput = z.infer<typeof loginSchema>;
+export type jwtPayloadInput = z.infer<typeof reqUserSchema>

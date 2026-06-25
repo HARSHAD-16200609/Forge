@@ -41,7 +41,7 @@ export const verifyJwt = async (req: Request, res: Response, next: NextFunction)
 
 
     if (!user) throw new BadRequestError("Unauthorized Access Please Login First")
-    req.user = user
+    req.user = {userId:user.id,username:user.username}
 
   } catch {
     throw new UnauthorizedAccessError(

@@ -2,9 +2,9 @@ import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
-import { clearCookieOptions, env, setCookieOptions } from "../../config/env";
+import { clearCookieOptions, accessCookieOptions,refreshCookieOptions } from "../../config/env";
 import { authService } from "./auth.service";
-import { loginSchema, registerSchema } from "../../db/auth-schema";
+import { loginSchema, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import z from "zod";
 import { idSchema } from "../../db/workspace";
@@ -51,8 +51,8 @@ export const Login = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent"),
   });
 
-  res.cookie("accessToken", sessionInfo?.accessToken, setCookieOptions)
-    .cookie("refreshToken", sessionInfo?.refreshToken, setCookieOptions)
+  res.cookie("accessToken", sessionInfo?.accessToken, accessCookieOptions)
+    .cookie("refreshToken", sessionInfo?.refreshToken, refreshCookieOptions)
 
 
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {
@@ -71,7 +71,7 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent"),
     createdAt: new Date()
   })
-  res.cookie("accessToken", accessToken, setCookieOptions)
+  res.cookie("accessToken", accessToken, accessCookieOptions)
   return res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "accessToken Generated Sucessfully"))
 }
 
@@ -79,12 +79,12 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
 
 export const Logout = asyncHandler(async (req, res) => {
 
- const result  = idSchema.safeParse(req.user.userId)
+ const result  = reqUserSchema.safeParse(req.user)
 
- if(!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten())
+ if(!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
 
 
-  await authService.Logout(result.data.id)
+  await authService.Logout(result.data.userId)
 
   loggers.auth.info("Logout Successfully", {
 
