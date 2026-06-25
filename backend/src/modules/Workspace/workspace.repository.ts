@@ -48,7 +48,7 @@ class WorkspaceRepository {
     return workspace
 
   }
-    async findworkspaceById(workspaceId : string) {
+    async getWorkspace(workspaceId : string) {
 
     const workspace = await prisma.workspace.findFirst({
       where: {
@@ -86,7 +86,7 @@ class WorkspaceRepository {
     return workspaces
   }
 
-  async addMembertoWorkspace(workspaceMember: {
+  async addUserToWorkspace(workspaceMember: {
     role: Role,
     userId: string,
     workspaceId: string
@@ -147,6 +147,15 @@ class WorkspaceRepository {
       }
     })
     return wsMembers
+  }
+
+  async deleteWSMember(userId : string,workspaceId:string){
+    await prisma.workspaceMember.delete({
+      where:{
+        userId_workspaceId : {userId,workspaceId}
+      }
+    })
+    return
   }
 }
 

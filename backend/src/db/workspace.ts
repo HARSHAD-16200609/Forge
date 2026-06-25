@@ -9,7 +9,7 @@ export const workspaceSchema = z.object({
 })
 
 export const workspaceMemberSchema = z.object({
-    role : z.enum(["ADMIN","MEMBER"]),
+    role : z.enum(["OWNER","ADMIN","MEMBER"]),
     userName : z.string(),
     workspaceId:z.uuid()
 })
@@ -19,11 +19,18 @@ export const idSchema =z.object({
 })
 
 export const workspaceMemberInputSchema = z.object({
-        role : z.enum(["ADMIN","MEMBER"]),
+        role : z.enum(["OWNER","ADMIN","MEMBER"]),
     userName : z.string(),
+})
+
+export const wsMemberDeleteUpdateSchema = z.object({
+    workspaceId : z.uuid(),
+    userId:z.uuid()
 })
 
 export type ID = z.infer<typeof idSchema>
 export type createWorkspaceDTO = z.infer<typeof workspaceSchema>
 export type workspaceMemberDTO = z.infer<typeof workspaceMemberSchema>
 export type workspaceMemberInput = z.infer<typeof workspaceMemberInputSchema>
+export type wsMemberDeleteUpdateDTO = z.infer<typeof wsMemberDeleteUpdateSchema>
+

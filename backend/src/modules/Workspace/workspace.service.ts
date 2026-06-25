@@ -1,6 +1,6 @@
 
 import { StatementSync } from "node:sqlite";
-import { createWorkspaceDTO, workspaceMemberDTO, workspaceMemberSchema, workspaceSchema } from "../../db/workspace";
+import { createWorkspaceDTO, workspaceMemberDTO, workspaceMemberSchema, workspaceSchema, wsMemberDeleteUpdateDTO } from "../../db/workspace";
 import { ApiError } from "../../utility/errorHandling/ApiError";
 import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFoundError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { workspaceRepository } from "./workspace.repository";
@@ -32,7 +32,7 @@ class WorkspaceService {
 
             return workspaces
         } catch (err) {
-            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "2025") {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
                 throw new NotFoundError("No Workspaces Found ...")
             }
             return
@@ -60,7 +60,7 @@ class WorkspaceService {
         }
 
 
-        if (!canWorkspace(User.role, "workspaceMember", "create")) throw new ForbiddenError("You are not allowed to add members in the workspace")
+        if (!canWorkspace(User.role, "workspaceMember", "create")) throw new ForbiddenError("You are not allowed to  perform this Action")
 
 
         const user = await authRepository.userExists(Member.userName)
@@ -72,7 +72,7 @@ class WorkspaceService {
         }
 
 
-        const member = await workspaceRepository.addMembertoWorkspace({ role: Member.role, userId: user.id, workspaceId: Member.workspaceId })
+        const member = await workspaceRepository.addUserToWorkspace({ role: Member.role, userId: user.id, workspaceId: Member.workspaceId })
 
         return member
 
@@ -81,21 +81,21 @@ class WorkspaceService {
 
     }
 
-    async getWorkspacebyId(workspaceId: string, userId: string) {
+    async getWorkspace(workspaceId: string, userId: string) {
 
         const member = await workspaceRepository.memberExists(userId, workspaceId)
 
         if (!member) throw new ForbiddenError("YOu are not an Member of this Workspace")
 
         try {
-            const workspace = await workspaceRepository.findworkspaceById(workspaceId)
+            const workspace = await workspaceRepository.getWorkspace(workspaceId)
             return workspace
         } catch (err) {
-            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "2025") throw new NotFoundError("Workspace not Found")
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new NotFoundError("Workspace not Found")
         }
     }
 
-    async getwsMembers(workspaceId: string, userId: string) {
+    async getaAllMembers(workspaceId: string, userId: string) {
 
 
         const member = await workspaceRepository.memberExists(userId, workspaceId)
@@ -104,24 +104,41 @@ class WorkspaceService {
 
         const role = await workspaceRepository.getRole(userId, workspaceId)
 
-        if (canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) {
+        if (!canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) throw new ForbiddenError("You are not allowed to  perform this Action")
 
-            const membersArray = await workspaceRepository.getAllMembers(workspaceId)
-            const members = membersArray.map(u => ({
-                ...u.user,
-                role: u.role,
-            }));
+        const membersArray = await workspaceRepository.getAllMembers(workspaceId)
+        const members = membersArray.map(u => ({
+            ...u.user,
+            role: u.role,
+        }));
 
 
-            return members
-        } else {
-            throw new ForbiddenError("You are not an Member of this Workspace")
-        }
+        return members
+
 
 
     }
 
+    async deleteWSMember(User: wsMemberDeleteUpdateDTO, OwnerAdminId: string) {
 
+        const member = await workspaceRepository.memberExists(OwnerAdminId, User.workspaceId)
+        if (!member) throw new UnauthorizedAccessError("You Are Not an Member of this Workspace")
+        const UserRole = await workspaceRepository.getRole(OwnerAdminId, User.workspaceId)
+        const userToDeleteRole = await workspaceRepository.getRole(User.userId, User.workspaceId)
+        if (!canWorkspace(UserRole ?? "MEMBER", "workspaceMember", "delete")) throw new ForbiddenError("You are not allowed to perform this Action")
+        if (UserRole === userToDeleteRole || (UserRole === "ADMIN" && userToDeleteRole === "OWNER")) throw new ForbiddenError("You are not allowed to perform this Action")
+        try {
+
+            await workspaceRepository.deleteWSMember(User.userId, User.workspaceId)
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+                throw new NotFoundError("Member Dosen't Exists")
+            }
+        }
+
+
+
+    }
 
 }
 
