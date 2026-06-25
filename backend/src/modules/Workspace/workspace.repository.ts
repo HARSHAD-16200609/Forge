@@ -48,6 +48,17 @@ class WorkspaceRepository {
     return workspace
 
   }
+    async findworkspaceById(workspaceId : string) {
+
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id : workspaceId
+      }
+    })
+
+    return workspace
+
+  }
 
   async workspaceExists(workspaceId: string, userId: string) {
     const id = await prisma.workspaceMember.findFirst({
@@ -109,6 +120,33 @@ class WorkspaceRepository {
       }
     });
     return user;
+  }
+  async getRole(userId: string,  workspaceId :string) {
+    const user = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: { userId, workspaceId } ,
+      }, select: {
+        role :true
+      }
+    });
+    return user?.role;
+  }
+  async getAllMembers( workspaceId :string){
+    const wsMembers = await prisma.workspaceMember.findMany({
+      where : {
+        workspaceId
+      },
+      select:{
+        role:true,
+        user:{
+          omit:{
+            timezone:true,
+            password:true
+          }
+        }
+      }
+    })
+    return wsMembers
   }
 }
 

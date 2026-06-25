@@ -17,14 +17,11 @@ import { canWorkspace } from "../../utility/Authorization/Permissions";
 class WorkspaceService {
 
     async createWorkspace(Workspace: createWorkspaceDTO, user: { userId: string, username: string }) {
-        const result = workspaceSchema.safeParse(Workspace)
 
-        if (!result.success) {
-
-            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
-        }
 
         const workspace = await workspaceRepository.createWorkspace(Workspace, user)
+
+
         return workspace
     }
 
@@ -56,7 +53,7 @@ class WorkspaceService {
             }
         })
 
-        if (!User) {  
+        if (!User) {
             throw new UnauthorizedAccessError(
                 "You are Not a Member of this Workspace "
             );
@@ -83,6 +80,49 @@ class WorkspaceService {
 
 
     }
+
+    async getWorkspacebyId(workspaceId: string, userId: string) {
+
+        const member = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!member) throw new ForbiddenError("YOu are not an Member of this Workspace")
+
+        try {
+            const workspace = await workspaceRepository.findworkspaceById(workspaceId)
+            return workspace
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "2025") throw new NotFoundError("Workspace not Found")
+        }
+    }
+
+    async getwsMembers(workspaceId: string, userId: string) {
+
+
+        const member = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!member) throw new ForbiddenError("You are not an Member of this Workspace")
+
+        const role = await workspaceRepository.getRole(userId, workspaceId)
+
+        if (canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) {
+
+            const membersArray = await workspaceRepository.getAllMembers(workspaceId)
+            const members = membersArray.map(u => ({
+                ...u.user,
+                role: u.role,
+            }));
+
+
+            return members
+        } else {
+            throw new ForbiddenError("You are not an Member of this Workspace")
+        }
+
+
+    }
+
+
+
 }
 
 export const workspaceService = new WorkspaceService()
