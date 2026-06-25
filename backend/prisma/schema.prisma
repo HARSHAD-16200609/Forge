@@ -156,16 +156,15 @@ model message {
 
 model channelMember {
   id                String          @id @default(uuid())
-  role              Role            @default(MEMBER)
+  isCreator         Boolean         @default(false)  
   workspaceMemberId String
   workspaceMember   workspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
-
-  channelId String
-  channel   channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId         String
+  channel           channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  joinedAt          DateTime        @default(now())
 
   @@unique([workspaceMemberId, channelId])
 }
-
 model conversation {
   id        String               @id @default(uuid())
   type      ConvoType            @default(DM)
