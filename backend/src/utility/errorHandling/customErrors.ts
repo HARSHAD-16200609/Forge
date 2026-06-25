@@ -49,7 +49,7 @@ export class ConfilctError extends ApiError {
    
     constructor(message: string) {
         super(409, message)
-this.name = "DuplicatePostRequest"
+this.name = "ConfilctError"
     }
 }
 

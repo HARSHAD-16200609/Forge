@@ -1,0 +1,29 @@
+
+import z from "zod"
+
+
+export const workspaceSchema = z.object({
+    workspaceName : z.string().min(8).max(20),
+    visibility: z.enum(["PUBLIC", "PRIVATE"]),
+    description: z.string().min(12).max(100),
+})
+
+export const workspaceMemberSchema = z.object({
+    role : z.enum(["ADMIN","MEMBER"]),
+    userName : z.string(),
+    workspaceId:z.uuid()
+})
+
+export const idSchema =z.object({
+    id : z.uuid()
+})
+
+export const workspaceMemberInputSchema = z.object({
+        role : z.enum(["ADMIN","MEMBER"]),
+    userName : z.string(),
+})
+
+export type ID = z.infer<typeof idSchema>
+export type createWorkspaceDTO = z.infer<typeof workspaceSchema>
+export type workspaceMemberDTO = z.infer<typeof workspaceMemberSchema>
+export type workspaceMemberInput = z.infer<typeof workspaceMemberInputSchema>

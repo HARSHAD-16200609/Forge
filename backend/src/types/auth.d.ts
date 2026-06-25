@@ -1,6 +1,6 @@
 export type loginInput = {
-    username: string | null
-    email: string | null
+    username: string | undefined
+    email: string | undefined
     password: string
 }
 
@@ -9,4 +9,8 @@ export type session = {
     refreshToken: string
     expiresAt: Date
     createdAt: Date
+}
+
+export type Params = {
+
 }

@@ -7,6 +7,7 @@ import { authService } from "./auth.service";
 import { loginSchema, registerSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import z from "zod";
+import { idSchema } from "../../db/workspace";
 
 
 
@@ -77,13 +78,13 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
 )
 
 export const Logout = asyncHandler(async (req, res) => {
- const userIDSchema = z.uuid()
- const result  = userIDSchema.safeParse(req.user)
+
+ const result  = idSchema.safeParse(req.user.userId)
 
  if(!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten())
 
 
-  await authService.Logout(result.data)
+  await authService.Logout(result.data.id)
 
   loggers.auth.info("Logout Successfully", {
 
