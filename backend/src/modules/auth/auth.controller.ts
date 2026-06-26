@@ -2,7 +2,7 @@ import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
-import { clearCookieOptions, accessCookieOptions,refreshCookieOptions } from "../../config/env";
+import { clearCookieOptions, accessCookieOptions, refreshCookieOptions } from "../../config/env";
 import { authService } from "./auth.service";
 import { loginSchema, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
@@ -14,10 +14,10 @@ import { idSchema } from "../../db/workspace";
 export const Register = asyncHandler(async (req, res) => {
   const result = registerSchema.safeParse(req.body);
 
-        if (!result.success) {
+  if (!result.success) {
 
-            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
-        }
+    throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+  }
 
   const user = await authService.Register(result.data)
 
@@ -36,12 +36,12 @@ export const Register = asyncHandler(async (req, res) => {
 })
 
 export const Login = asyncHandler(async (req, res) => {
-    const result = loginSchema.safeParse(req.body);
+  const result = loginSchema.safeParse(req.body);
 
-        if (!result.success) {
+  if (!result.success) {
 
-            throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
-        }
+    throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+  }
   const sessionInfo = await authService.Login(result.data)
 
   loggers.auth.info("Login successful", {
@@ -69,7 +69,9 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
   loggers.auth.info("AcessTokenRefreshed", {
     ip: req.ip,
     userAgent: req.get("user-agent"),
-    createdAt: new Date()
+    createdAt: new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    })
   })
   res.cookie("accessToken", accessToken, accessCookieOptions)
   return res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "accessToken Generated Sucessfully"))
@@ -79,9 +81,9 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
 
 export const Logout = asyncHandler(async (req, res) => {
 
- const result  = reqUserSchema.safeParse(req.user)
+  const result = reqUserSchema.safeParse(req.user)
 
- if(!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+  if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
 
 
   await authService.Logout(result.data.userId)

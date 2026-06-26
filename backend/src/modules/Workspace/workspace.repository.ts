@@ -3,7 +3,7 @@ import { Visibility } from "../../../generated/prisma/enums";
 import { userInfo } from "node:os";
 import { Role } from "../../../generated/prisma/enums";
 import { equal } from "node:assert";
-import { workspaceMemberDTO } from "../../db/workspace";
+import { roleDTO, workspaceMemberDTO } from "../../db/workspace";
 import { SrvRecord } from "node:dns";
 import { tr } from "zod/locales";
 
@@ -48,11 +48,11 @@ class WorkspaceRepository {
     return workspace
 
   }
-    async getWorkspace(workspaceId : string) {
+  async getWorkspace(workspaceId: string) {
 
     const workspace = await prisma.workspace.findFirst({
       where: {
-        id : workspaceId
+        id: workspaceId
       }
     })
 
@@ -97,51 +97,51 @@ class WorkspaceRepository {
         user: {
           select: {
             username: true,
-          }, 
-         },
-          workspace: {
-            select: {
-              workspaceName: true,
-            }
-          }, role: true,
-      
+          },
+        },
+        workspace: {
+          select: {
+            workspaceName: true,
+          }
+        }, role: true,
+
       }
     })
 
     return member
   }
 
-  async memberExists(userId: string,  workspaceId :string) {
+  async memberExists(userId: string, workspaceId: string) {
     const user = await prisma.workspaceMember.findUnique({
       where: {
-        userId_workspaceId: { userId, workspaceId } ,
+        userId_workspaceId: { userId, workspaceId },
       }, select: {
-        id: true
+        id: true,role:true
       }
     });
     return user;
   }
-  async getRole(userId: string,  workspaceId :string) {
+  async getRole(userId: string, workspaceId: string) {
     const user = await prisma.workspaceMember.findUnique({
       where: {
-        userId_workspaceId: { userId, workspaceId } ,
+        userId_workspaceId: { userId, workspaceId },
       }, select: {
-        role :true
+        role: true
       }
     });
     return user?.role;
   }
-  async getAllMembers( workspaceId :string){
+  async getAllMembers(workspaceId: string) {
     const wsMembers = await prisma.workspaceMember.findMany({
-      where : {
+      where: {
         workspaceId
       },
-      select:{
-        role:true,
-        user:{
-          omit:{
-            timezone:true,
-            password:true
+      select: {
+        role: true,
+        user: {
+          omit: {
+            timezone: true,
+            password: true
           }
         }
       }
@@ -149,13 +149,41 @@ class WorkspaceRepository {
     return wsMembers
   }
 
-  async deleteWSMember(userId : string,workspaceId:string){
+  async deleteWSMember(userId: string, workspaceId: string) {
     await prisma.workspaceMember.delete({
-      where:{
-        userId_workspaceId : {userId,workspaceId}
+      where: {
+        userId_workspaceId: { userId, workspaceId }
       }
     })
     return
+  }
+  async updateRole(userId: string, workspaceId: string, role: Role) {
+    const user = await prisma.workspaceMember.update({
+      where: {
+        userId_workspaceId: {
+          userId, workspaceId
+        }
+      }, data:
+        { role }, 
+        select: {
+          role: true,
+          user: {
+            select:{
+              username:true,
+              name:true,
+
+            }
+          },
+          workspace:{
+            select:{
+              workspaceName:true,
+              description:true
+            }
+          }
+        }
+
+    });
+    return user
   }
 }
 

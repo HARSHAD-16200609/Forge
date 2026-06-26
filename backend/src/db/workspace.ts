@@ -28,9 +28,13 @@ export const wsMemberDeleteUpdateSchema = z.object({
     userId:z.uuid()
 })
 
+export const roleSchema = z.object({
+    role : z.enum(["OWNER","MEMBER","ADMIN"])
+})
+
 export type ID = z.infer<typeof idSchema>
 export type createWorkspaceDTO = z.infer<typeof workspaceSchema>
 export type workspaceMemberDTO = z.infer<typeof workspaceMemberSchema>
 export type workspaceMemberInput = z.infer<typeof workspaceMemberInputSchema>
 export type wsMemberDeleteUpdateDTO = z.infer<typeof wsMemberDeleteUpdateSchema>
-
+export type roleDTO = z.infer<typeof roleSchema>
