@@ -1,9 +1,9 @@
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { workspaceService } from "./workspace.service";
-import { StatusCodes, UNAUTHORIZED } from "http-status-codes";
+import { StatusCodes } from "http-status-codes";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
-import { emailSchema, idSchema, roleSchema, workspaceMemberInputSchema, workspaceSchema, wsMemberDeleteUpdateSchema } from "../../db/workspace";
+import { idSchema, roleSchema, workspaceMemberInputSchema, workspaceSchema, wsMemberDeleteUpdateSchema } from "../../db/workspace";
 import { BadRequestError, ForbiddenError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { reqUserSchema } from "../../db/auth-schema";
 import { id } from "zod/locales";

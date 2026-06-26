@@ -10,6 +10,7 @@ import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
 import { userRouter } from "./modules/auth/auth.route";
 import { workspaceRouter } from "./modules/Workspace/workspace.route";
+import { inviteRouter } from "./modules/Invites/invite.route";
 
 
 
@@ -52,7 +53,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/v1",userRouter,workspaceRouter)
+app.use("/api/v1",userRouter,workspaceRouter,inviteRouter)
 
 
 app.use((_req, res) => {
