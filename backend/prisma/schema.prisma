@@ -236,7 +236,8 @@ model workspaceInvite {
 
   workspaceId String
   workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
+  receiverEmail String 
+  expiresAt DateTime
   @@unique([receiverId, workspaceId], where: { status: "PENDING" })
 }
 
@@ -253,6 +254,8 @@ model channelInvite {
 
   channelId String
   channel   channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  receiverEmail String 
+  expiresAt DateTime
 
   @@unique([receiverId, channelId], where: { status: "PENDING" })
 }

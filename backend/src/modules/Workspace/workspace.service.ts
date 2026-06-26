@@ -12,6 +12,7 @@ import { equal } from "node:assert";
 import { is } from "zod/v4/locales";
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { canWorkspace } from "../../utility/Authorization/Permissions";
+import { throwDeprecation } from "node:process";
 
 
 class WorkspaceService {
@@ -43,15 +44,7 @@ class WorkspaceService {
     }
     async addUserToWorkspace(Member: workspaceMemberDTO, userId: string) {
 
-        const User = await prisma.workspaceMember.findFirst({
-            where: {
-                workspaceId: Member.workspaceId,
-                userId
-            }, select: {
-                id: true,
-                role: true
-            }
-        })
+        const User = await workspaceRepository.memberExists(userId, Member.workspaceId)
 
         if (!User) {
             throw new UnauthorizedAccessError(
@@ -104,7 +97,7 @@ class WorkspaceService {
 
         const role = await workspaceRepository.getRole(userId, workspaceId)
 
-        if (!canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) throw new ForbiddenError("You are not allowed to  perform this Action")
+        if (!canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) throw new ForbiddenError("You are not authorized to  perform this Action")
 
         const membersArray = await workspaceRepository.getAllMembers(workspaceId)
         const members = membersArray.map(u => ({
@@ -125,10 +118,10 @@ class WorkspaceService {
         if (!requester) throw new UnauthorizedAccessError("You Are Not an Member of this Workspace")
         const userToDelete = await workspaceRepository.memberExists(User.userId, User.workspaceId)
         if (!userToDelete) throw new NotFoundError("User Not Found")
-        if (!canWorkspace(requester.role ?? "MEMBER", "workspaceMember", "delete")) throw new ForbiddenError("You are not allowed to perform this Action")
+        if (!canWorkspace(requester.role ?? "MEMBER", "workspaceMember", "delete")) throw new ForbiddenError("You are not authorized to perform this Action")
         if (requester.role === userToDelete.role || (requester.role === "ADMIN" && userToDelete.role === "OWNER")) {
-            console.log("FORBIDDEN")
-            throw new ForbiddenError("You are not allowed to perform this Action")
+
+            throw new ForbiddenError("You are not authorized to perform this Action")
         }
         try {
             await workspaceRepository.deleteWSMember(User.userId, User.workspaceId)
@@ -150,10 +143,8 @@ class WorkspaceService {
         if (!requester) throw new UnauthorizedAccessError("You Are Not an Member of this Workspace")
         const userToUpdate = await workspaceRepository.memberExists(User.userId, User.workspaceId)
         if (!userToUpdate) throw new NotFoundError("User id not an Member of this Workspace")
-        console.log("RequesterRole : ", requester.role)
-        console.log("UserRoleRole : ", userToUpdate.role)
 
-        if (!canWorkspace(requester.role ?? "MEMBER", "workspaceMember", "manageRoles")) throw new ForbiddenError("You are not allowed to perform this Action")
+        if (!canWorkspace(requester.role ?? "MEMBER", "workspaceMember", "manageRoles")) throw new ForbiddenError("You are not authorized to perform this Action")
         if (role === userToUpdate.role) throw new ConfilctError(`User  already has the role ${role}`)
         try {
             const updatedMember = await workspaceRepository.updateRole(User.userId, User.workspaceId, role)
@@ -166,6 +157,8 @@ class WorkspaceService {
         }
 
     }
+
+
 
 }
 

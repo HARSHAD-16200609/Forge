@@ -116,7 +116,7 @@ class WorkspaceRepository {
       where: {
         userId_workspaceId: { userId, workspaceId },
       }, select: {
-        id: true,role:true
+        id: true, role: true
       }
     });
     return user;
@@ -164,27 +164,29 @@ class WorkspaceRepository {
           userId, workspaceId
         }
       }, data:
-        { role }, 
-        select: {
-          role: true,
-          user: {
-            select:{
-              username:true,
-              name:true,
+        { role },
+      select: {
+        role: true,
+        user: {
+          select: {
+            username: true,
+            name: true,
 
-            }
-          },
-          workspace:{
-            select:{
-              workspaceName:true,
-              description:true
-            }
+          }
+        },
+        workspace: {
+          select: {
+            workspaceName: true,
+            description: true
           }
         }
+      }
 
     });
     return user
   }
+
+ 
 }
 
 

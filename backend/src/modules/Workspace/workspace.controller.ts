@@ -3,7 +3,7 @@ import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { workspaceService } from "./workspace.service";
 import { StatusCodes, UNAUTHORIZED } from "http-status-codes";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
-import { idSchema, roleSchema, workspaceMemberInputSchema, workspaceSchema, wsMemberDeleteUpdateSchema } from "../../db/workspace";
+import { emailSchema, idSchema, roleSchema, workspaceMemberInputSchema, workspaceSchema, wsMemberDeleteUpdateSchema } from "../../db/workspace";
 import { BadRequestError, ForbiddenError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { reqUserSchema } from "../../db/auth-schema";
 import { id } from "zod/locales";
@@ -168,7 +168,7 @@ export const updateRole = asyncHandler(async (req, res) => {
     if (!Requester.success) throw new UserInputValidationError("validation-error please check your Entered details", Requester.error.flatten().fieldErrors)
 
 
-    const updatedUser = await workspaceService.updateRole(User.data, updatedRole.data.role,Requester.data.userId)
+    const updatedUser = await workspaceService.updateRole(User.data, updatedRole.data.role, Requester.data.userId)
 
     loggers.db.info("Role Updated Sucecssfully", {
         ip: req.ip,
@@ -179,6 +179,7 @@ export const updateRole = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {updatedUser}, "User Role Updated Successfully..."))
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, { updatedUser }, "User Role Updated Successfully..."))
 
 })
+
