@@ -237,6 +237,7 @@ model workspaceInvite {
   workspaceId String
   workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   receiverEmail String 
+  acceptedAt DateTime  
   expiresAt DateTime
   @@unique([receiverId, workspaceId], where: { status: "PENDING" })
 }

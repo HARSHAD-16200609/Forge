@@ -6,6 +6,8 @@ import { UserInputValidationError, UnauthorizedAccessError } from "../../utility
 import StatusCodes from "http-status-codes"
 import { inviteService } from "./invitation.service"
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler"
+import { inviteTypeSchema } from "../../db/invitation.schema"
+
 
 
 
@@ -40,3 +42,44 @@ import { asyncHandler } from "../../utility/errorHandling/asyncHandler"
 
 })
 
+export const listAllInvites = asyncHandler(async(req,res)=>{
+    const User = reqUserSchema.safeParse(req.user)
+    const inviteType = inviteTypeSchema.safeParse(req.query)
+    if(!User.success) throw new UnauthorizedAccessError("Invalid UserId")
+    if(!inviteType.success) throw new UserInputValidationError("Please Enter an valid inviteType",inviteType.error.flatten().fieldErrors)   
+
+        const invites = await inviteService.listAllInvites(User.data.userId,inviteType.data.type)
+
+        loggers.db.info("List of Invites fetched Sucessfully",{
+                ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId : User.data.userId,
+        createdAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+        })
+
+
+        res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK,invites ?? {},"List of Invites fetched Sucessfully"))
+})
+
+export const acceptInvite = asyncHandler(async(req,res)=>{
+    const User = reqUserSchema.safeParse(req.user)
+    const Invite = idSchema.safeParse(req.params)
+    if(!User.success) throw new UserInputValidationError("Invalid Token",User.error.flatten().fieldErrors)
+     if(!Invite.success) throw new UserInputValidationError("Invalid UserID",Invite.error.flatten().fieldErrors)
+
+        const acceptedInvite = await inviteService.acceptInvite(User.data.userId,Invite.data.id)
+
+        loggers.db.info("User Accepted the Invite",{
+                        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId : User.data.userId,
+        acceptedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+        })
+
+        res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK,acceptedInvite ?? {} , "Invite Accepted Succesfully"))
+
+})
