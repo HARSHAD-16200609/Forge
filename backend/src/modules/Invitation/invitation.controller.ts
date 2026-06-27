@@ -4,7 +4,7 @@ import {  idSchema, emailSchema } from "../../db/workspace"
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse"
 import { UserInputValidationError, UnauthorizedAccessError } from "../../utility/errorHandling/customErrors"
 import StatusCodes from "http-status-codes"
-import { inviteService } from "./invite.service"
+import { inviteService } from "./invitation.service"
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler"
 
 

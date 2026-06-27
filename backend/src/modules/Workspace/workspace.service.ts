@@ -6,7 +6,7 @@ import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFou
 import { workspaceRepository } from "./workspace.repository";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../config/prisma";
-import { authRepository } from "../auth/auth.repository";
+import { authRepository } from "../Auth/auth.repository";
 import { Prisma, Role } from "../../../generated/prisma/client";
 import { equal } from "node:assert";
 import { is } from "zod/v4/locales";

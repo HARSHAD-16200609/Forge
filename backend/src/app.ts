@@ -10,7 +10,7 @@ import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
 import { userRouter } from "./modules/auth/auth.route";
 import { workspaceRouter } from "./modules/Workspace/workspace.route";
-import { inviteRouter } from "./modules/Invites/invite.route";
+import { inviteRouter } from "./modules/Invitation/invitation.route";
 
 
 

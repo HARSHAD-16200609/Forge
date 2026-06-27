@@ -1,9 +1,9 @@
 import { Prisma } from "../../../generated/prisma/client"
 import { canWorkspace } from "../../utility/Authorization/Permissions"
 import { UnauthorizedAccessError, NotFoundError, ForbiddenError, ConfilctError } from "../../utility/errorHandling/customErrors"
-import { authRepository } from "../auth/auth.repository"
+import { authRepository } from "../Auth/auth.repository"
 import { workspaceRepository } from "../Workspace/workspace.repository"
-import { inviteRepository } from "./invite.repository"
+import { inviteRepository } from "./invitation.repository"
 
 
 class InviteService{
