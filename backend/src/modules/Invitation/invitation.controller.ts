@@ -48,7 +48,11 @@ export const listAllInvites = asyncHandler(async(req,res)=>{
     if(!User.success) throw new UnauthorizedAccessError("Invalid UserId")
     if(!inviteType.success) throw new UserInputValidationError("Please Enter an valid inviteType",inviteType.error.flatten().fieldErrors)   
 
-        const invites = await inviteService.listAllInvites(User.data.userId,inviteType.data)
+        const pagination = {
+            page : inviteType.data.page,
+            limit : inviteType.data.limit 
+        }
+        const fetchedInvites = await inviteService.listAllInvites(User.data.userId,inviteType.data,pagination)
 
         loggers.db.info("List of Invites fetched Sucessfully",{
                 ip: req.ip,
@@ -60,7 +64,7 @@ export const listAllInvites = asyncHandler(async(req,res)=>{
         })
 
 
-        res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK,invites ?? {},"List of Invites fetched Sucessfully"))
+        res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, fetchedInvites ?? {},"List of Invites fetched Sucessfully"))
 })
 
 export const acceptInvite = asyncHandler(async(req,res)=>{

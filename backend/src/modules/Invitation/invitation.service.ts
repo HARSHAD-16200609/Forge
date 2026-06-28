@@ -40,13 +40,13 @@ class InviteService {
 
     }
 
-    async listAllInvites(InviteeId: string, inviteType: getInviteType) {
+    async listAllInvites(InviteeId: string, inviteType: getInviteType,pagination:{page:number,limit:number}) {
         try {
           let invites;
   if (inviteType.type === "sent") {
-    invites = await inviteRepository.getSentInvites(InviteeId, inviteType.status);
+    invites = await inviteRepository.getSentInvites(InviteeId, inviteType.status,pagination);
   } else {
-    invites = await inviteRepository.getReceivedInvites(InviteeId, inviteType.status);
+    invites = await inviteRepository.getReceivedInvites(InviteeId, inviteType.status,pagination);
   }
 
   return invites;

@@ -24,23 +24,50 @@ class InviteRepository {
     })
     return invite
   }
-  async getSentInvites(InviteeId: string,status?:Status) {
-    const invites = await prisma.workspaceInvite.findMany({
-      where: {
-        actorId: InviteeId,
-         ...(status ? { status } : {})
-      }
-    })
-    return invites
+  async getSentInvites(actorId: string, status?: Status, pagination?: { page: number, limit: number }) {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      actorId,
+      ...(status ? { status } : {}),
+    };
+
+    const [invites, total] = await Promise.all([
+      prisma.workspaceInvite.findMany({
+        where,
+        orderBy: { sentAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.workspaceInvite.count({ where }),
+    ]);
+
+    return { invites, hasMore: skip + invites.length < total ,total};
   }
-  async getReceivedInvites(InviteedId: string,status?:Status) {
-    const invites = await prisma.workspaceInvite.findMany({
-      where: {
-        receiverId: InviteedId,
-         ...(status ? { status } : {})
-      }
-    })
-    return invites
+  async getReceivedInvites(receiverId: string, status?: Status,pagination?: { page: number, limit: number }) {
+
+       const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      receiverId,
+      ...(status ? { status } : {}),
+    };
+
+    const [invites, total] = await Promise.all([
+      prisma.workspaceInvite.findMany({
+        where,
+        orderBy: { sentAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.workspaceInvite.count({ where }),
+    ]);
+
+    return { invites, hasMore: skip + invites.length < total ,total};
   }
 
   async acceptInvite(receiverId: string, workspaceId: string) {
@@ -81,7 +108,7 @@ class InviteRepository {
         workspaceId: true,
         receiverId: true,
         status: true,
-        expiresAt:true
+        expiresAt: true
       }
     })
     return invite
@@ -114,11 +141,11 @@ class InviteRepository {
 
     });
   }
-  async expireInvite(inviteId:string){
-    await  prisma.workspaceInvite.update({
+  async expireInvite(inviteId: string) {
+    await prisma.workspaceInvite.update({
       where: {
-       id : inviteId,
-     
+        id: inviteId,
+
       },
       data: {
         status: "EXPIRED",
@@ -126,7 +153,7 @@ class InviteRepository {
 
     });
   }
- 
+
 }
 
 
