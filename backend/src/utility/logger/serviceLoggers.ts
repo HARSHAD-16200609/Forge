@@ -8,3 +8,10 @@ export const loggers = {
   security: logger.child({ service: "SECURITY" }),
   audit: logger.child({ service: "AUDIT" }),
 };
+
+export function getCurrentTime():string{
+   
+   return  new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    })
+}
