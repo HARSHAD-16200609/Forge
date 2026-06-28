@@ -93,3 +93,10 @@ export class UserInputValidationError extends ApiError {
         this.invalidationReason = invalidationReason
     }
 }
+
+export class ResourceGoneError extends ApiError{
+  constructor(message: string) {
+        super(StatusCodes.GONE, message),
+this.name = "ResourceMissing"
+    }
+}

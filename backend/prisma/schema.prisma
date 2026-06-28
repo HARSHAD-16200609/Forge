@@ -50,6 +50,8 @@ enum Status {
   ACCEPTED
   REJECTED
   PENDING
+  EXPIRED
+  REVOKED
 }
 
 model user {

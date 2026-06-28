@@ -1,4 +1,4 @@
-import { Role } from "../../../generated/prisma/enums"
+import { Role, Status } from "../../../generated/prisma/enums"
 import { prisma } from "../../config/prisma"
 
 
@@ -25,18 +25,20 @@ class InviteRepository {
     })
     return invite
   }
-  async getSentInvites(InviteeId: string) {
+  async getSentInvites(InviteeId: string,status?:Status) {
     const invites = await prisma.workspaceInvite.findMany({
       where: {
-        actorId: InviteeId
+        actorId: InviteeId,
+         ...(status ? { status } : {})
       }
     })
     return invites
   }
-  async getReceivedInvites(InvitedId: string) {
+  async getReceivedInvites(InviteedId: string,status?:Status) {
     const invites = await prisma.workspaceInvite.findMany({
       where: {
-        receiverId: InvitedId
+        receiverId: InviteedId,
+         ...(status ? { status } : {})
       }
     })
     return invites
@@ -68,19 +70,64 @@ class InviteRepository {
       return invite;
     });
   }
-  async rejectWorkspaceInvite() {
 
-  }
   async getInvite(inviteId: string) {
     const invite = await prisma.workspaceInvite.findUnique({
       where: {
 
         id: inviteId
 
+      }, select: {
+        actorId: true,
+        workspaceId: true,
+        receiverId: true,
+        status: true,
+        expiresAt:true
       }
     })
     return invite
   }
+  async rejectInvite(receiverId: string, workspaceId: string) {
+    await prisma.workspaceInvite.update({
+      where: {
+        receiverId_workspaceId: {
+          receiverId,
+          workspaceId,
+        }
+      },
+      data: {
+        status: "REJECTED",
+      },
+
+    });
+  }
+  async cancelInvite(receiverId: string, workspaceId: string) {
+    await prisma.workspaceInvite.update({
+      where: {
+        receiverId_workspaceId: {
+          receiverId,
+          workspaceId,
+        }
+      },
+      data: {
+        status: "REVOKED",
+      },
+
+    });
+  }
+  async expireInvite(inviteId:string){
+    await  prisma.workspaceInvite.update({
+      where: {
+       id : inviteId,
+     
+      },
+      data: {
+        status: "EXPIRED",
+      },
+
+    });
+  }
+ 
 }
 
 

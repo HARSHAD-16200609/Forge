@@ -48,7 +48,7 @@ export const listAllInvites = asyncHandler(async(req,res)=>{
     if(!User.success) throw new UnauthorizedAccessError("Invalid UserId")
     if(!inviteType.success) throw new UserInputValidationError("Please Enter an valid inviteType",inviteType.error.flatten().fieldErrors)   
 
-        const invites = await inviteService.listAllInvites(User.data.userId,inviteType.data.type)
+        const invites = await inviteService.listAllInvites(User.data.userId,inviteType.data)
 
         loggers.db.info("List of Invites fetched Sucessfully",{
                 ip: req.ip,
@@ -81,5 +81,47 @@ export const acceptInvite = asyncHandler(async(req,res)=>{
         })
 
         res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK,acceptedInvite ?? {} , "Invite Accepted Succesfully"))
+
+})
+
+export const rejectInvite = asyncHandler(async(req,res)=>{
+      const User = reqUserSchema.safeParse(req.user)
+    const Invite = idSchema.safeParse(req.params)
+    if(!User.success) throw new UserInputValidationError("Invalid Token",User.error.flatten().fieldErrors)
+     if(!Invite.success) throw new UserInputValidationError("Invalid UserID",Invite.error.flatten().fieldErrors)
+
+        const rejectedInvite = await inviteService.rejectInvite(User.data.userId,Invite.data.id)
+
+          loggers.db.info("User Accepted the Invite",{
+                        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId : User.data.userId,
+        acceptedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+        })
+
+        res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT,rejectedInvite ?? {} , "Invite Accepted Succesfully"))
+
+})
+
+export const cancelInvite = asyncHandler(async(req,res)=>{
+      const User = reqUserSchema.safeParse(req.user)
+    const Invite = idSchema.safeParse(req.params)
+    if(!User.success) throw new UserInputValidationError("Invalid Token",User.error.flatten().fieldErrors)
+     if(!Invite.success) throw new UserInputValidationError("Invalid UserID",Invite.error.flatten().fieldErrors)
+
+        const cancelledInvite = await inviteService.cancelInvite(User.data.userId,Invite.data.id)
+
+          loggers.db.info("User Accepted the Invite",{
+                        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId : User.data.userId,
+        acceptedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+        })
+
+        res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT,cancelledInvite ?? {} , "Invite Accepted Succesfully"))
 
 })

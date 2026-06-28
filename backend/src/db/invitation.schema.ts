@@ -1,11 +1,17 @@
 import z from "zod";
+import { Status } from "../../generated/prisma/enums";
 
-export enum InviteTypeEnum{
-  SENT = "sent",
-  RECEIVED = "received",
-}
 
-export const inviteTypeSchema =  z.object({
-    type : z.enum(InviteTypeEnum)
-})
+export type InviteType = "sent" | "received" 
 
+export const inviteTypeSchema = z.object({
+  type: z.union([
+    z.literal("sent"),
+    z.literal("received"),
+  ]),
+ status : z.enum(Status).optional()
+});
+
+
+
+export type getInviteType = z.infer<typeof inviteTypeSchema>
