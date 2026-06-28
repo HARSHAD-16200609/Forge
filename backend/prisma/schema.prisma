@@ -59,7 +59,7 @@ model user {
   username                 String               @unique
   name                     String
   email                    String               @unique
-  password             String
+  password                 String
   avatar                   String?
   timezone                 String?
   memberships              workspaceMember[]
@@ -72,29 +72,31 @@ model user {
   workspaceInvitesReceived workspaceInvite[]    @relation("workspaceInvitesReceived")
   channelInvitesSent       channelInvite[]      @relation("channelInvitesSent")
   channelInvitesReceived   channelInvite[]      @relation("channelInvitesReceived")
-  session                  Session?
+  sessions                 Session[]
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  refreshToken String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  refreshTokenHash String   @unique
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  userAgent        String?
+  ipAddress        String?
 
   user user @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model workspace {
-  id          String            @id @default(uuid())
+  id            String            @id @default(uuid())
   workspaceName String
-  visibility  Visibility        @default(PUBLIC)
-  description String?
-  members     workspaceMember[]
-  channels    channel[]
-  invites     workspaceInvite[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  visibility    Visibility        @default(PUBLIC)
+  description   String?
+  members       workspaceMember[]
+  channels      channel[]
+  invites       workspaceInvite[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 }
 
 model workspaceMember {
@@ -158,7 +160,7 @@ model message {
 
 model channelMember {
   id                String          @id @default(uuid())
-  isCreator         Boolean         @default(false)  
+  isCreator         Boolean         @default(false)
   workspaceMemberId String
   workspaceMember   workspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
   channelId         String
@@ -167,6 +169,7 @@ model channelMember {
 
   @@unique([workspaceMemberId, channelId])
 }
+
 model conversation {
   id        String               @id @default(uuid())
   type      ConvoType            @default(DM)
@@ -236,11 +239,12 @@ model workspaceInvite {
   receiverId String
   receiver   user   @relation("workspaceInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
 
-  workspaceId String
-  workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  receiverEmail String 
-  acceptedAt DateTime?  
-  expiresAt DateTime
+  workspaceId   String
+  workspace     workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  receiverEmail String
+  acceptedAt    DateTime?
+  expiresAt     DateTime
+
   @@unique([receiverId, workspaceId], where: { status: "PENDING" })
 }
 
@@ -255,11 +259,11 @@ model channelInvite {
   receiverId String
   receiver   user   @relation("channelInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
 
-  channelId String
-  channel   channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  receiverEmail String 
-  expiresAt DateTime
-  acceptedAt DateTime?
+  channelId     String
+  channel       channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  receiverEmail String
+  expiresAt     DateTime
+  acceptedAt    DateTime?
 
   @@unique([receiverId, channelId], where: { status: "PENDING" })
 }

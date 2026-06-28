@@ -109,16 +109,16 @@ async findUserForLogin(identifier: string) {
           where:{
           userId
           },select:{
-            refreshToken:true
+            refreshTokenHash:true
           }
         })
         return refreshToken
   }
 
-async deleteSession(userId:string){
+async deleteSession(refreshTokenHash:string){
   await prisma.session.delete({
     where: {
-      userId
+      refreshTokenHash
     }
   })
 }

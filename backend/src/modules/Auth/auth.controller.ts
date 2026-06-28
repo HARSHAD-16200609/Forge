@@ -4,7 +4,7 @@ import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { clearCookieOptions, accessCookieOptions, refreshCookieOptions } from "../../config/env";
 import { authService } from "./auth.service";
-import { loginSchema, registerSchema, reqUserSchema } from "../../db/auth-schema";
+import { cookieTokens, loginSchema, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import z from "zod";
 import { idSchema } from "../../db/workspace";
@@ -42,7 +42,11 @@ export const Login = asyncHandler(async (req, res) => {
 
     throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
   }
-  const sessionInfo = await authService.Login(result.data)
+  const userMetaData = {
+   ip: req.ip ?? "",
+   userAgent : req.get("user-agent") ?? ""
+  }
+  const sessionInfo = await authService.Login(result.data,userMetaData)
 
   loggers.auth.info("Login successful", {
     userId: sessionInfo?.userId,
@@ -81,12 +85,12 @@ export const RefreshAcessToken = asyncHandler(async (req, res) => {
 
 export const Logout = asyncHandler(async (req, res) => {
 
-  const result = reqUserSchema.safeParse(req.user)
+  const result = cookieTokens.safeParse(req.cookies)
 
   if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
 
 
-  await authService.Logout(result.data.userId)
+  await authService.Logout(result.data.refreshToken)
 
   loggers.auth.info("Logout Successfully", {
 

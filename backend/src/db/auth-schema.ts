@@ -48,6 +48,11 @@ export const loginSchema = z.object({
     username:z.string()
   })
 
+  export const cookieTokens = z.object({
+    refreshToken  : z.jwt(),
+    accessToken : z.jwt()
+  })
+
   export type registerUserInput = z.infer<typeof registerSchema>;
   export type loginUserInput = z.infer<typeof loginSchema>;
 export type jwtPayloadInput = z.infer<typeof reqUserSchema>

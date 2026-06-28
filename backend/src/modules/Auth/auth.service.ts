@@ -7,15 +7,17 @@ import { ApiError } from "../../utility/errorHandling/ApiError";
 import { prisma } from "../../config/prisma";
 import { BadRequestError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import type { loginInput } from "../../types/auth"
-import { genJwtToken } from "../../utility/auth/jwt";
+import { genJwtToken, hashToken } from "../../utility/auth/jwt";
 import { env } from "../../config/env";
 import { SignOptions } from "jsonwebtoken";
 import jwt from "jsonwebtoken"
 
+
+
 class AuthService {
 
     async Register(User: registerUserInput) {
-      
+
         const { username, password, email } = User
 
 
@@ -27,7 +29,7 @@ class AuthService {
         const hashedPass = await bcrypt.hash(password, 12)
 
         try {
-              User.password = hashedPass
+            User.password = hashedPass
             const user = await authRepository.createUser(User)
 
             return user
@@ -39,8 +41,8 @@ class AuthService {
         }
 
     }
-    async Login(User: loginUserInput) {
-    
+    async Login(User: loginUserInput , userMetaData : { ip :string,userAgent : string}) {
+
         const { username, password, email } = User
         const identifier = username ?? email ?? "";
 
@@ -62,7 +64,8 @@ class AuthService {
             env.JWT_SECRET)
 
         const refreshToken = genJwtToken({ userId: existingUser.id, username: existingUser.username! }, env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"], env.REFRESH_TOKEN_SECRET)
-        const refreshTokenHash = await bcrypt.hash(refreshToken, 12)
+        const refreshTokenHash = hashToken(refreshToken)
+
 
         const sessionInfo = {
             email: existingUser.email,
@@ -72,9 +75,11 @@ class AuthService {
         try {
             const session = {
                 userId: existingUser.id,
-                refreshToken: refreshTokenHash,
+                 refreshTokenHash,
                 expiresAt: new Date(Date.now() + Number((env.REFRESH_TOKEN_EXPIRES_IN).split("d")[0]) * 24 * 60 * 60 * 1000),
-                createdAt: new Date()
+                createdAt: new Date(),
+                ipAddress : userMetaData.ip,
+                userAgent : userMetaData.userAgent
             }
             await authRepository.createSession(session)
 
@@ -84,58 +89,65 @@ class AuthService {
             if (err instanceof Prisma.PrismaClientKnownRequestError) {
                 throw new ApiError(StatusCodes.CONFLICT, "Already Logged In")
             }
-            return 
+            return
         }
 
     }
 
-async Refresh(Cookies : Record<string,any> ){
-     const {refreshToken} = Cookies
-         if(!refreshToken){
-           throw new UnauthorizedAccessError("Invalid Token")
-         }
-      const decoded = jwt.verify(refreshToken,env.REFRESH_TOKEN_SECRET) as jwtPayload
-    
-      
-      const session = await prisma.session.findFirst({
- where :{
-    userId : decoded.userId
-  },
-  select:{
-    refreshToken:true
-  }
-}) 
+    async Refresh(Cookies: Record<string, any>) {
+        const { refreshToken } = Cookies
+        if (!refreshToken) {
+            throw new UnauthorizedAccessError("Invalid or Expired Token")
+        }
+        const decoded = jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET) as jwtPayload
 
-if(!session){
-   throw new UnauthorizedAccessError("Invalid Token")
-}
- const valid =await bcrypt.compare(refreshToken,session.refreshToken)
-   if(!valid){
- throw new UnauthorizedAccessError("Invalid Token")
+        const refreshTokenHash = hashToken(refreshToken)
 
-   } 
-   
-   const accessToken = genJwtToken({userId:decoded.userId,username:decoded.username},env.JWT_EXPIRES_IN as SignOptions["expiresIn"],env.JWT_SECRET)
+        const session = await prisma.session.findFirst({
+            where: {
+                refreshTokenHash
+            },
+            select: {
+                refreshTokenHash: true
+            }
+        })
 
-   return accessToken
-     
-}
-async Logout(userId :string){
-  
-    try{
-           await prisma.session.delete({
-    where: {
-      userId
+        if (!session) {
+            throw new UnauthorizedAccessError("Invalid or Expired Token")
+        }
+
+        const accessToken = genJwtToken({ userId: decoded.userId, username: decoded.username }, env.JWT_EXPIRES_IN as SignOptions["expiresIn"], env.JWT_SECRET)
+
+        return accessToken
+
     }
-  })
+    async Logout(refreshToken: string) {
+        const refreshTokenHash = hashToken(refreshToken)
+
+        const session = await prisma.session.findFirst({
+            where: {
+                refreshTokenHash
+            },
+            select: {
+                refreshTokenHash: true
+            }
+        })
+
+        if (!session) {
+            throw new UnauthorizedAccessError("Invalid Token")
+        }
+
+        try {
+            await authRepository.deleteSession(refreshTokenHash)
+
+        }
+        catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+                throw new ApiError(404, "Already Logged Out")
+            }
+            return
+        }
     }
-   catch(err){
-    if(err instanceof  Prisma.PrismaClientKnownRequestError && err.code === "P2025"){
-        throw new ApiError(404,"Record not Found")
-    }
-    return
-   }
-}
 
 }
 

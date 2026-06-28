@@ -1,6 +1,5 @@
 import jwt, { SignOptions } from "jsonwebtoken";
-
-
+import crypto from "crypto"
 
 
 export function genJwtToken(payload : jwtPayload,expiry : SignOptions["expiresIn"] = "15m",secret : string){
@@ -11,6 +10,8 @@ export function genJwtToken(payload : jwtPayload,expiry : SignOptions["expiresIn
 
 }
 
-export function compareToken(token : string){
-     
+export function hashToken(refreshToken : string) :string{
+     return crypto.createHash("sha256")
+     .update(refreshToken)
+            .digest("hex");
 }

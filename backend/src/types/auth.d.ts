@@ -6,9 +6,11 @@ export type loginInput = {
 
 export type session = {
     userId: string
-    refreshToken: string
+    refreshTokenHash: string
     expiresAt: Date
-    createdAt: Date
+    createdAt: Date,
+    ipAddress : string,
+    userAgent : string
 }
 
 export type Params = {
