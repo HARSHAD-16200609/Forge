@@ -10,7 +10,7 @@ class InviteRepository {
         actorId: Invite.actorId,
         receiverEmail: Invite.email,
         receiverId: Invite.receiverId,
-        expiresAt: new Date(Date.now() + 7 * 60 * 60 * 24 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 *1000),
       }, select: {
         id: true,
         status: true,

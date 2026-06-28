@@ -67,7 +67,8 @@ class InviteService {
         if (invite.status !== "PENDING") throw new ConfilctError(`Can't accept invite as the invite is already ${invite.status}`)
 
         try {
-            if (invite.expiresAt.getTime() < Date.now()) {
+            const now = Date.now()
+            if (invite.expiresAt.getTime() < now ) {
                 await inviteRepository.expireInvite(inviteId)
                 throw new ResourceGoneError("Invite has Expired")
             }
@@ -81,7 +82,7 @@ class InviteService {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
                 throw new NotFoundError("You are Already Member of this Workspace")
             }
-
+          throw err
         }
 
 

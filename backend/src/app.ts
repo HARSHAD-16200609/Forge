@@ -11,7 +11,7 @@ import { loggerMiddleware } from "./middlewares/logger.middleware";
 import { userRouter } from "./modules/Auth/auth.route";
 import { workspaceRouter } from "./modules/Workspace/workspace.route";
 import { inviteRouter } from "./modules/Invitation/invitation.route";
-
+import "./jobs/cron-schedule"
 
 
 app.use(
