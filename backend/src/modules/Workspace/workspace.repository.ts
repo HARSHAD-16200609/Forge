@@ -60,11 +60,10 @@ class WorkspaceRepository {
 
   }
 
-  async workspaceExists(workspaceId: string, userId: string) {
-    const id = await prisma.workspaceMember.findFirst({
+  async workspaceExists(workspaceName: string) {
+    const id = await prisma.workspace.findFirst({
       where: {
-
-        workspaceId, userId
+workspaceName
       },
       select: {
         id: true
@@ -185,6 +184,7 @@ class WorkspaceRepository {
     });
     return user
   }
+
 
  
 }

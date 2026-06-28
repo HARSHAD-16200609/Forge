@@ -11,7 +11,6 @@ class InviteRepository {
         receiverEmail: Invite.email,
         receiverId: Invite.receiverId,
         expiresAt: new Date(Date.now() + 7 * 60 * 60 * 24 * 1000),
-        acceptedAt: new Date(Date.now())
       }, select: {
         id: true,
         status: true,

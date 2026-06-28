@@ -18,12 +18,27 @@ import { throwDeprecation } from "node:process";
 class WorkspaceService {
 
     async createWorkspace(Workspace: createWorkspaceDTO, user: { userId: string, username: string }) {
+        const ws = await workspaceRepository.workspaceExists(Workspace.workspaceName)
+        if (!ws) {
+            const workspace = await workspaceRepository.createWorkspace(Workspace, user)
 
 
-        const workspace = await workspaceRepository.createWorkspace(Workspace, user)
+            return workspace
+        }
+        else {
+            const owner = await workspaceRepository.memberExists(user.userId, ws.id)
+            if (owner) {
+                throw new ConfilctError(`Workspace named ${Workspace.workspaceName} already exists`)
+            }
+            const workspace = await workspaceRepository.createWorkspace(Workspace, user)
 
 
-        return workspace
+            return workspace
+
+        }
+
+
+
     }
 
     async getAllWorkspaces(User: jwtPayload) {

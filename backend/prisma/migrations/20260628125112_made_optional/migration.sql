@@ -8,3 +8,9 @@
 
 ALTER TYPE "Status" ADD VALUE 'EXPIRED';
 ALTER TYPE "Status" ADD VALUE 'REVOKED';
+
+-- AlterTable
+ALTER TABLE "channelInvite" ADD COLUMN     "acceptedAt" TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "workspaceInvite" ALTER COLUMN "acceptedAt" DROP NOT NULL;
