@@ -11,7 +11,7 @@ export const expireInvite = async () => {
             where: {
                 expiresAt: {
                     lt: new Date(),
-                },
+                },status: "PENDING"
             },
             data: {
                 status: Status.EXPIRED,

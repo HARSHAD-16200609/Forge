@@ -9,7 +9,7 @@ export const deleteExpiredSession = async () => {
             where: {
                 expiresAt: {
                     lt: new Date(),
-                },
+                }
             },
         });
 

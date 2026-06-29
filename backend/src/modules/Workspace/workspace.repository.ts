@@ -53,17 +53,45 @@ class WorkspaceRepository {
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId
+      }, include: {
+        members: {
+          select: {
+            role: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                timezone: true
+              }
+            }
+
+
+          }
+        }, _count: {
+          select: {
+            members: true
+          }
+        }
+
       }
     })
 
-    return workspace
+    const response = {
+      ...workspace,
+      memberCount: workspace?._count.members,
+    };
+
+    delete response._count;
+
+    return response
 
   }
 
   async workspaceExists(workspaceName: string) {
     const id = await prisma.workspace.findFirst({
       where: {
-workspaceName
+        workspaceName
       },
       select: {
         id: true
@@ -79,7 +107,13 @@ workspaceName
       },
       select: {
         role: true,
-        workspace: true
+        workspace: {
+          omit: {
+            createdAt: true,
+            updatedAt: true
+
+          }
+        }
       }
     })
     return workspaces
@@ -130,22 +164,32 @@ workspaceName
     });
     return user?.role;
   }
-  async getAllMembers(workspaceId: string) {
-    const wsMembers = await prisma.workspaceMember.findMany({
-      where: {
-        workspaceId
-      },
+  async getAllMembers(workspaceId: string, pagination: { page: number, limit: number }) {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const where = {
+      workspaceId
+    }
+    const [wsMembers, total] = await Promise.all([prisma.workspaceMember.findMany({
+      where, skip,
+          take:limit,
       select: {
         role: true,
         user: {
-          omit: {
-            timezone: true,
-            password: true
-          }
+          select: {
+            username: true,
+            avatar: true
+          },
+         
+
         }
+      }, orderBy:{
+        role:"desc"
       }
-    })
-    return wsMembers
+    }), prisma.workspaceMember.count({ where })])
+
+    return { wsMembers, hasMore: skip + wsMembers.length < total, total }
   }
 
   async deleteWSMember(userId: string, workspaceId: string) {
@@ -186,7 +230,7 @@ workspaceName
   }
 
 
- 
+
 }
 
 

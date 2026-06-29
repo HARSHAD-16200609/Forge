@@ -41,7 +41,7 @@ class AuthService {
         }
 
     }
-    async Login(User: loginUserInput , userMetaData : { ip :string,userAgent : string}) {
+    async Login(User: loginUserInput, userMetaData: { ip: string, userAgent: string }) {
 
         const { username, password, email } = User
         const identifier = username ?? email ?? "";
@@ -75,11 +75,12 @@ class AuthService {
         try {
             const session = {
                 userId: existingUser.id,
-                 refreshTokenHash,
+                refreshTokenHash,
                 expiresAt: new Date(Date.now() + Number((env.REFRESH_TOKEN_EXPIRES_IN).split("d")[0]) * 24 * 60 * 60 * 1000),
                 createdAt: new Date(),
-                ipAddress : userMetaData.ip,
-                userAgent : userMetaData.userAgent
+                ipAddress: userMetaData.ip,
+                userAgent: userMetaData.userAgent,
+       
             }
             await authRepository.createSession(session)
 
@@ -94,25 +95,18 @@ class AuthService {
 
     }
 
-    async Refresh(Cookies: Record<string, any>) {
-        const { refreshToken } = Cookies
+    async Refresh(refreshToken: string) {
+
         if (!refreshToken) {
             throw new UnauthorizedAccessError("Invalid or Expired Token")
         }
         const decoded = jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET) as jwtPayload
 
         const refreshTokenHash = hashToken(refreshToken)
+        const now = new Date()
+        const session = await authRepository.findSession(refreshTokenHash, now)
 
-        const session = await prisma.session.findFirst({
-            where: {
-                refreshTokenHash
-            },
-            select: {
-                refreshTokenHash: true
-            }
-        })
-
-        if (!session) {
+        if (!session || session.userId !== decoded.userId) {
             throw new UnauthorizedAccessError("Invalid or Expired Token")
         }
 
@@ -124,14 +118,7 @@ class AuthService {
     async Logout(refreshToken: string) {
         const refreshTokenHash = hashToken(refreshToken)
 
-        const session = await prisma.session.findFirst({
-            where: {
-                refreshTokenHash
-            },
-            select: {
-                refreshTokenHash: true
-            }
-        })
+        const session = await authRepository.findSession(refreshTokenHash)
 
         if (!session) {
             throw new UnauthorizedAccessError("Invalid Token")
@@ -145,7 +132,20 @@ class AuthService {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
                 throw new ApiError(404, "Already Logged Out")
             }
-            return
+            throw err
+        }
+    }
+
+    async LogoutFromAllDevices(userId: string) {
+        try {
+         await authRepository.deleteAllSession(userId)
+
+        }
+        catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+                throw new ApiError(404, "Already Logged Out")
+            }
+            throw err
         }
     }
 

@@ -13,8 +13,8 @@ workspaceRouter.route("/get/workspaces").get(verifyJwt,getAllWorkspaces)
 workspaceRouter.route("/addUser/workspace/:id").post(verifyJwt,addUserToWorkspace)
 workspaceRouter.route("/get/workspace/:id").get(verifyJwt,getWorkspace)
 workspaceRouter.route("/get/workspace/:id/members").get(verifyJwt,getAllMembers)
-workspaceRouter.route("/get/workspace/:workspaceId/member/:userId").delete(verifyJwt,deleteWSMember)
-workspaceRouter.route("/update/workspace/:workspaceId/member/:userId").patch(verifyJwt,updateRole)
+workspaceRouter.route("/get/workspace/:workspaceId/member/:memberId").delete(verifyJwt,deleteWSMember)
+workspaceRouter.route("/update/workspace/:workspaceId/member/:memberId").patch(verifyJwt,updateRole)
 
 
 

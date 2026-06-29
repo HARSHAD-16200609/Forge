@@ -129,3 +129,4 @@ export const cancelInvite = asyncHandler(async(req,res)=>{
         res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT,cancelledInvite ?? {} , "Invite Accepted Succesfully"))
 
 })
+

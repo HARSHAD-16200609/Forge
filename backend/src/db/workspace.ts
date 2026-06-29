@@ -25,7 +25,7 @@ export const workspaceMemberInputSchema = z.object({
 
 export const wsMemberDeleteUpdateSchema = z.object({
     workspaceId : z.uuid(),
-    userId:z.uuid()
+    memberId:z.uuid()
 })
 
 export const roleSchema = z.object({
@@ -35,6 +35,21 @@ export const roleSchema = z.object({
 export const emailSchema = z.object({
     email : z.email()
 }) 
+
+export const paginationSchema = z.object({
+      page: z.coerce
+         .number()
+         .int()
+         .min(1, "Page must be at least 1")
+         .default(1),
+     
+       limit: z.coerce
+         .number()
+         .int()
+         .min(1, "Limit must be at least 1")
+         .max(100, "Limit cannot exceed 100")
+         .default(20),
+})
 
 export type ID = z.infer<typeof idSchema>
 export type createWorkspaceDTO = z.infer<typeof workspaceSchema>

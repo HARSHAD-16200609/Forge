@@ -83,6 +83,9 @@ model Session {
   createdAt        DateTime @default(now())
   userAgent        String?
   ipAddress        String?
+  deviceName       String?
+  browser          String?
+  os               String?
 
   user user @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

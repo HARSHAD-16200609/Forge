@@ -4,7 +4,7 @@ import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { clearCookieOptions, accessCookieOptions, refreshCookieOptions } from "../../config/env";
 import { authService } from "./auth.service";
-import { cookieTokens, loginSchema, registerSchema, reqUserSchema } from "../../db/auth-schema";
+import { cookieTokens, loginSchema, refreshToken, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import z from "zod";
 import { idSchema } from "../../db/workspace";
@@ -44,7 +44,7 @@ export const Login = asyncHandler(async (req, res) => {
   }
   const userMetaData = {
    ip: req.ip ?? "",
-   userAgent : req.get("user-agent") ?? ""
+   userAgent : req.get("user-agent") ?? "",
   }
   const sessionInfo = await authService.Login(result.data,userMetaData)
 
@@ -67,8 +67,10 @@ export const Login = asyncHandler(async (req, res) => {
 })
 
 export const RefreshAcessToken = asyncHandler(async (req, res) => {
+  const result = refreshToken.safeParse(req.cookies)
 
-  const accessToken = await authService.Refresh(req.cookies)
+  if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+  const accessToken = await authService.Refresh(result.data.refreshToken)
 
   loggers.auth.info("AcessTokenRefreshed", {
     ip: req.ip,
@@ -104,5 +106,21 @@ export const Logout = asyncHandler(async (req, res) => {
 
 })
 
+export const LogoutFromAllDevices = asyncHandler(async(req,res)=>{
+      const result = reqUserSchema.safeParse(req.user)
 
+  if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+
+
+  await authService.LogoutFromAllDevices(result.data.userId)
+    loggers.auth.info("Logout Successfully", {
+
+    userId: req.user.userId,
+    username: req.user.username,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  })
+  res.clearCookie("accessToken", clearCookieOptions).clearCookie("refreshToken", clearCookieOptions)
+  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "Logged Out From all Devices"))
+})
 

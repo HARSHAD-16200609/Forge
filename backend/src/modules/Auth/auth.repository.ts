@@ -104,12 +104,17 @@ async findUserForLogin(identifier: string) {
       data:session
     })
   }
-  async findUserbyUserIdinSession(userId: string){
+  async findSession(refreshTokenHash: string,expiry?:Date){
         const refreshToken = await prisma.session.findFirst({
           where:{
-          userId
+          refreshTokenHash,
+            ...(expiry && {
+                expiresAt: {
+                    gt: expiry,
+                },
+            }),
           },select:{
-            refreshTokenHash:true
+            userId:true
           }
         })
         return refreshToken
@@ -123,6 +128,13 @@ async deleteSession(refreshTokenHash:string){
   })
 }
 
+async deleteAllSession(userId:string){
+  await prisma.session.deleteMany({
+    where: {
+      userId
+    }
+  })
+}
  async userExists(username :string){
   const id = await prisma.user.findFirst({
     where : {
