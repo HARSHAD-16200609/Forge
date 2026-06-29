@@ -8,13 +8,13 @@ import { verifyJwt } from "../../middlewares/verifyJwt";
 
 const workspaceRouter = Router()
 
-workspaceRouter.route("/create/workspace").post(verifyJwt,createWorkspace)
-workspaceRouter.route("/get/workspaces").get(verifyJwt,getAllWorkspaces)
-workspaceRouter.route("/addUser/workspace/:id").post(verifyJwt,addUserToWorkspace)
-workspaceRouter.route("/get/workspace/:id").get(verifyJwt,getWorkspace)
-workspaceRouter.route("/get/workspace/:id/members").get(verifyJwt,getAllMembers)
-workspaceRouter.route("/get/workspace/:workspaceId/member/:memberId").delete(verifyJwt,deleteWSMember)
-workspaceRouter.route("/update/workspace/:workspaceId/member/:memberId").patch(verifyJwt,updateRole)
+workspaceRouter.route("/workspace").post(verifyJwt,createWorkspace)
+workspaceRouter.route("/workspaces").get(verifyJwt,getAllWorkspaces)
+workspaceRouter.route("/workspace/:id").post(verifyJwt,addUserToWorkspace)
+workspaceRouter.route("/workspace/:id").get(verifyJwt,getWorkspace)
+workspaceRouter.route("/workspace/:id/members").get(verifyJwt,getAllMembers)
+workspaceRouter.route("/workspace/:workspaceId/member/:memberId").delete(verifyJwt,deleteWSMember)
+workspaceRouter.route("/workspace/:workspaceId/member/:memberId").patch(verifyJwt,updateRole)
 
 
 

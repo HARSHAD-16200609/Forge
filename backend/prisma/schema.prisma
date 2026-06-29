@@ -140,6 +140,18 @@ model channel {
   @@unique([workspaceId, channelName])
 }
 
+model channelMember {
+  id                String          @id @default(uuid())
+  isCreator         Boolean         @default(false)
+  workspaceMemberId String
+  workspaceMember   workspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  channelId         String
+  channel           channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  joinedAt          DateTime        @default(now())
+
+  @@unique([workspaceMemberId, channelId])
+}
+
 model message {
   id             String        @id @default(uuid())
   content        String
@@ -161,17 +173,7 @@ model message {
   @@index([conversationId])
 }
 
-model channelMember {
-  id                String          @id @default(uuid())
-  isCreator         Boolean         @default(false)
-  workspaceMemberId String
-  workspaceMember   workspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
-  channelId         String
-  channel           channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  joinedAt          DateTime        @default(now())
 
-  @@unique([workspaceMemberId, channelId])
-}
 
 model conversation {
   id        String               @id @default(uuid())

@@ -54,6 +54,11 @@ class WorkspaceRepository {
       where: {
         id: workspaceId
       }, include: {
+        channels:{
+          select:{
+            channelName:true,
+          }
+        },
         members: {
           select: {
             role: true,

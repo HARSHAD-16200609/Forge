@@ -1,42 +1,20 @@
 
-import { StatementSync } from "node:sqlite";
 import { createWorkspaceDTO, roleDTO, workspaceMemberDTO, workspaceMemberSchema, workspaceSchema, wsMemberDeleteUpdateDTO } from "../../db/workspace";
 import { ApiError } from "../../utility/errorHandling/ApiError";
 import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFoundError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { workspaceRepository } from "./workspace.repository";
-import { StatusCodes } from "http-status-codes";
-import { prisma } from "../../config/prisma";
 import { authRepository } from "../Auth/auth.repository";
 import { Prisma, Role } from "../../../generated/prisma/client";
-import { equal } from "node:assert";
-import { is } from "zod/v4/locales";
-import { loggers } from "../../utility/logger/serviceLoggers";
 import { canWorkspace } from "../../utility/Authorization/Permissions";
-import { throwDeprecation } from "node:process";
+
 
 
 class WorkspaceService {
 
     async createWorkspace(Workspace: createWorkspaceDTO, user: { userId: string, username: string }) {
-        const ws = await workspaceRepository.workspaceExists(Workspace.workspaceName)
-        if (!ws) {
-            const workspace = await workspaceRepository.createWorkspace(Workspace, user)
 
-
-            return workspace
-        }
-        else {
-            const owner = await workspaceRepository.memberExists(user.userId, ws.id)
-            if (owner) {
-                throw new ConfilctError(`Workspace named ${Workspace.workspaceName} already exists`)
-            }
-            const workspace = await workspaceRepository.createWorkspace(Workspace, user)
-
-
-            return workspace
-
-        }
-
+        const workspace = await workspaceRepository.createWorkspace(Workspace, user)
+        return workspace
 
 
     }
@@ -104,7 +82,7 @@ class WorkspaceService {
         }
     }
 
-    async getAllMembers(workspaceId: string, userId: string,Pagination:{page:number,limit:number}) {
+    async getAllMembers(workspaceId: string, userId: string, Pagination: { page: number, limit: number }) {
 
 
         const member = await workspaceRepository.memberExists(userId, workspaceId)
@@ -115,14 +93,14 @@ class WorkspaceService {
 
         if (!canWorkspace(role ?? "MEMBER", "workspaceMember", "read")) throw new ForbiddenError("You are not authorized to  perform this Action")
 
-        const WSmembers = await workspaceRepository.getAllMembers(workspaceId,Pagination)
+        const WSmembers = await workspaceRepository.getAllMembers(workspaceId, Pagination)
         const members = WSmembers.wsMembers.map(u => ({
             ...u.user,
             role: u.role,
         }));
 
 
-        return {workspaceMembers :members,hasMore:WSmembers.hasMore,toal:WSmembers.total}
+        return { workspaceMembers: members, hasMore: WSmembers.hasMore, toal: WSmembers.total }
 
 
 
