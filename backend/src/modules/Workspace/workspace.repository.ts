@@ -19,23 +19,48 @@ class WorkspaceRepository {
     },
     user: { userId: string; username: string }
   ) {
-    const ws = await prisma.workspace.create({
-      data: {
-        ...workspace,
-        members: {
-          create: {
-            userId: user.userId,
-            role: Role.OWNER,
-          },
-        },
-      },
-      include: {
-        members: true,
-      },
-    }
-    );
+    const ws = await prisma.$transaction(async (tx) => {
 
-    return ws;
+      const ws = await tx.workspace.create({
+        data: {
+          workspaceName: workspace.workspaceName,
+          visibility: workspace.visibility,
+          description: workspace.description,
+        },
+      });
+
+      const owner = await tx.workspaceMember.create({
+        data: {
+          workspaceId: ws.id,
+          userId: user.userId,
+          role: Role.OWNER,
+        },
+      });
+
+      const generalChannel = await tx.channel.create({
+        data: {
+          workspaceId: ws.id,
+          channelName: "general",
+          description: "General discussions",
+          visibility: Visibility.PUBLIC,
+          isDefault: true,
+          createdByWorkspaceMemberId: owner.id,
+        },
+      });
+
+      await tx.channelMember.create({
+        data: {
+          channelId: generalChannel.id,
+          workspaceMemberId: owner.id,
+          isCreator: true,
+        },
+      });
+
+
+      return ws;
+    });
+
+
   }
 
   async findworkspaceByName(workspaceName: string) {
@@ -55,9 +80,9 @@ class WorkspaceRepository {
       where: {
         id: workspaceId
       }, include: {
-        channels:{
-          select:{
-            channelName:true,
+        channels: {
+          select: {
+            channelName: true,
           }
         },
         members: {
@@ -179,7 +204,7 @@ class WorkspaceRepository {
     }
     const [wsMembers, total] = await Promise.all([prisma.workspaceMember.findMany({
       where, skip,
-          take:limit,
+      take: limit,
       select: {
         role: true,
         user: {
@@ -187,11 +212,11 @@ class WorkspaceRepository {
             username: true,
             avatar: true
           },
-         
+
 
         }
-      }, orderBy:{
-        role:"desc"
+      }, orderBy: {
+        role: "desc"
       }
     }), prisma.workspaceMember.count({ where })])
 
@@ -235,7 +260,7 @@ class WorkspaceRepository {
     return user
   }
 
- 
+
 
 
 }

@@ -130,6 +130,7 @@ model channel {
   visibility  Visibility @default(PUBLIC)
   channelName String
   description String?
+  isDefault   Boolean @default(false)
   workspace   workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
   createdAt   DateTime   @default(now())
