@@ -49,6 +49,7 @@ class InviteService {
     invites = await inviteRepository.getReceivedInvites(InviteeId, inviteType.status,pagination);
   }
 
+
   return invites;
 
         } catch (err) {

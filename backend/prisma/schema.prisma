@@ -114,6 +114,7 @@ model workspaceMember {
   workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   channelMemberships channelMember[]
+  channels           channel[]
 
   @@unique([userId, workspaceId])
 }
@@ -125,17 +126,19 @@ enum Role {
 }
 
 model channel {
-  id          String          @id @default(uuid())
-  visibility  Visibility      @default(PUBLIC)
+  id          String     @id @default(uuid())
+  visibility  Visibility @default(PUBLIC)
   channelName String
   description String?
-  workspace   workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  messages    message[]
-  members     channelMember[]
-  invites     channelInvite[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdByWorkspaceMemberId String
+  createdBy workspaceMember @relation(fields: [createdByWorkspaceMemberId], references: [id])
+  messages message[]
+  members  channelMember[]
+  invites  channelInvite[]
 
   @@unique([workspaceId, channelName])
 }
@@ -154,10 +157,11 @@ model channelMember {
 
 model message {
   id             String        @id @default(uuid())
-  content        String
+  content        String        @db.Text
   senderId       String?
   sentAt         DateTime      @default(now())
   editedAt       DateTime?
+  deletedAt      DateTime?
   sender         user?         @relation(fields: [senderId], references: [id], onDelete: SetNull)
   channelId      String?
   channel        channel?      @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -169,11 +173,9 @@ model message {
   parentMsg      message?      @relation("MessageReplies", fields: [parentMsgId], references: [id])
   replies        message[]     @relation("MessageReplies")
 
-  @@index([channelId])
+  @@index([channelId, sentAt])
   @@index([conversationId])
 }
-
-
 
 model conversation {
   id        String               @id @default(uuid())
