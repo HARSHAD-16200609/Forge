@@ -19,7 +19,7 @@ class WorkspaceRepository {
     },
     user: { userId: string; username: string }
   ) {
-    const ws = await prisma.$transaction(async (tx) => {
+    const Workspace = await prisma.$transaction(async (tx) => {
 
       const ws = await tx.workspace.create({
         data: {
@@ -59,7 +59,7 @@ class WorkspaceRepository {
 
       return ws;
     });
-
+return Workspace
 
   }
 

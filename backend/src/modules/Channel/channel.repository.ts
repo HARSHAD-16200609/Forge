@@ -139,7 +139,8 @@ class ChannelRepository {
                 id: channelId
             },select:{
              id:true,
-             createdByWorkspaceMemberId:true
+             createdByWorkspaceMemberId:true,
+             isDefault:true
             }
                 
             

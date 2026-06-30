@@ -123,7 +123,7 @@ export const getAllMembers = asyncHandler(async (req, res) => {
     if (!User.success) throw new UnauthorizedAccessError("Invalid UserId")
 
 
-    const members = await workspaceService.getAllMembers(result.data.id, User.data.userId,Pagination.data)
+    const members = await workspaceService.getAllMembers(result.data.id, User.data.userId, Pagination.data)
 
     loggers.db.info("Ws Members fetched Sucessfully ...", {
         ip: req.ip,

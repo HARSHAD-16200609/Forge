@@ -1,7 +1,7 @@
 import { Prisma, Role, Visibility } from "../../../generated/prisma/client";
 import { channelParamsDTO, createChannelDTO, updateChannelDTO } from "../../db/channel.schema";
 import { canWorkspace } from "../../utility/Authorization/Permissions";
-import { ConfilctError, ForbiddenError, NotFoundError, UnauthorizedAccessError } from "../../utility/errorHandling/customErrors";
+import { BadRequestError, ConfilctError, ForbiddenError, NotFoundError, UnauthorizedAccessError } from "../../utility/errorHandling/customErrors";
 import { workspaceRepository } from "../Workspace/workspace.repository";
 import { deleteChannel } from "./channel.controller";
 import { channelRepository } from "./channel.repository";
@@ -77,10 +77,14 @@ class ChannelService {
     async updateChannel(newChannelDetails: updateChannelDTO, userId: string, Channel: channelParamsDTO) {
         const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
         if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
-
+        const channel = await channelRepository.channelExists(Channel.channelId)
+        if (!channel) throw new NotFoundError("Channel Not Found")
         try {
-            if (!canWorkspace(member.role, "channel", "update")) {
-                throw new ForbiddenError("You are not Allowed to Update the Channel")
+            const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
+            const isChannelCreator = member.id === channel.createdByWorkspaceMemberId;
+
+            if (!hasWorkspacePermission && !isChannelCreator) {
+                throw new ForbiddenError("You are not allowed to delete the channel.");
             }
             const updatedChannel = await channelRepository.updateChannel(newChannelDetails, Channel)
             return updatedChannel
@@ -96,7 +100,7 @@ class ChannelService {
         const channel = await channelRepository.channelExists(Channel.channelId)
         if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
         if (!channel) throw new NotFoundError("Channel Not Found")
-
+        if (channel.isDefault) throw new BadRequestError("Default channels can't be deleted")
         try {
             const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
             const isChannelCreator = member.id === channel.createdByWorkspaceMemberId;
