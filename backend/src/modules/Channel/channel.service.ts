@@ -3,6 +3,7 @@ import { channelParamsDTO, createChannelDTO, updateChannelDTO } from "../../db/c
 import { canWorkspace } from "../../utility/Authorization/Permissions";
 import { ConfilctError, ForbiddenError, NotFoundError, UnauthorizedAccessError } from "../../utility/errorHandling/customErrors";
 import { workspaceRepository } from "../Workspace/workspace.repository";
+import { deleteChannel } from "./channel.controller";
 import { channelRepository } from "./channel.repository";
 
 class ChannelService {
@@ -83,6 +84,28 @@ class ChannelService {
             }
             const updatedChannel = await channelRepository.updateChannel(newChannelDetails, Channel)
             return updatedChannel
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new NotFoundError("Channel not Found")
+
+            throw err
+        }
+
+    }
+    async deleteChannel(Channel: channelParamsDTO, userId: string) {
+        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        const channel = await channelRepository.channelExists(Channel.channelId)
+        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
+        if (!channel) throw new NotFoundError("Channel Not Found")
+
+        try {
+            const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
+            const isChannelCreator = member.id === channel.createdByWorkspaceMemberId;
+
+            if (!hasWorkspacePermission && !isChannelCreator) {
+                throw new ForbiddenError("You are not allowed to delete the channel.");
+            }
+            await channelRepository.deleteChannel(Channel.channelId)
+
         } catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new NotFoundError("Channel not Found")
 

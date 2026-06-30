@@ -40,6 +40,7 @@ class ChannelRepository {
             return channel;
         });
     }
+
     async getAllChannels(workspaceId: string) {
         const channels = await prisma.channel.findMany({
             where: {
@@ -54,6 +55,7 @@ class ChannelRepository {
         });
         return channels
     }
+
     async getVisibleChannelsForMember(workspaceId: string, workspaceMemberId: string) {
         const channels = await prisma.channel.findMany({
             where: {
@@ -99,6 +101,7 @@ class ChannelRepository {
         });
         return channel
     }
+
     async getVisibleChannel(
         channelId: string,
         workspaceMemberId: string
@@ -129,11 +132,17 @@ class ChannelRepository {
             },
         });
     }
+
     async channelExists(channelId: string) {
         const id = await prisma.channel.findUnique({
             where: {
                 id: channelId
+            },select:{
+             id:true,
+             createdByWorkspaceMemberId:true
             }
+                
+            
         })
         return id;
     }
@@ -161,6 +170,13 @@ class ChannelRepository {
         return updatedChannel
     }
 
+ async deleteChannel(channelId:string){
+    await prisma.channel.delete({
+      where:{
+        id: channelId
+      }
+    })
+  }
 
 }
 
