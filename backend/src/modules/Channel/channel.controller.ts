@@ -118,9 +118,9 @@ export const deleteChannel = asyncHandler(async (req, res) => {
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
     if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
 
-    await channelService.deleteChannel(Channel.data,User.data.userId)
+    await channelService.deleteChannel(Channel.data, User.data.userId)
 
-        loggers.db.info("Channel Deleted SucessFully", {
+    loggers.db.info("Channel Deleted SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
         channelId: Channel.data.channelId,
@@ -132,4 +132,25 @@ export const deleteChannel = asyncHandler(async (req, res) => {
     res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Channel Deleted Sucessfully"))
 
 
+})
+
+export const joinChannel = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Channel = ChannelParamsSchema.safeParse(req.params)
+    if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
+    if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
+
+    const channelMember = await channelService.joinPubChannel(Channel.data,User.data.userId)
+
+        loggers.db.info("Channel Deleted SucessFully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        channelId: Channel.data.channelId,
+        createdAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, channelMember, "Channel Joined Sucessfully"))
+    
 })

@@ -11,7 +11,7 @@ class ChannelService {
     async createChannel(channelData: createChannelDTO, workspaceId: string, userId: string) {
 
         const member = await workspaceRepository.memberExists(userId, workspaceId)
-        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
 
         try {
             const channel = await channelRepository.createChannel(channelData, workspaceId, member.id)
@@ -26,7 +26,7 @@ class ChannelService {
 
     async getChannels(workspaceId: string, userId: string) {
         const member = await workspaceRepository.memberExists(userId, workspaceId)
-        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
 
         try {
 
@@ -50,9 +50,9 @@ class ChannelService {
     }
     async getChannel(Channel: channelParamsDTO, userId: string) {
         const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
 
-        const id = await channelRepository.channelExists(Channel.channelId)
+        const id = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
         if (!id) throw new NotFoundError("Channel Not found")
 
         try {
@@ -76,8 +76,8 @@ class ChannelService {
 
     async updateChannel(newChannelDetails: updateChannelDTO, userId: string, Channel: channelParamsDTO) {
         const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
-        const channel = await channelRepository.channelExists(Channel.channelId)
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
         if (!channel) throw new NotFoundError("Channel Not Found")
         try {
             const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
@@ -97,8 +97,8 @@ class ChannelService {
     }
     async deleteChannel(Channel: channelParamsDTO, userId: string) {
         const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        const channel = await channelRepository.channelExists(Channel.channelId)
-        if (!member) throw new UnauthorizedAccessError("You are not a member of this workspace")
+        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
         if (!channel) throw new NotFoundError("Channel Not Found")
         if (channel.isDefault) throw new BadRequestError("Default channels can't be deleted")
         try {
@@ -113,6 +113,25 @@ class ChannelService {
         } catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new NotFoundError("Channel not Found")
 
+            throw err
+        }
+
+    }
+    async joinPubChannel(Channel: channelParamsDTO, userId: string) {
+        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
+        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        if (!channel) throw new NotFoundError("Channel Not Found")
+
+        try {
+            if(channel.visibility === Visibility.PRIVATE) throw new ForbiddenError("This is a private channel. An invitation is required to join.")
+            const channelMember = await channelRepository.joinChannel(member.id, Channel.channelId)
+            return channelMember
+        }
+        catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+                throw new ConfilctError("You are Already an member of this Channel")
+            }
             throw err
         }
 
