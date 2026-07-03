@@ -97,7 +97,7 @@ class ChannelRepository {
                 visibility: true,
                 channelName: true,
                 description: true
-            }
+          }
         });
         return channel
     }
@@ -128,7 +128,7 @@ class ChannelRepository {
                 visibility: true,
                 channelName: true,
                 description: true
-
+                
             },
         });
     }
@@ -190,6 +190,37 @@ class ChannelRepository {
         }
         )
         return channelMember
+    }
+    async leaveChannel(workspaceMemberId: string, channelId: string) {
+        await prisma.channelMember.delete({
+            where: {
+                workspaceMemberId_channelId: {
+                    workspaceMemberId, channelId
+                }
+            }
+        })
+    }
+
+    async memberExists(workspaceMemberId: string, channelId: string) {
+        const member = await prisma.channelMember.findUnique({
+            where: {
+                workspaceMemberId_channelId: {
+                    workspaceMemberId, channelId
+                }
+            }, select: {
+                workspaceMemberId: true
+            }
+        })
+        return member
+    }
+    async removeMember(workspaceMemberId: string, channelId: string) {
+        await prisma.channelMember.delete({
+            where: {
+                workspaceMemberId_channelId: {
+                    workspaceMemberId, channelId
+                }
+            }
+        })
     }
 
 }

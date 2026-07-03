@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJwt } from "../../middlewares/verifyJwt";
-import { createChannel, deleteChannel, getChannel, getChannels, joinChannel, updateChannel } from "./channel.controller";
+import { createChannel, deleteChannel, getChannel, getChannels, joinChannel, leaveChannel, removeMember, updateChannel } from "./channel.controller";
 
 
 const channelRouter = Router()
@@ -12,6 +12,10 @@ channelRouter.route("/workspace/:workspaceId/channels/:channelId").get(verifyJwt
 channelRouter.route("/workspace/:workspaceId/channels/:channelId").patch(verifyJwt,updateChannel)
 channelRouter.route("/workspace/:workspaceId/channels/:channelId").delete(verifyJwt,deleteChannel)
 channelRouter.route("/workspace/:workspaceId/channels/:channelId").post(verifyJwt,joinChannel)
+channelRouter.route("/workspace/:workspaceId/channels/:channelId/leave").post(verifyJwt,leaveChannel)
+channelRouter.route("/workspace/:workspaceId/channels/:channelId/members/:memberId").delete(verifyJwt,removeMember)
+
+
 
 
 

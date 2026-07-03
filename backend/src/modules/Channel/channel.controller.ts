@@ -140,9 +140,9 @@ export const joinChannel = asyncHandler(async (req, res) => {
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
     if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
 
-    const channelMember = await channelService.joinPubChannel(Channel.data,User.data.userId)
+    const channelMember = await channelService.joinPubChannel(Channel.data, User.data.userId)
 
-        loggers.db.info("Channel Deleted SucessFully", {
+    loggers.db.info("Channel Deleted SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
         channelId: Channel.data.channelId,
@@ -152,5 +152,45 @@ export const joinChannel = asyncHandler(async (req, res) => {
     })
 
     res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, channelMember, "Channel Joined Sucessfully"))
-    
+
+})
+
+export const leaveChannel = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Channel = ChannelParamsSchema.safeParse(req.params)
+    if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
+    if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
+
+    await channelService.leaveChannel(Channel.data, User.data.userId)
+
+    loggers.db.info("Channel leaved SucessFully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        channelId: Channel.data.channelId,
+        leavedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Channel Leaved"))
+})
+
+export const removeMember = asyncHandler(async(req,res) =>{
+      const User = reqUserSchema.safeParse(req.user)
+    const Channel = ChannelParamsSchema.safeParse(req.params)
+    if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
+    if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
+
+         await channelService.removeMember(Channel.data, User.data.userId)
+           loggers.db.info("Member removed SucessFully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        channelId: Channel.data.channelId,
+        removedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Member Removed"))
+
 })

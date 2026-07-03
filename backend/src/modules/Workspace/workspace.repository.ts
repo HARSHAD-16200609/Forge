@@ -259,7 +259,13 @@ return Workspace
     });
     return user
   }
-
+async getUserByworkspceMemberId(id :string){
+  return await prisma.workspaceMember.findUnique({
+    where:{
+      id
+    }
+  })
+}
 
 
 

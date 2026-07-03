@@ -1,8 +1,8 @@
 // authz/permissions.ts
 import { Role, Visibility } from "../../../generated/prisma/enums";
 
-export type Resource = "workspace" | "workspaceMember" | "channel" | "channelMessage";
-export type Action = "create" | "read" | "update" | "delete" | "invite" | "manageRoles" | "archive";
+export type Resource = "workspace" | "workspaceMember" | "channel" | "channelMessage" | "channelMember";
+export type Action = "create" | "read" | "update" | "delete" | "invite" | "manageRoles" | "archive" | "remove";
 
 
 const WORKSPACE_MATRIX: Record<Role, Partial<Record<Resource, Action[]>>> = {
@@ -10,19 +10,21 @@ const WORKSPACE_MATRIX: Record<Role, Partial<Record<Resource, Action[]>>> = {
     workspace: ["read", "update", "delete"],
     workspaceMember: ["create", "read", "delete", "invite", "manageRoles"],
     channel: ["create", "read", "update", "delete", "archive"],
-    channelMessage: ["create", "read", "update", "delete"], // override: can moderate any message
+    channelMessage: ["create", "read", "update", "delete"],
+    channelMember: ["invite", "remove"]
   },
   [Role.ADMIN]: {
     workspace: ["read", "update"],
     workspaceMember: ["create", "read", "delete", "invite"],
     channel: ["create", "read", "update", "delete", "archive"],
-    channelMessage: ["create", "read", "update", "delete"], // override: can moderate any message
+    channelMessage: ["create", "read", "update", "delete"],
+    channelMember: ["invite", "remove"]
   },
   [Role.MEMBER]: {
     workspace: ["read"],
     workspaceMember: ["read"],
-    channel: ["create", "read"], 
-    channelMessage: ["create", "read", "update"], // own messages only — enforced separately, see below
+    channel: ["create", "read"],
+    channelMessage: ["create", "read", "update"], 
   },
 };
 

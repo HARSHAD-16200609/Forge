@@ -10,11 +10,11 @@ class ChannelService {
 
     async createChannel(channelData: createChannelDTO, workspaceId: string, userId: string) {
 
-        const member = await workspaceRepository.memberExists(userId, workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
         try {
-            const channel = await channelRepository.createChannel(channelData, workspaceId, member.id)
+            const channel = await channelRepository.createChannel(channelData, workspaceId, workspaceMember.id)
 
             return channel
         }
@@ -25,19 +25,19 @@ class ChannelService {
     }
 
     async getChannels(workspaceId: string, userId: string) {
-        const member = await workspaceRepository.memberExists(userId, workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
         try {
 
-            if (member.role === Role.ADMIN || member.role === Role.OWNER) {
+            if (workspaceMember.role === Role.ADMIN || workspaceMember.role === Role.OWNER) {
                 const channels = await channelRepository.getAllChannels(workspaceId)
                 if (channels.length === 0) throw new NotFoundError("No channel Found in this Workspace")
                 return { Channels: channels }
 
             }
 
-            const channels = await channelRepository.getVisibleChannelsForMember(workspaceId, member.id)
+            const channels = await channelRepository.getVisibleChannelsForMember(workspaceId, workspaceMember.id)
             if (channels.length === 0) throw new NotFoundError("No channel Found in this Workspace")
             return { Channels: channels }
 
@@ -49,20 +49,20 @@ class ChannelService {
 
     }
     async getChannel(Channel: channelParamsDTO, userId: string) {
-        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const workspaceMember = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
-        const id = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
+        const id = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
         if (!id) throw new NotFoundError("Channel Not found")
 
         try {
-            if (member.role === Role.ADMIN || member.role === Role.OWNER) {
+            if (workspaceMember.role === Role.ADMIN || workspaceMember.role === Role.OWNER) {
                 const channel = await channelRepository.getChannelById(Channel.channelId)
                 return { Channels: channel }
 
             }
 
-            const channel = await channelRepository.getVisibleChannel(Channel.channelId, member.id)
+            const channel = await channelRepository.getVisibleChannel(Channel.channelId, workspaceMember.id)
             if (!channel) throw new NotFoundError("Channel Not Found")
             return { Channels: channel }
 
@@ -75,13 +75,13 @@ class ChannelService {
     }
 
     async updateChannel(newChannelDetails: updateChannelDTO, userId: string, Channel: channelParamsDTO) {
-        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
-        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
+        const workspaceMember = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
+        const channel = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
         if (!channel) throw new NotFoundError("Channel Not Found")
         try {
-            const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
-            const isChannelCreator = member.id === channel.createdByWorkspaceMemberId;
+            const hasWorkspacePermission = canWorkspace(workspaceMember.role, "channel", "delete");
+            const isChannelCreator = workspaceMember.id === channel.createdByWorkspaceMemberId;
 
             if (!hasWorkspacePermission && !isChannelCreator) {
                 throw new ForbiddenError("You are not allowed to delete the channel.");
@@ -96,14 +96,14 @@ class ChannelService {
 
     }
     async deleteChannel(Channel: channelParamsDTO, userId: string) {
-        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const workspaceMember = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        const channel = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
         if (!channel) throw new NotFoundError("Channel Not Found")
         if (channel.isDefault) throw new BadRequestError("Default channels can't be deleted")
         try {
-            const hasWorkspacePermission = canWorkspace(member.role, "channel", "delete");
-            const isChannelCreator = member.id === channel.createdByWorkspaceMemberId;
+            const hasWorkspacePermission = canWorkspace(workspaceMember.role, "channel", "delete");
+            const isChannelCreator = workspaceMember.id === channel.createdByWorkspaceMemberId;
 
             if (!hasWorkspacePermission && !isChannelCreator) {
                 throw new ForbiddenError("You are not allowed to delete the channel.");
@@ -118,14 +118,14 @@ class ChannelService {
 
     }
     async joinPubChannel(Channel: channelParamsDTO, userId: string) {
-        const member = await workspaceRepository.memberExists(userId, Channel.workspaceId)
-        const channel = await channelRepository.channelExists(Channel.channelId,Channel.workspaceId)
-        if (!member) throw new ForbiddenError("You are not a member of this workspace")
+        const workspaceMember = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        const channel = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
         if (!channel) throw new NotFoundError("Channel Not Found")
 
         try {
-            if(channel.visibility === Visibility.PRIVATE) throw new ForbiddenError("This is a private channel. An invitation is required to join.")
-            const channelMember = await channelRepository.joinChannel(member.id, Channel.channelId)
+            if (channel.visibility === Visibility.PRIVATE) throw new ForbiddenError("This is a private channel. An invitation is required to join.")
+            const channelMember = await channelRepository.joinChannel(workspaceMember.id, Channel.channelId)
             return channelMember
         }
         catch (err) {
@@ -135,6 +135,115 @@ class ChannelService {
             throw err
         }
 
+    }
+    async leaveChannel(Channel: channelParamsDTO, userId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, Channel.workspaceId)
+        const channel = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
+        if (!channel) throw new NotFoundError("Channel Not Found")
+
+        const channelMember = await channelRepository.memberExists(workspaceMember.id, Channel.channelId)
+        if (!channelMember) throw new BadRequestError("You are not an member of this Channel")
+        if (channel.isDefault) {
+            throw new BadRequestError("Can't Leave an Default Channel")
+        }
+
+
+        await channelRepository.leaveChannel(workspaceMember.id, channel.id)
+
+
+
+    }
+
+    async removeMember(Channel: channelParamsDTO, userId: string) {
+        if (!Channel.memberId) {
+            throw new BadRequestError("Invalid memberId");
+        }
+
+        const workspaceMember = await workspaceRepository.memberExists(
+            userId,
+            Channel.workspaceId
+        );
+
+        if (!workspaceMember) {
+            throw new ForbiddenError(
+                "You are not a member of this workspace"
+            );
+        }
+
+        const channel = await channelRepository.channelExists(
+            Channel.channelId,
+            Channel.workspaceId
+        );
+
+        if (!channel) {
+            throw new NotFoundError("Channel not found");
+        }
+
+        if (channel.isDefault) {
+            throw new BadRequestError(
+                "Members cannot be removed from the default channel"
+            );
+        }
+
+        const memberToRemove =
+            await workspaceRepository.getUserByworkspceMemberId(
+                Channel.memberId
+            );
+
+        if (!memberToRemove) {
+            throw new NotFoundError("Workspace member not found");
+        }
+
+        const channelMember = await channelRepository.memberExists(
+            Channel.memberId,
+            Channel.channelId
+        );
+
+        if (!channelMember) {
+            throw new NotFoundError(
+                "Member is not part of this channel"
+            );
+        }
+
+        if (
+            !canWorkspace(
+                workspaceMember.role,
+                "channelMember",
+                "remove"
+            )
+        ) {
+            throw new ForbiddenError(
+                "You do not have permission to remove channel members"
+            );
+        }
+
+        if (memberToRemove.role === Role.OWNER) {
+            throw new ForbiddenError(
+                "Workspace owner cannot be removed from the channel"
+            );
+        }
+
+        if (
+            workspaceMember.role === Role.ADMIN &&
+            memberToRemove.role === Role.ADMIN
+        ) {
+            throw new ForbiddenError(
+                "Admins cannot remove other admins from a channel"
+            );
+        }
+
+        if (workspaceMember.id === Channel.memberId) {
+            throw new BadRequestError(
+                "Use the leave channel endpoint instead"
+            );
+        }
+
+        await channelRepository.removeMember(
+            Channel.memberId,
+            Channel.channelId
+        );
     }
 
 }
