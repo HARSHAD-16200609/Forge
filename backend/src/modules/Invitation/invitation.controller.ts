@@ -179,7 +179,7 @@ export const acceptChannelInvite = asyncHandler(async (req, res) => {
     const User = reqUserSchema.safeParse(req.user)
     const Invite = ChannelInviteSchema.safeParse(req.params)
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
-    if (!Invite.success) throw new UserInputValidationError("Invalid Token", Invite.error.flatten().fieldErrors)
+    if (!Invite.success) throw new UserInputValidationError("Invalid InviteId or workspaceId", Invite.error.flatten().fieldErrors)
 
     const acceptedInvite = await inviteService.acceptChannelInvite(User.data.userId, Invite.data)
 
@@ -200,7 +200,7 @@ export const rejectChannelInvite = asyncHandler(async (req, res) => {
     const User = reqUserSchema.safeParse(req.user)
     const Invite = ChannelInviteSchema.safeParse(req.params)
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
-    if (!Invite.success) throw new UserInputValidationError("Invalid Token", Invite.error.flatten().fieldErrors)
+    if (!Invite.success) throw new UserInputValidationError("Invalid InviteId or workspaceId", Invite.error.flatten().fieldErrors)
 
     const rejectedInvite = await inviteService.rejectChannelInvite(User.data.userId, Invite.data)
 
@@ -221,7 +221,7 @@ export const cancelChannelInvite = asyncHandler(async (req, res) => {
     const User = reqUserSchema.safeParse(req.user)
     const Invite = ChannelInviteSchema.safeParse(req.params)
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
-    if (!Invite.success) throw new UserInputValidationError("Invalid Token", Invite.error.flatten().fieldErrors)
+    if (!Invite.success) throw new UserInputValidationError("Invalid InviteId or workspaceId", Invite.error.flatten().fieldErrors)
 
     const cancelleddInvite = await inviteService.cancelChannelInvite(User.data.userId, Invite.data)
 

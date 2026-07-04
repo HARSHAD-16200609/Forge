@@ -8,11 +8,8 @@ import { globalErrorMiddleware } from "./middlewares/globalErrorHandler";
 const app = express();
 import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
-import { userRouter } from "./modules/Auth/auth.route";
-import { workspaceRouter } from "./modules/Workspace/workspace.route";
-import { inviteRouter } from "./modules/Invitation/invitation.route";
-import { channelRouter } from "./modules/Channel/channel.route";
 import "./jobs/cron-schedule"
+import { apiRouter } from "./routes.ts/routes";
 
 
 app.use(
@@ -54,7 +51,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/v1",userRouter,workspaceRouter,inviteRouter,channelRouter)
+app.use("/api/v1",apiRouter)
 
 
 app.use((_req, res) => {

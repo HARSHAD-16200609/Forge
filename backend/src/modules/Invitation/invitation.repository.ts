@@ -287,7 +287,7 @@ class InviteRepository {
         id: channelInviteId
       },
       data: {
-        status: Status.REJECTED
+        status: Status.REVOKED
       }
     })
     return revokedInvite
