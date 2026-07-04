@@ -126,20 +126,20 @@ enum Role {
 }
 
 model channel {
-  id          String     @id @default(uuid())
-  visibility  Visibility @default(PUBLIC)
-  channelName String
-  description String?
-  isDefault   Boolean @default(false)
-  workspace   workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id                         String          @id @default(uuid())
+  visibility                 Visibility      @default(PUBLIC)
+  channelName                String
+  description                String?
+  isDefault                  Boolean         @default(false)
+  workspace                  workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId                String
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
   createdByWorkspaceMemberId String
-  createdBy workspaceMember @relation(fields: [createdByWorkspaceMemberId], references: [id])
-  messages message[]
-  members  channelMember[]
-  invites  channelInvite[]
+  createdBy                  workspaceMember @relation(fields: [createdByWorkspaceMemberId], references: [id])
+  messages                   message[]
+  members                    channelMember[]
+  invites                    channelInvite[]
 
   @@unique([workspaceId, channelName])
 }
@@ -159,11 +159,11 @@ model channelMember {
 model message {
   id             String        @id @default(uuid())
   content        String        @db.Text
-  senderId       String?
+  senderId       String
   sentAt         DateTime      @default(now())
   editedAt       DateTime?
   deletedAt      DateTime?
-  sender         user?         @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  sender         user          @relation(fields: [senderId], references: [id], onDelete: NoAction)
   channelId      String?
   channel        channel?      @relation(fields: [channelId], references: [id], onDelete: Cascade)
   conversationId String?
@@ -175,7 +175,8 @@ model message {
   replies        message[]     @relation("MessageReplies")
 
   @@index([channelId, sentAt])
-  @@index([conversationId])
+  @@index([conversationId, sentAt])
+  @@index([parentMsgId])
 }
 
 model conversation {

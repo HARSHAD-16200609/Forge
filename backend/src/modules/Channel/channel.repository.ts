@@ -97,7 +97,7 @@ class ChannelRepository {
                 visibility: true,
                 channelName: true,
                 description: true
-          }
+            }
         });
         return channel
     }
@@ -128,7 +128,7 @@ class ChannelRepository {
                 visibility: true,
                 channelName: true,
                 description: true
-                
+
             },
         });
     }
@@ -222,6 +222,7 @@ class ChannelRepository {
             }
         })
     }
+    
 
 }
 
