@@ -3,9 +3,9 @@ import { MessageDTO } from "../../types/message";
 
 class MessageRepository {
 
-    async createMessage(Message: MessageDTO) {
+    async createMessage(message: MessageDTO) {
         return prisma.message.create({
-            data: Message,
+            data: message,
             select: {
                 id: true,
                 content: true,
@@ -37,15 +37,145 @@ class MessageRepository {
             }, include: {
                 sender: {
                     select: {
+                        username: true,
+                        avatar: true,
+                    },
+                },
+            }, omit: {
+                deletedAt: true,
+                channelId: true,
+                conversationId: true
+            }
+        })
+        return messages
+
+    }
+    async getById(messageId: string) {
+        const message = await prisma.message.findUnique({
+            where: {
+                id: messageId,
+            },
+            include: {
+                sender: {
+                    select: {
                         id: true,
                         username: true,
                         avatar: true,
                     },
                 },
-            },
-        })
-        return messages
+                channel: {
+                    select: {
+                        id: true,
+                        workspaceId: true,
+                    },
+                },
+                replies: {
+                    select: {
+                        content: true,
+                        sender: {
+                            select: {
+                                username: true,
+                                avatar: true
+                            }
+                        }
+                    }
+                },reactions:{
+                    select:{
+                        emoji:true
+                    }
+                }
+            }, omit: {
+                conversationId: true
+            }
+        });
+        return message
+    }
 
+    async editMessage(content: string, messageId: string) {
+        const editedMessage = await prisma.message.update({
+            where: {
+                id: messageId
+            }, data: {
+                content,
+                editedAt: new Date()
+            }
+        })
+        return editedMessage
+    }
+    async deleteMessage(messageId: string) {
+        const deletedMessage = await prisma.message.update({
+            where: {
+                id: messageId
+            }, data: {
+                deletedAt: new Date(),
+                content: ""
+            }
+        })
+
+    }
+
+    async createReply(message: MessageDTO, parentMessageId: string) {
+        if ("channelId" in message) {
+            const reply = await prisma.message.create({
+                data: {
+                    ...message,
+                    parentMsgId: parentMessageId
+                }
+
+            })
+            return reply
+        }
+        else return
+
+    }
+    async addReaction(userId: string, messageId: string,emoji:string){
+        const reaction = await prisma.reaction.create({
+            data:{
+                userId,
+                messageId,
+                emoji
+            }
+        })
+        return emoji
+    }
+
+    async reactionExists(userId: string, messageId: string) {
+        const reaction = await prisma.reaction.findFirst({
+            where: {
+
+                userId, messageId
+
+            },
+            select: {
+                emoji:true
+            }
+        })
+        return reaction
+
+    }
+
+    async toggleReaction(userId: string, messageId: string, emoji: string) {
+         await prisma.reaction.delete({
+            where: {
+                userId_messageId_emoji: {
+                    userId, messageId, emoji
+                }
+            }
+        })
+      
+    }
+
+    async updateReaction(userId: string, messageId: string, emoji: string) {
+        const reaction = await prisma.reaction.update({
+            where: {
+                userId_messageId_emoji: {
+                    userId, messageId, emoji
+                }
+            }, data: {
+                emoji
+            }
+        })
+        return reaction
     }
 }
 

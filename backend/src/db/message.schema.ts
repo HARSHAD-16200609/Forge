@@ -12,9 +12,21 @@ export const messageSchema = z.object({
 });
 
 export const getMessagesSchema = z.object({
-    cursor: z.string().uuid().optional(),
-    limit: z.coerce.number().min(1).max(100).default(30),
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(100).default(30),
 });
 
-export type  Message = z.infer<typeof messageSchema> 
-export type  getMessagesDTO = z.infer<typeof getMessagesSchema> 
+const ALLOWED_EMOJI = [
+  "👍", "👎", "❤️", "🔥", "🎉",
+  "😂", "😄", "😍", "😢", "😮",
+  "😡", "🙏", "👏", "💯", "✅",
+  "❌", "👀", "🤔", "🚀", "⭐"
+] as const;
+
+export const emojiSchema = z.object({
+  reaction: z.enum(ALLOWED_EMOJI),
+});
+
+
+export type Message = z.infer<typeof messageSchema>
+export type getMessagesDTO = z.infer<typeof getMessagesSchema> 
