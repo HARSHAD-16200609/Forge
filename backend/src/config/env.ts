@@ -12,7 +12,7 @@ const envSchema = z.object({
     "test",
   ]),
 
-    LOG_LEVEL: z.enum([
+  LOG_LEVEL: z.enum([
     "info",
     "warn",
     "fatal",
@@ -30,6 +30,18 @@ const envSchema = z.object({
 
   REFRESH_TOKEN_EXPIRES_IN: z.string().min(2),
 
+  CLOUDINARY_CLOUD_NAME: z
+    .string()
+    .min(1, "CLOUDINARY_CLOUD_NAME is required"),
+
+  CLOUDINARY_API_KEY: z
+    .string()
+    .regex(/^\d+$/, "CLOUDINARY_API_KEY must contain only digits"),
+
+  CLOUDINARY_API_SECRET: z
+    .string()
+    .min(1, "CLOUDINARY_API_SECRET is required"),
+
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -43,9 +55,9 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const clearCookieOptions : CookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production"
+export const clearCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production"
 }
 
 export const env = parsed.data;

@@ -8,19 +8,20 @@ import { messageService } from "./message.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { reqUserSchema } from "../../db/auth-schema";
 import { idSchema } from "../../db/workspace";
-import { channelService } from "../Channel/channel.service";
+
 
 export const postMessage = asyncHandler(async (req, res) => {
     const Channel = ChannelParamsSchema.safeParse(req.params)
     const Message = messageSchema.safeParse(req.body)
     const User = reqUserSchema.safeParse(req.user)
+    const attachments = (req.files as Express.Multer.File[]) ?? [];
 
     if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
     if (!Message.success) throw new UserInputValidationError("Invalid Input", Message.error.flatten().fieldErrors)
     if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
 
 
-    const message = await messageService.postMessage(Channel.data, Message.data.message.content, User.data)
+    const message = await messageService.postMessage(Channel.data, Message.data.content, User.data, attachments)
 
     loggers.db.info("Message Posted Sucessfully", {
         ip: req.ip,
@@ -88,7 +89,7 @@ export const editMessage = asyncHandler(async (req, res) => {
     if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
     if (!Message.success) throw new UserInputValidationError("Invalid Input", Message.error.flatten().fieldErrors)
 
-    const editedMessage = await messageService.editMessage(Message.data.message.content, User.data.userId, MessageId.data.id)
+    const editedMessage = await messageService.editMessage(Message.data.content, User.data.userId, MessageId.data.id)
     loggers.db.info("Message edited Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -132,7 +133,7 @@ export const postReply = asyncHandler(async (req, res) => {
     if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
     if (!Message.success) throw new UserInputValidationError("Invalid Input", Message.error.flatten().fieldErrors)
 
-    const reply = await messageService.postReply(User.data.userId, MessageId.data.id, Message.data.message.content)
+    const reply = await messageService.postReply(User.data.userId, MessageId.data.id, Message.data.content)
 
     loggers.db.info("Replied to the message Sucessfully", {
         ip: req.ip,
@@ -168,7 +169,7 @@ export const postReaction = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, reaction, "Reacted to the message sucessfully"))
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, reaction , "Reacted to the message sucessfully"))
 })
 
 

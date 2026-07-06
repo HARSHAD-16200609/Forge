@@ -40,12 +40,13 @@ enum EntityType {
 }
 
 enum fType {
-  DOC
-  IMG
-  VID
-  AUD
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  ARCHIVE
+  OTHER
 }
-
 enum Status {
   ACCEPTED
   REJECTED
@@ -228,13 +229,18 @@ model notification {
 }
 
 model upload {
-  id         String   @id @default(uuid())
-  fileType   fType?
-  filename   String
-  fileSize   String?
-  messageId  String?
-  message    message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  uploadedAt DateTime @default(now())
+  id          String   @id @default(uuid())
+
+  filename    String          
+  url         String          
+  publicId    String @unique         
+  mimeType    String      
+  fileType    fType
+  fileSize    Int       
+  messageId   String
+  message     message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedAt  DateTime @default(now())
+  deletedAt   DateTime?
 }
 
 model workspaceInvite {

@@ -4,25 +4,58 @@ import { channelRepository } from "../Channel/channel.repository";
 import { workspaceRepository } from "../Workspace/workspace.repository";
 import { messageRepository } from "./message.repositoty";
 import { ChannelMessageDTO } from "../../types/message";
+import { uploadService } from "./upload.service";
+import { getResourceType } from "../../db/message.schema";
+import { deleteFromCloudinary } from "../../config/cloudinary";
+import { fType } from "../../../generated/prisma/enums";
+
 
 
 class MessageService {
 
-    async postMessage(Channel: channelParamsDTO, content: string, User: { username: string, userId: string }) {
+    async postMessage(Channel: channelParamsDTO, content: string, User: { username: string, userId: string }, attachments: Express.Multer.File[]) {
         const workspaceMember = await workspaceRepository.memberExists(User.userId, Channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
         const channelMember = await channelRepository.memberExists(workspaceMember.id, Channel.channelId)
         if (!channelMember) throw new ForbiddenError("You are not an member of this channel")
 
-        const messageObject: ChannelMessageDTO = {
-            channelId: Channel.channelId,
-            senderId: User.userId,
-            content
-        }
+        let attachmentData: {
+            filename: string;
+            url: string;
+            publicId: string;
+            mimeType: string;
+            fileSize: number;
+            fileType: fType;
+        }[] = [];
+        try {
 
-        const message = await messageRepository.createMessage(messageObject)
-        return message
+            if (attachments.length > 0) {
+                attachmentData = await uploadService.uploadAttachments(attachments)
+            }
+
+            const messageObject: ChannelMessageDTO = {
+                channelId: Channel.channelId,
+                senderId: User.userId,
+                content
+            }
+
+   
+            const message = await messageRepository.createMessage(messageObject, attachmentData)
+
+            return message
+        } catch (err) {
+            if (attachmentData.length > 0) {
+            
+                await Promise.all(
+                    attachmentData.map((attachment) => {
+                        return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
+                    })
+                )
+            }
+            throw err
+
+        }
 
     }
 
@@ -161,30 +194,23 @@ class MessageService {
         if (reactionExists) {
             if (reactionExists.emoji === emoji) {
 
-               await messageRepository.toggleReaction(userId, messageId, emoji)
-               return {
-                action:"deleted",
-                data:{}
-               }
-            }
-            else {
-
-                reaction = await messageRepository.updateReaction(userId, messageId, emoji)
+                await messageRepository.toggleReaction(userId, messageId, emoji)
                 return {
-                    action:"updated",
-                    data:reaction
+                    action: "deleted",
+                    data: {}
                 }
-            }
-        }
-        else {
-            reaction = await messageRepository.addReaction(userId, messageId, emoji)
-               return {
-                    action:"posted",
-                    data:reaction
+            } else {
+                console.log("New Reaction posted")
+                reaction = await messageRepository.addReaction(userId, messageId, emoji)
+                return {
+                    action: "posted",
+                    data: reaction
                 }
 
+            }
         }
-      
+        return {}
+
 
     }
 

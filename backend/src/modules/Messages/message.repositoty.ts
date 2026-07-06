@@ -1,25 +1,49 @@
+import { fType } from "../../../generated/prisma/enums";
 import { prisma } from "../../config/prisma";
+import upload from "../../middlewares/multer.midleware";
 import { MessageDTO } from "../../types/message";
 
 class MessageRepository {
 
-    async createMessage(message: MessageDTO) {
-        return prisma.message.create({
-            data: message,
-            select: {
-                id: true,
-                content: true,
-                sentAt: true,
-                editedAt: true,
-                sender: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatar: true,
+    async createMessage(messageObj: MessageDTO, attachments: {
+        url: string,
+        filename: string
+        publicId: string,
+        mimeType: string,
+        fileSize: number,
+        fileType: fType
+    }[]) {
+        return await prisma.$transaction(async (tx) => {
+
+            const message = await tx.message.create({
+                data: messageObj,
+                select: {
+                    id: true,
+                    content: true,
+                    sentAt: true,
+                    editedAt: true,
+                    sender: {
+                        select: {
+                            id: true,
+                            username: true,
+                            avatar: true,
+                        },
                     },
                 },
-            },
-        });
+            });
+            const uploadData = attachments.map((attachment) => ({
+                ...attachment,
+                messageId: message.id,
+            }));
+
+            const uploads = await tx.upload.createMany({
+                data: uploadData
+            })
+
+            return { message, uploads }
+
+        })
+
     }
 
     async getMessages(channelId: string, pagination: { cursor?: string | undefined, limit: number }) {
@@ -79,9 +103,16 @@ class MessageRepository {
                             }
                         }
                     }
-                },reactions:{
-                    select:{
-                        emoji:true
+                }, reactions: {
+                    select: {
+                        emoji: true
+                    }
+                },
+                uploads: {
+                    select: {
+                        filename: true,
+                        fileType: true,
+                        url: true
                     }
                 }
             }, omit: {
@@ -128,15 +159,15 @@ class MessageRepository {
         else return
 
     }
-    async addReaction(userId: string, messageId: string,emoji:string){
+    async addReaction(userId: string, messageId: string, emoji: string) {
         const reaction = await prisma.reaction.create({
-            data:{
+            data: {
                 userId,
                 messageId,
                 emoji
             }
         })
-        return emoji
+        return reaction
     }
 
     async reactionExists(userId: string, messageId: string) {
@@ -147,7 +178,7 @@ class MessageRepository {
 
             },
             select: {
-                emoji:true
+                emoji: true
             }
         })
         return reaction
@@ -155,22 +186,22 @@ class MessageRepository {
     }
 
     async toggleReaction(userId: string, messageId: string, emoji: string) {
-         await prisma.reaction.delete({
+        await prisma.reaction.delete({
             where: {
                 userId_messageId_emoji: {
                     userId, messageId, emoji
                 }
             }
         })
-      
+
     }
 
     async updateReaction(userId: string, messageId: string, emoji: string) {
-        const reaction = await prisma.reaction.update({
+        const reaction = await prisma.reaction.updateMany({
             where: {
-                userId_messageId_emoji: {
-                    userId, messageId, emoji
-                }
+
+                userId, messageId, emoji
+
             }, data: {
                 emoji
             }

@@ -9,7 +9,7 @@ const app = express();
 import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
 import "./jobs/cron-schedule"
-import { apiRouter } from "./routes.ts/routes";
+import { apiRouter } from "./routes/routes";
 
 
 app.use(
