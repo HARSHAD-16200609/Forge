@@ -15,10 +15,10 @@ export const uploadOnCloudinary = async (filepath: string, resourceType: rType) 
         isConfigured = true
     }
     try {
-      
-        const start = Date.now()
+
+
         const result = await cloudinary.uploader.upload(filepath, { resource_type: resourceType })
-     
+
         if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath)
         }
@@ -52,9 +52,11 @@ export const deleteFromCloudinary = async (publicId: string, resource_type: rTyp
         isConfigured = true;
     }
 
-    cloudinary.uploader.destroy(publicId, { resource_type })
 
     try {
+
+      return  await cloudinary.uploader.destroy(publicId, { resource_type })
+
 
     } catch (error) {
         throw new Error("Failed to delete Attachment")

@@ -208,6 +208,60 @@ class MessageRepository {
         })
         return reaction
     }
+
+    async getMessageUploads(messageId: string, uploadIds: string[]) {
+        const uploads = await prisma.message.findFirst({
+            where: {
+                id: messageId,
+                uploads: {
+                    some: {
+                        id: {
+                            in: uploadIds
+                        }
+                    }
+                }
+            }, select: {
+                senderId: true, uploads: {
+                    select: {
+                        id: true
+                    }
+                }
+            }
+        })
+        return uploads
+    }
+    async getDeletedMessages( limit: number = 100, deletionDeadline: Date) {
+
+        const deletedMessages = await prisma.message.findMany({
+            where: {
+                deletedAt: {
+                    lte: deletionDeadline
+                }
+            }, select: {
+                id: true,
+                uploads: {
+                    select: {
+                        id: true,
+                        publicId: true,
+                        mimeType: true
+                    }
+                }
+            },
+            take: limit
+        })
+        return deletedMessages
+
+    }
+    async hardDeleteMsgs(MessagesToBeDeleted : string[]) {
+       const deletedMsgs = await prisma.message.deleteMany({
+            where: {
+                id: {
+                    in: MessagesToBeDeleted,
+                },
+            },
+        });
+        return deletedMsgs
+    }
 }
 
 export const messageRepository = new MessageRepository()

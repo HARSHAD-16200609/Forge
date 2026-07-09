@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { ChannelParamsSchema } from "../../db/channel.schema";
-import { emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
+import { delUploadParamsSchema, emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
@@ -8,6 +8,8 @@ import { messageService } from "./message.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { reqUserSchema } from "../../db/auth-schema";
 import { idSchema } from "../../db/workspace";
+import { uploadService } from "./upload.service";
+import { id } from "zod/v4/locales";
 
 
 export const postMessage = asyncHandler(async (req, res) => {
@@ -169,7 +171,30 @@ export const postReaction = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, reaction , "Reacted to the message sucessfully"))
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, reaction, "Reacted to the message sucessfully"))
 })
 
 
+export const deleteAttachment = asyncHandler(async (req, res) => {
+    const Upload = delUploadParamsSchema.safeParse(req.body)
+    const Message = idSchema.safeParse(req.params)
+    const User = reqUserSchema.safeParse(req.user)
+
+    if (!Upload.success) throw new UserInputValidationError("Invalid Input", Upload.error.flatten().fieldErrors);
+    if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
+    if (!Message.success) throw new UserInputValidationError("Invalid Input", Message.error.flatten().fieldErrors)
+
+
+    await uploadService.deleteAttachments(Message.data.id, Upload.data.uploads, User.data.userId)
+
+    loggers.db.info("Attachments Deleted Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        messageId: Message.data.id,
+        deletedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT,{},"Attachments Deleted Sucessfully"))
+})

@@ -90,5 +90,9 @@ export const getResourceType = (mimeType: string): rType => {
   return MIME_TO_RESOURCE_TYPE.get(mimeType) || "auto"
 }
 
+export const delUploadParamsSchema = z.object({
+  uploads: z.array(z.uuid()).min(1, "At least one upload ID is required")
+})
+
 export type Message = z.infer<typeof messageSchema>
 export type getMessagesDTO = z.infer<typeof getMessagesSchema> 

@@ -8,6 +8,7 @@ import { uploadService } from "./upload.service";
 import { getResourceType } from "../../db/message.schema";
 import { deleteFromCloudinary } from "../../config/cloudinary";
 import { fType } from "../../../generated/prisma/enums";
+import { loggers } from "../../utility/logger/serviceLoggers";
 
 
 
@@ -40,18 +41,27 @@ class MessageService {
                 content
             }
 
-   
+
             const message = await messageRepository.createMessage(messageObject, attachmentData)
 
             return message
         } catch (err) {
             if (attachmentData.length > 0) {
-            
-                await Promise.all(
+
+                const results = await Promise.allSettled(
                     attachmentData.map((attachment) => {
                         return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
                     })
                 )
+                const failed = results.filter(
+                    (result) => result.status === "rejected"
+                );
+
+                if (failed.length > 0) {
+                    loggers.audit.error("UPLOAD_ROLLBACK_FAILED", {
+                        failedCount: failed.length,
+                    });
+                }
             }
             throw err
 

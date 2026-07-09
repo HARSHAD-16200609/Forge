@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJwt } from "../../middlewares/verifyJwt";
-import { deleteMessage, editMessage, getMessage, getMessages, postMessage, postReaction, postReply } from "./message.controller";
+import { deleteAttachment, deleteMessage, editMessage, getMessage, getMessages, postMessage, postReaction, postReply } from "./message.controller";
 import upload from "../../middlewares/multer.midleware";
 const messageRouter = Router()
 
@@ -12,7 +12,7 @@ messageRouter.route("/messages/:id").patch(verifyJwt, editMessage)
 messageRouter.route("/messages/:id").delete(verifyJwt, deleteMessage)
 messageRouter.route("/messages/:id/replies").post(verifyJwt, postReply)
 messageRouter.route("/messages/:id/reactions").post(verifyJwt, postReaction)
-
+messageRouter.route("/messages/:id/uploads").delete(verifyJwt,deleteAttachment)
 
 
 
