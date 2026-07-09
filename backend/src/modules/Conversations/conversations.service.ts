@@ -16,6 +16,24 @@ class ConversationService {
 
         return dm
     }
+
+    async getConversations(userId: string) {
+
+        const conversations = await conversationRepository.getConversations(userId)
+        if (conversations.length === 0) throw new NotFoundError("No Conversations Found")
+        const conversationsWithDisplayName = conversations.map(({ conversation }) => {
+            const otherUser = conversation.members.find(
+                member => member.user.id !== userId
+            );
+
+            return {
+                displayName: otherUser?.user.username ?? "Unknown User",
+                ...conversation,
+
+            };
+        });
+        return conversationsWithDisplayName
+    }
 }
 
 export const conversationService = new ConversationService()

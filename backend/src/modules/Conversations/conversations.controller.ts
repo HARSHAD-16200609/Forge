@@ -18,12 +18,31 @@ export const createDM = asyncHandler(async (req, res) => {
     loggers.db.info("DM created SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
-        converastionId: "sf",
+        converastionId: dm.id,
         createdAt: new Date().toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",
         })
     })
 
     res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, dm, "DM created Sucessfully"))
+
+})
+
+export const getConversations = asyncHandler(async (req, res) => {
+    const user = reqUserSchema.safeParse(req.user)
+    if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
+    const conversations = await conversationService.getConversations(user.data.userId)
+
+    loggers.db.info("Conversations Fetched SucessFully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        UserId: user.data.userId,
+        FetchedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, conversations, "Conversations Fetched SucessFully"))
+
 
 })

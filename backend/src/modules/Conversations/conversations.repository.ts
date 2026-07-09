@@ -31,8 +31,8 @@ class ConversationRepository {
                         members: true,
                     },
                 }, members: true
-            },omit:{
-                groupName:true
+            }, omit: {
+                groupName: true
             }
         });
     }
@@ -51,6 +51,38 @@ class ConversationRepository {
             },
             omit: {
                 groupName: true
+            }
+        })
+    }
+    async getConversations(userId: string) {
+        return await prisma.conversationMember.findMany({
+            where: {
+                userId
+            },
+            include: {
+
+                conversation: {
+                    include: {
+                        members: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true
+                                    }
+                                }
+                            }, omit: {
+                                id: true,
+                                userId: true,
+                                convoId: true,
+                            }
+                        }
+                    }
+                }
+            }, omit: {
+                id: true,
+                convoId: true,
+                userId: true
             }
         })
     }
