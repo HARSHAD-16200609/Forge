@@ -47,6 +47,7 @@ enum fType {
   ARCHIVE
   OTHER
 }
+
 enum Status {
   ACCEPTED
   REJECTED
@@ -196,8 +197,11 @@ model conversationMember {
   user         user         @relation(fields: [userId], references: [id], onDelete: Cascade)
   convoId      String
   conversation conversation @relation(fields: [convoId], references: [id], onDelete: Cascade)
+  joinedAt     DateTime     @default(now())
 
   @@unique([userId, convoId])
+  @@index([userId])
+  @@index([convoId])
 }
 
 model reaction {
@@ -229,18 +233,18 @@ model notification {
 }
 
 model upload {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  filename    String          
-  url         String          
-  publicId    String @unique         
-  mimeType    String      
-  fileType    fType
-  fileSize    Int       
-  messageId   String
-  message     message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  uploadedAt  DateTime @default(now())
-  deletedAt   DateTime?
+  filename   String
+  url        String
+  publicId   String    @unique
+  mimeType   String
+  fileType   fType
+  fileSize   Int
+  messageId  String
+  message    message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedAt DateTime  @default(now())
+  deletedAt  DateTime?
 }
 
 model workspaceInvite {
