@@ -60,7 +60,6 @@ class ConversationRepository {
                 userId
             },
             include: {
-
                 conversation: {
                     include: {
                         members: {
@@ -68,7 +67,8 @@ class ConversationRepository {
                                 user: {
                                     select: {
                                         id: true,
-                                        username: true
+                                        username: true,
+                                        avatar: true
                                     }
                                 }
                             }, omit: {
@@ -76,8 +76,17 @@ class ConversationRepository {
                                 userId: true,
                                 convoId: true,
                             }
+                        }, messages: {
+                            select: {
+                                content: true,
+                                sentAt: true
+                            },
+                            take: 1,
+                            orderBy: {
+                                sentAt: "desc"
+                            },
                         }
-                    }
+                    },
                 }
             }, omit: {
                 id: true,
@@ -86,6 +95,82 @@ class ConversationRepository {
             }
         })
     }
-}
+    async conversationExists(convoId: string, userId: string) {
+        return await prisma.conversationMember.findUnique(
+            {
+                where: {
+                    userId_convoId: { convoId, userId }
 
+                }
+            }
+        )
+    }
+
+    async getConversation(convoId: string, userId: string) {
+        return await prisma.conversationMember.findUnique({
+            where: {
+                userId_convoId: { convoId, userId }
+            },
+            include: {
+                conversation: {
+                    include: {
+                        members: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        avatar: true
+                                    }
+                                }
+                            }, omit: {
+                                id: true,
+                                userId: true,
+                                convoId: true,
+                            }
+                        }, messages: {
+                            take: 2,
+                            orderBy: {
+                                sentAt: "desc"
+                            },
+                            select: {
+                                id: true,
+                                content: true,
+                                sentAt: true,
+
+                                uploads: {
+                                    select: {
+                                        url: true
+                                    }
+                                }, reactions: {
+                                    select: {
+                                        emoji: true
+                                    }
+                                }, replies: {
+                                    select: {
+                                        content: true
+                                    }
+                                },sender:{
+                                    select:{
+                                        username:true,
+                                        avatar:true
+                                    }
+                                }
+
+
+                            },
+                        }
+                    },
+                }
+            }, omit: {
+                id: true,
+                userId: true,
+                convoId: true
+            }
+        }
+        )
+
+    }
+
+}
 export const conversationRepository = new ConversationRepository()
