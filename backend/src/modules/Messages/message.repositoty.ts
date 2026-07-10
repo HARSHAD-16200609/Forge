@@ -230,7 +230,7 @@ class MessageRepository {
         })
         return uploads
     }
-    async getDeletedMessages( limit: number = 100, deletionDeadline: Date) {
+    async getDeletedMessages(limit: number = 100, deletionDeadline: Date) {
 
         const deletedMessages = await prisma.message.findMany({
             where: {
@@ -252,8 +252,8 @@ class MessageRepository {
         return deletedMessages
 
     }
-    async hardDeleteMsgs(MessagesToBeDeleted : string[]) {
-       const deletedMsgs = await prisma.message.deleteMany({
+    async hardDeleteMsgs(MessagesToBeDeleted: string[]) {
+        const deletedMsgs = await prisma.message.deleteMany({
             where: {
                 id: {
                     in: MessagesToBeDeleted,
@@ -261,6 +261,69 @@ class MessageRepository {
             },
         });
         return deletedMsgs
+    }
+    async getConversationMessages(conversationId: string, pagination: { cursor?: string | undefined, limit: number }) {
+        const messages = await prisma.message.findMany({
+            where: {
+                conversationId,
+                deletedAt: null
+            }, take: pagination.limit + 1, ...(pagination.cursor && {
+                cursor: {
+                    id: pagination.cursor,
+                }, skip: 1
+            }),
+            orderBy: {
+                sentAt: "desc"
+            }, include: {
+                uploads: {
+                    select: {
+                        url: true
+                    }
+                }, reactions: {
+                    select: {
+                        emoji: true
+                    }
+                }, replies: {
+                    select: {
+                        content: true
+                    }, sender: {
+                        select: {
+                            username: true,
+                            avatar: true
+                        }
+                    }
+                }
+            },
+            omit: {
+                senderId: true,
+                deletedAt: true,
+                channelId: true,
+                conversationId: true
+            }
+        })
+        return messages
+
+    }
+    async messageExists(messageId: string) {
+        return await prisma.message.findUnique({
+            where: {
+                id: messageId
+            },
+            select: {
+                deletedAt: true,
+                senderId: true,
+                sentAt: true,
+                channelId: true,
+                conversationId: true,
+                channel: {
+                    select: {
+                        workspaceId: true
+                    }
+                }
+            }
+        }
+
+        )
     }
 }
 

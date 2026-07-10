@@ -115,7 +115,7 @@ class MessageService {
 
     }
     async editMessage(content: string, userId: string, messageId: string) {
-        const message = await messageRepository.getById(messageId)
+        const message = await messageRepository.messageExists(messageId)
         if (!message) {
             throw new NotFoundError("Message not found");
         }
@@ -136,7 +136,7 @@ class MessageService {
 
     }
     async deleteMessage(userId: string, messageId: string) {
-        const message = await messageRepository.getById(messageId)
+        const message = await messageRepository.messageExists(messageId)
         if (!message) {
             throw new NotFoundError("Message not found");
         }
