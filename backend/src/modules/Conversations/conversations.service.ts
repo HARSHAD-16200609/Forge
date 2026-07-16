@@ -1,3 +1,4 @@
+import { Prisma } from "../../../generated/prisma/client"
 import { fType } from "../../../generated/prisma/enums"
 import { deleteFromCloudinary } from "../../config/cloudinary"
 import { getResourceType } from "../../db/message.schema"
@@ -7,10 +8,11 @@ import { loggers } from "../../utility/logger/serviceLoggers"
 import { authRepository } from "../Auth/auth.repository"
 import { messageRepository } from "../Messages/message.repositoty"
 import { uploadService } from "../Messages/upload.service"
+import { workspaceRepository } from "../Workspace/workspace.repository"
 import { conversationRepository } from "./conversations.repository"
 
 class ConversationService {
-    async createDM(senderId: string, receiverId: string) {
+    async createDM(senderId: string, receiverId: string,idempotencyKey:string) {
 
         if (senderId === receiverId) throw new BadRequestError("You can't create an Dm with self")
         const receiver = await authRepository.getById(receiverId)
@@ -19,7 +21,7 @@ class ConversationService {
 
         if (existingDM && existingDM._count.members === 2) return existingDM
 
-        const dm = await conversationRepository.createDM(senderId, receiverId)
+        const dm = await conversationRepository.createDM(senderId, receiverId,idempotencyKey)
 
         return dm
     }
@@ -227,6 +229,29 @@ class ConversationService {
             action: "posted",
             data: reaction
         }
+    }
+
+    async createGDM(gdm: { memberIds: string[], name: string, idempotencyKey: string }, userId: string, workspaceId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
+        const members = await workspaceRepository.getWorkspaceMembers(gdm.memberIds, workspaceId)
+        if (members.length !== gdm.memberIds.length) throw new BadRequestError("One or more users are not members of the workspace.")
+        const existing = await conversationRepository.getGDMByKey(gdm.idempotencyKey)
+
+        if (existing) throw new ConfilctError("Group already exists")
+
+
+        const gdmMembers = [...new Set([...gdm.memberIds, userId])].map((userId) => ({ userId }))
+
+        try {
+            return await conversationRepository.createGDM(gdm.name, gdmMembers, gdm.idempotencyKey)
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")
+                return conversationRepository.getGDMByKey(gdm.idempotencyKey)
+            throw err
+        }
+
     }
 }
 

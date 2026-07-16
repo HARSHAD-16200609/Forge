@@ -59,7 +59,7 @@ class WorkspaceRepository {
 
       return ws;
     });
-return Workspace
+    return Workspace
 
   }
 
@@ -259,13 +259,27 @@ return Workspace
     });
     return user
   }
-async getUserByworkspceMemberId(id :string){
-  return await prisma.workspaceMember.findUnique({
-    where:{
-      id
-    }
-  })
-}
+  async getUserByworkspceMemberId(id: string) {
+    return await prisma.workspaceMember.findUnique({
+      where: {
+        id
+      }
+    })
+  }
+
+  async getWorkspaceMembers(memberIds: string[],workspaceId:string) {
+    const members = await prisma.workspaceMember.findMany({
+      where: {
+
+        userId: {
+          in: memberIds
+        },workspaceId
+      }
+    })
+
+    return members
+
+  }
 
 
 

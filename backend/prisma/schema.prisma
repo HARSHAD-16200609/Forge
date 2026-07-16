@@ -184,6 +184,7 @@ model message {
 model conversation {
   id        String               @id @default(uuid())
   type      ConvoType            @default(DM)
+  idempotencyKey String           @unique
   groupName String?
   messages  message[]
   members   conversationMember[]

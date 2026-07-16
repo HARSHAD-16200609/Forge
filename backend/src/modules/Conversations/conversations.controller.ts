@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { reqUserSchema } from "../../db/auth-schema";
-import { createDMSchema, editMessageSchema } from "../../db/conversation.schema";
+import { createDMSchema, createGDMSchema, editMessageSchema } from "../../db/conversation.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
@@ -17,7 +17,7 @@ export const createDM = asyncHandler(async (req, res) => {
     if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
     if (!receiver.success) throw new UserInputValidationError("Invalid Input", receiver.error.flatten().fieldErrors)
 
-    const dm = await conversationService.createDM(user.data.userId, receiver.data.receiverId)
+    const dm = await conversationService.createDM(user.data.userId, receiver.data.receiverId,receiver.data.idempotencyKey)
     loggers.db.info("DM created SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -190,4 +190,28 @@ export const postReaction = asyncHandler(async (req, res) => {
     })
 
     res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, reaction, "Reacted to the message sucessfully"))
+})
+
+
+export const createGDM = asyncHandler(async (req, res) => {
+    const gdm = createGDMSchema.safeParse(req.body)
+    const user = reqUserSchema.safeParse(req.user)
+    const workspace = idSchema.safeParse(req.params)
+    if (!gdm.success) throw new UserInputValidationError("Invalid Input", gdm.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+    if (!workspace.success) throw new UserInputValidationError("Invalid Input", workspace.error.flatten().fieldErrors);
+
+    const groupDM = await conversationService.createGDM(gdm.data, user.data.userId, workspace.data.id)
+
+    loggers.db.info("GDM created Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        gdmId: groupDM?.id,
+        reactedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, groupDM ?? {}, "GDM created sucessfully"))
+
 })

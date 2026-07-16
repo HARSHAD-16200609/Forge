@@ -1,3 +1,4 @@
+import { ConvoType } from "../../../generated/prisma/enums";
 import { prisma } from "../../config/prisma";
 
 class ConversationRepository {
@@ -7,7 +8,7 @@ class ConversationRepository {
     ) {
         return prisma.conversation.findFirst({
             where: {
-                type: "DM",
+                type: ConvoType.DM,
                 AND: [
                     {
                         members: {
@@ -36,7 +37,7 @@ class ConversationRepository {
             }
         });
     }
-    async createDM(senderId: string, receiverId: string) {
+    async createDM(senderId: string, receiverId: string,idempotencyKey:string) {
         return await prisma.conversation.create({
             data: {
                 members: {
@@ -44,7 +45,7 @@ class ConversationRepository {
                         { userId: senderId },
                         { userId: receiverId }
                     ]
-                }
+                },idempotencyKey
             }, include: {
                 members: true
             },
@@ -142,16 +143,16 @@ class ConversationRepository {
                                 parentMsgId: true,
                                 uploads: {
                                     select: {
-                                        id:true,
+                                        id: true,
                                         url: true,
                                     }
                                 }, reactions: {
                                     select: {
                                         emoji: true,
-                                        reactedBy:{
-                                            select:{
-                                                username:true,
-                                                avatar:true
+                                        reactedBy: {
+                                            select: {
+                                                username: true,
+                                                avatar: true
                                             }
                                         }
                                     }
@@ -181,6 +182,40 @@ class ConversationRepository {
         )
 
     }
+    async createGDM(groupName: string, members: { userId: string }[],idempotencyKey:string) {
+        return await prisma.conversation.create({
+            data: {
+                groupName,
+                type: ConvoType.GDM,
+                members: {
+                    create: members
+                },
+                idempotencyKey
 
+            }, include: {
+                members: {
+                select:{
+                    user:{
+                        select:{
+                            username:true,
+                            avatar:true,
+                        }
+                    }
+                }
+                }
+            }
+        })
+
+    }
+   async getGDMByKey(key:string){
+        return await prisma.conversation.findFirst({
+            where:{
+               idempotencyKey:key,
+            },
+            select:{
+                id:true
+            }
+        })
+    }
 }
 export const conversationRepository = new ConversationRepository()

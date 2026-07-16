@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyJwt } from "../../middlewares/verifyJwt";
-import { createDM, editMessage, getConversation, getConversations, getMessages, postMessage, postReaction, postReply } from "./conversations.controller";
+import { createDM, createGDM, editMessage, getConversation, getConversations, getMessages, postMessage, postReaction, postReply } from "./conversations.controller";
 import upload from "../../middlewares/multer.midleware";
 
 
@@ -15,6 +15,8 @@ conversationRouter.route("/conversations/:id/messages").get(verifyJwt, getMessag
 conversationRouter.route("/conversations/:conversationId/messages/:messageId").patch(verifyJwt, editMessage)
 conversationRouter.route("/conversations/:conversationId/messages/:messageId").post(verifyJwt, postReply)
 conversationRouter.route("/conversations/:conversationId/messages/:messageId/reactions").post(verifyJwt, postReaction)
+conversationRouter.route("/workspaces/:id/conversations/groups").post(verifyJwt, createGDM)
+
 
 
 
