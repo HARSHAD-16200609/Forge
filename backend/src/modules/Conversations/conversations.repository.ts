@@ -36,7 +36,6 @@ class ConversationRepository {
             }
         });
     }
-
     async createDM(senderId: string, receiverId: string) {
         return await prisma.conversation.create({
             data: {
@@ -129,6 +128,9 @@ class ConversationRepository {
                                 convoId: true,
                             }
                         }, messages: {
+                            where: {
+                                parentMsgId: null
+                            },
                             take: 2,
                             orderBy: {
                                 sentAt: "desc"
@@ -137,28 +139,36 @@ class ConversationRepository {
                                 id: true,
                                 content: true,
                                 sentAt: true,
-
+                                parentMsgId: true,
                                 uploads: {
                                     select: {
-                                        url: true
+                                        id:true,
+                                        url: true,
                                     }
                                 }, reactions: {
                                     select: {
-                                        emoji: true
+                                        emoji: true,
+                                        reactedBy:{
+                                            select:{
+                                                username:true,
+                                                avatar:true
+                                            }
+                                        }
                                     }
                                 }, replies: {
                                     select: {
                                         content: true
+                                    }, orderBy: {
+                                        sentAt: "desc"
                                     }
-                                },sender:{
-                                    select:{
-                                        username:true,
-                                        avatar:true
+                                }, sender: {
+                                    select: {
+                                        username: true,
+                                        avatar: true
                                     }
                                 }
-
-
                             },
+
                         }
                     },
                 }

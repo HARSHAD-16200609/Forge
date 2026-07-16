@@ -7,7 +7,8 @@ import { loggers } from "../../utility/logger/serviceLoggers";
 import { conversationService } from "./conversations.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { idSchema } from "../../db/workspace";
-import { getMessagesSchema, messageSchema } from "../../db/message.schema";
+import { delUploadParamsSchema, emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
+import { uploadService } from "../Messages/upload.service";
 
 export const createDM = asyncHandler(async (req, res) => {
 
@@ -143,4 +144,50 @@ export const editMessage = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, editedMessage, "Messages Edited sucessfully"))
 
+})
+
+export const postReply = asyncHandler(async (req, res) => {
+    const postReplyParams = editMessageSchema.safeParse(req.params)
+    const user = reqUserSchema.safeParse(req.user)
+    const updatedContent = messageSchema.safeParse(req.body)
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
+    if (!postReplyParams.success) throw new UserInputValidationError("Invalid Input", postReplyParams.error.flatten().fieldErrors)
+    if (!updatedContent.success) throw new UserInputValidationError("Invalid Input", updatedContent.error.flatten().fieldErrors)
+
+
+
+    const reply = await conversationService.postReply(user.data.userId, postReplyParams.data, updatedContent.data.content)
+    loggers.db.info("Messages replied Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        messageId: postReplyParams.data.messageId,
+        repliedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, reply, "Messages replied sucessfully"))
+})
+
+export const postReaction = asyncHandler(async (req, res) => {
+    const postReplyParams = editMessageSchema.safeParse(req.params)
+    const User = reqUserSchema.safeParse(req.user)
+    const emoji = emojiSchema.safeParse(req.body)
+
+    if (!postReplyParams.success) throw new UserInputValidationError("Invalid Input", postReplyParams.error.flatten().fieldErrors);
+    if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
+    if (!emoji.success) throw new UserInputValidationError("Invalid Input", emoji.error.flatten().fieldErrors)
+
+
+    const reaction = await conversationService.postReaction(User.data.userId, postReplyParams.data, emoji.data.reaction)
+    loggers.db.info("Reacted to the message Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        messageId: postReplyParams.data.messageId,
+        reactedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, reaction, "Reacted to the message sucessfully"))
 })

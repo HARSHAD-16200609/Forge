@@ -210,7 +210,6 @@ class MessageService {
                     data: {}
                 }
             } else {
-                console.log("New Reaction posted")
                 reaction = await messageRepository.addReaction(userId, messageId, emoji)
                 return {
                     action: "posted",
@@ -219,7 +218,11 @@ class MessageService {
 
             }
         }
-        return {}
+      reaction = await messageRepository.addReaction(userId, messageId, emoji)
+        return {
+            action: "posted",
+            data: reaction
+        }
 
 
     }

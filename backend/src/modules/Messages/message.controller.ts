@@ -171,7 +171,7 @@ export const postReaction = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, reaction, "Reacted to the message sucessfully"))
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, reaction, "Reacted to the message sucessfully"))
 })
 
 

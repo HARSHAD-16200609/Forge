@@ -111,7 +111,6 @@ class ConversationService {
         const receiver = members.filter((member) => member.user.id != userId)[0]?.user
 
 
-
         return {
             ...rest,
             displayName: receiver?.username,
@@ -123,7 +122,8 @@ class ConversationService {
     }
     async getMessages(conversationId: string, userId: string, pagination: { limit: number, cursor?: string | undefined }) {
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
-        if (conversation?.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
+        if (!conversation) throw new NotFoundError("Conversation Not Found")
+        if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         const conversationMessages = await messageRepository.getConversationMessages(conversationId, pagination)
         if (conversationMessages.length === 0) throw new NotFoundError("No Messages Found")
@@ -142,15 +142,91 @@ class ConversationService {
     }
     async editMessage(editMessageParams: { conversationId: string, messageId: string }, userId: string, content: string) {
         const conversation = await conversationRepository.conversationExists(editMessageParams.conversationId, userId)
-        if (conversation?.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
         if (!conversation) throw new NotFoundError("Conversation Not Found")
+        if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
 
         const message = await messageRepository.messageExists(editMessageParams.messageId)
         if (!message) throw new NotFoundError("Message Not Found")
-            if(message.senderId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
+        if (!message.conversationId) {
+            throw new BadRequestError("Message does not belong to a conversation");
+        }
+
+        if (message.conversationId !== editMessageParams.conversationId) {
+            throw new BadRequestError(
+                "Message does not belong to the specified conversation"
+            );
+        }
+        if (message.senderId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
 
         const editedMessage = await messageRepository.editMessage(content, editMessageParams.messageId)
         return editedMessage
+    }
+    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string }, content: string) {
+        const conversation = await conversationRepository.conversationExists(postReplyParams.conversationId, userId)
+        if (!conversation) throw new NotFoundError("Conversation Not Found")
+        const message = await messageRepository.messageExists(postReplyParams.messageId)
+        if (!message) {
+            throw new NotFoundError("Message not found");
+        }
+
+        if (!message.conversationId) {
+            throw new BadRequestError("Message does not belong to a conversation");
+        }
+
+        if (message.conversationId !== postReplyParams.conversationId) {
+            throw new BadRequestError(
+                "Message does not belong to the specified conversation"
+            );
+        }
+
+        const messageObject: ConversationMessageDTO = {
+            conversationId: message.conversationId,
+            senderId: userId,
+            content
+        }
+
+        const reply = await messageRepository.createReply(messageObject, postReplyParams.messageId)
+        if (reply === undefined) throw new BadRequestError("Invalid ParentMsgId")
+
+        return reply
+
+
+    }
+    async postReaction(userId: string, postReactionParams: { messageId: string, conversationId: string }, emoji: string) {
+        const conversation = await conversationRepository.conversationExists(postReactionParams.conversationId, userId)
+        if (!conversation) throw new NotFoundError("Conversation Not Found")
+        const message = await messageRepository.messageExists(postReactionParams.messageId)
+        if (!message) {
+            throw new NotFoundError("Message not found");
+        }
+        if (message.deletedAt) throw new BadRequestError("Can't React to Deleted Message")
+
+
+        const reactionExists = await messageRepository.reactionExists(userId, postReactionParams.messageId)
+        let reaction
+        if (reactionExists) {
+            if (reactionExists.emoji === emoji) {
+
+                await messageRepository.toggleReaction(userId, postReactionParams.messageId, emoji)
+                return {
+                    action: "deleted",
+                    data: {}
+                }
+            } else {
+                console.log("New Reaction posted")
+                reaction = await messageRepository.addReaction(userId, postReactionParams.messageId, emoji)
+                return {
+                    action: "posted",
+                    data: reaction
+                }
+
+            }
+        }
+        reaction = await messageRepository.addReaction(userId, postReactionParams.messageId, emoji)
+        return {
+            action: "posted",
+            data: reaction
+        }
     }
 }
 

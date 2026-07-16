@@ -146,7 +146,7 @@ class MessageRepository {
     }
 
     async createReply(message: MessageDTO, parentMessageId: string) {
-        if ("channelId" in message) {
+        if ("conversationId" in message) {
             const reply = await prisma.message.create({
                 data: {
                     ...message,
@@ -281,16 +281,23 @@ class MessageRepository {
                     }
                 }, reactions: {
                     select: {
-                        emoji: true
+                        emoji: true,
+                        reactedBy:{
+                            select:{
+                                username:true,
+                                avatar:true
+                            }
+                        }
+                        
                     }
                 }, replies: {
                     select: {
                         content: true
-                    }, sender: {
-                        select: {
-                            username: true,
-                            avatar: true
-                        }
+                    },
+                }, sender: {
+                    select: {
+                        username: true,
+                        avatar: true
                     }
                 }
             },
