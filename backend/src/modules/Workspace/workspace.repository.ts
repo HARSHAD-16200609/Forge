@@ -267,21 +267,31 @@ class WorkspaceRepository {
     })
   }
 
-  async getWorkspaceMembers(memberIds: string[],workspaceId:string) {
+  async getWorkspaceMembers(memberIds: string[], workspaceId: string) {
     const members = await prisma.workspaceMember.findMany({
       where: {
 
         userId: {
           in: memberIds
-        },workspaceId
+        }, workspaceId
       }
     })
 
     return members
 
   }
-
-
+  async nonMembers(invalidMemberIds: string[]) {
+    return await prisma.user.findMany({
+      where: {
+        id: {
+          in: invalidMemberIds,
+        },
+      },
+      select: {
+        username: true,
+      },
+    });
+  }
 
 }
 

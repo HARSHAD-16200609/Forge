@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { reqUserSchema } from "../../db/auth-schema";
-import { createDMSchema, createGDMSchema, editMessageSchema } from "../../db/conversation.schema";
+import { addGDMMembers, createDMSchema, createGDMSchema, editMessageSchema, renameGroupName, wsConversationIdSchema } from "../../db/conversation.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
@@ -14,10 +14,14 @@ export const createDM = asyncHandler(async (req, res) => {
 
     const receiver = createDMSchema.safeParse(req.body)
     const user = reqUserSchema.safeParse(req.user)
+    const workspace = idSchema.safeParse(req.params)
     if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
     if (!receiver.success) throw new UserInputValidationError("Invalid Input", receiver.error.flatten().fieldErrors)
+    if (!workspace.success) throw new UserInputValidationError("Invalid Input", workspace.error.flatten().fieldErrors)
 
-    const dm = await conversationService.createDM(user.data.userId, receiver.data.receiverId,receiver.data.idempotencyKey)
+
+
+    const dm = await conversationService.createDM(user.data.userId, receiver.data.receiverId, receiver.data.idempotencyKey, workspace.data.id)
     loggers.db.info("DM created SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -213,5 +217,55 @@ export const createGDM = asyncHandler(async (req, res) => {
     })
 
     res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, groupDM ?? {}, "GDM created sucessfully"))
+
+})
+
+
+export const renameGDM = asyncHandler(async (req, res) => {
+    const gdm = renameGroupName.safeParse(req.body)
+    const user = reqUserSchema.safeParse(req.user)
+    const conversation = idSchema.safeParse(req.params)
+
+    if (!gdm.success) throw new UserInputValidationError("Invalid Input", gdm.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+    if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
+
+    const newGDM = await conversationService.renameGDM(gdm.data.groupName, user.data.userId, conversation.data.id)
+
+    loggers.db.info("GDM Renamed Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        gdmId: newGDM?.id,
+        editedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, newGDM ?? {}, "GDM Renamed sucessfully"))
+
+})
+
+export const addMembers = asyncHandler(async (req, res) => {
+    const conversation = wsConversationIdSchema.safeParse(req.params)
+    const user = reqUserSchema.safeParse(req.user)
+    const members = addGDMMembers.safeParse(req.body)
+
+    if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+    if (!members.success) throw new UserInputValidationError("Invalid Input", members.error.flatten().fieldErrors);
+
+    const updatedGDM = await conversationService.addMembers(members.data.memberIds, user.data.userId, conversation.data)
+
+    loggers.db.info("GDM member added Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        editedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, updatedGDM ?? {}, "GDM member added sucessfully"))
+
+
 
 })

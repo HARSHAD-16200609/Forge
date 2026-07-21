@@ -37,15 +37,16 @@ class ConversationRepository {
             }
         });
     }
-    async createDM(senderId: string, receiverId: string,idempotencyKey:string) {
+    async createDM(senderId: string, receiverId: string, idempotencyKey: string, workspaceId: string) {
         return await prisma.conversation.create({
             data: {
+                workspaceId,
                 members: {
                     create: [
                         { userId: senderId },
                         { userId: receiverId }
                     ]
-                },idempotencyKey
+                }, idempotencyKey
             }, include: {
                 members: true
             },
@@ -101,7 +102,16 @@ class ConversationRepository {
                 where: {
                     userId_convoId: { convoId, userId }
 
+                },
+                include: {
+                    conversation: {
+                        select: {
+                            type: true,
+                            groupName: true
+                        }
+                    }
                 }
+
             }
         )
     }
@@ -182,9 +192,10 @@ class ConversationRepository {
         )
 
     }
-    async createGDM(groupName: string, members: { userId: string }[],idempotencyKey:string) {
+    async createGDM(groupName: string, members: { userId: string }[], idempotencyKey: string, workspaceId: string) {
         return await prisma.conversation.create({
             data: {
+                workspaceId,
                 groupName,
                 type: ConvoType.GDM,
                 members: {
@@ -194,28 +205,75 @@ class ConversationRepository {
 
             }, include: {
                 members: {
-                select:{
-                    user:{
-                        select:{
-                            username:true,
-                            avatar:true,
+                    select: {
+                        user: {
+                            select: {
+                                username: true,
+                                avatar: true,
+                            }
                         }
                     }
-                }
                 }
             }
         })
 
     }
-   async getGDMByKey(key:string){
+    async getGDMByKey(key: string) {
         return await prisma.conversation.findFirst({
-            where:{
-               idempotencyKey:key,
+            where: {
+                idempotencyKey: key,
             },
-            select:{
-                id:true
+            select: {
+                id: true
             }
         })
     }
+    async renameGDM(groupName: string, conversationId: string) {
+        return await prisma.conversation.update({
+            where: {
+                id: conversationId
+            },
+            data: {
+                groupName
+            }
+        })
+    }
+    async addMembers(members: { userId: string, convoId: string }[], conversationId: string) {
+        await prisma.conversationMember.createMany({
+            data: members,
+            skipDuplicates: true,
+        });
+
+    }
+    async getUpadatedConvo(workspaceId: string, conversationId: string) {
+        return await prisma.conversation.findUnique({
+            where: {
+                id: conversationId,
+                workspaceId
+            },
+            include: {
+                members: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                avatar: true
+                            }
+                        }
+                    }, omit: {
+                        id: true,
+                        userId: true,
+                        convoId: true,
+                    }
+                }
+            },omit:{
+                workspaceId : true,
+                idempotencyKey:true
+            }
+
+        })
+    }
+
 }
 export const conversationRepository = new ConversationRepository()

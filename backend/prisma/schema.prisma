@@ -102,6 +102,7 @@ model workspace {
   invites       workspaceInvite[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+  conversations conversation[]
 }
 
 model workspaceMember {
@@ -182,14 +183,18 @@ model message {
 }
 
 model conversation {
-  id        String               @id @default(uuid())
-  type      ConvoType            @default(DM)
-  idempotencyKey String           @unique
-  groupName String?
-  messages  message[]
-  members   conversationMember[]
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  id             String               @id @default(uuid())
+  type           ConvoType            @default(DM)
+  idempotencyKey String               @unique
+  groupName      String?
+  workspaceId    String
+  workspace      workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages       message[]
+  members        conversationMember[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([workspaceId, idempotencyKey])
 }
 
 model conversationMember {

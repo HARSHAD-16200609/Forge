@@ -1,5 +1,5 @@
 import { Prisma } from "../../../generated/prisma/client"
-import { fType } from "../../../generated/prisma/enums"
+import { ConvoType, fType } from "../../../generated/prisma/enums"
 import { deleteFromCloudinary } from "../../config/cloudinary"
 import { getResourceType } from "../../db/message.schema"
 import { ConversationMessageDTO, MessageDTO } from "../../types/message"
@@ -12,8 +12,13 @@ import { workspaceRepository } from "../Workspace/workspace.repository"
 import { conversationRepository } from "./conversations.repository"
 
 class ConversationService {
-    async createDM(senderId: string, receiverId: string,idempotencyKey:string) {
+    async createDM(senderId: string, receiverId: string, idempotencyKey: string, workspaceId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(senderId, workspaceId)
+        const receiverWsMember = await workspaceRepository.memberExists(receiverId, workspaceId)
 
+        if(!receiverWsMember) throw new ForbiddenError("Can't create Dm with user form another workspace")
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         if (senderId === receiverId) throw new BadRequestError("You can't create an Dm with self")
         const receiver = await authRepository.getById(receiverId)
         if (!receiver) throw new NotFoundError("No such User Exist's")
@@ -21,7 +26,7 @@ class ConversationService {
 
         if (existingDM && existingDM._count.members === 2) return existingDM
 
-        const dm = await conversationRepository.createDM(senderId, receiverId,idempotencyKey)
+        const dm = await conversationRepository.createDM(senderId, receiverId, idempotencyKey, workspaceId)
 
         return dm
     }
@@ -245,12 +250,71 @@ class ConversationService {
         const gdmMembers = [...new Set([...gdm.memberIds, userId])].map((userId) => ({ userId }))
 
         try {
-            return await conversationRepository.createGDM(gdm.name, gdmMembers, gdm.idempotencyKey)
+            return await conversationRepository.createGDM(gdm.name, gdmMembers, gdm.idempotencyKey, workspaceId)
         } catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")
                 return conversationRepository.getGDMByKey(gdm.idempotencyKey)
             throw err
         }
+
+    }
+
+    async renameGDM(groupName: string, userId: string, conversationId: string) {
+        const conversation = await conversationRepository.conversationExists(conversationId, userId)
+        if (!conversation) {
+            throw new NotFoundError("Group conversation not found");
+        }
+
+        if (conversation.conversation.type !== ConvoType.GDM) {
+            throw new BadRequestError("Only group conversations can be renamed");
+        }
+
+        if (conversation.conversation.groupName === groupName) {
+            return conversation;
+        }
+        const newGDM = await conversationRepository.renameGDM(groupName, conversationId)
+        return newGDM
+    }
+
+    async addMembers(memberIds: string[], userId: string, reqParams: { conversationId: string, workspaceId: string }) {
+        const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
+        if (!conversation) {
+            throw new NotFoundError("Group conversation not found");
+        }
+
+        if (conversation.conversation.type !== ConvoType.GDM) {
+            throw new BadRequestError("Only group conversations support add members");
+        }
+        const wsMembers = await workspaceRepository.getWorkspaceMembers(memberIds, reqParams.workspaceId)
+        const validMemberIds = new Set(
+            wsMembers.map(member => member.userId)
+        );
+
+        const invalidMemberIds = memberIds.filter(
+            id => !validMemberIds.has(id)
+        );
+
+
+        if (invalidMemberIds.length > 0) {
+            const InvalidMembers = await workspaceRepository.nonMembers(invalidMemberIds)
+            return {
+                nonMembersCount: invalidMemberIds.length,
+                InvalidMembers,
+                msg: "You can't invite non Workspace Members"
+            }
+        }
+        if (invalidMemberIds.length === 0) {
+            return {}
+        }
+
+        const members = memberIds.map((memberId => ({
+            userId: memberId,
+            convoId: reqParams.conversationId
+        })))
+
+        conversationRepository.addMembers(members, reqParams.conversationId)
+        const updatedConvo = await conversationRepository.getConversation(reqParams.conversationId, userId)
+      return  updatedConvo
 
     }
 }
