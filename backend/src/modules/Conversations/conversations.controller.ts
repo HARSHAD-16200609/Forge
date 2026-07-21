@@ -1,14 +1,14 @@
 import { StatusCodes } from "http-status-codes";
 import { reqUserSchema } from "../../db/auth-schema";
-import { createDMSchema, createGDMSchema, editMessageSchema, GDMMembers, renameGroupName, wsConversationIdSchema } from "../../db/conversation.schema";
+import { createDMSchema, createGDMSchema, MessageSchema, GDMMembers, renameGroupName, wsConversationIdSchema } from "../../db/conversation.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { conversationService } from "./conversations.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { idSchema } from "../../db/workspace";
-import { delUploadParamsSchema, emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
-import { uploadService } from "../Messages/upload.service";
+import { emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
+
 
 export const createDM = asyncHandler(async (req, res) => {
 
@@ -36,10 +36,12 @@ export const createDM = asyncHandler(async (req, res) => {
 })
 
 export const getConversations = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
+    const workspace = idSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
-    const conversations = await conversationService.getConversations(user.data.userId)
+    if (!workspace.success) throw new UserInputValidationError("Invalid Token", workspace.error.flatten().fieldErrors)
+
+    const conversations = await conversationService.getConversations(user.data.userId, workspace.data.id)
 
     loggers.db.info("Conversations Fetched SucessFully", {
         ip: req.ip,
@@ -56,8 +58,7 @@ export const getConversations = asyncHandler(async (req, res) => {
 })
 
 export const postMessage = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
-    const conversation = idSchema.safeParse(req.params)
+    const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const messageBody = messageSchema.safeParse(req.body)
     const attachments = (req.files as Express.Multer.File[]) ?? [];
@@ -68,7 +69,7 @@ export const postMessage = asyncHandler(async (req, res) => {
 
 
 
-    const message = await conversationService.postMessage(conversation.data.id, user.data.userId, messageBody.data.content, attachments)
+    const message = await conversationService.postMessage(conversation.data.workspaceId, conversation.data.conversationId, user.data.userId, messageBody.data.content, attachments)
     loggers.db.info("Message sent Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -83,15 +84,14 @@ export const postMessage = asyncHandler(async (req, res) => {
 })
 
 export const getConversation = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
-    const conversation = idSchema.safeParse(req.params)
+    const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
 
     if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
     if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors)
 
 
-    const convo = await conversationService.getConversation(conversation.data.id, user.data.userId)
+    const convo = await conversationService.getConversation(conversation.data.workspaceId, conversation.data.conversationId, user.data.userId)
     loggers.db.info("Conversation Fetched SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -106,10 +106,9 @@ export const getConversation = asyncHandler(async (req, res) => {
 })
 
 export const getMessages = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
+    const conversation =wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const Pagination = getMessagesSchema.safeParse(req.query)
-    const conversation = idSchema.safeParse(req.params)
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
     if (!Pagination.success) throw new UserInputValidationError("Invalid Input", Pagination.error.flatten().fieldErrors)
     if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors)
@@ -117,11 +116,11 @@ export const getMessages = asyncHandler(async (req, res) => {
 
 
 
-    const messages = await conversationService.getMessages(conversation.data.id, user.data.userId, Pagination.data)
+    const messages = await conversationService.getMessages(conversation.data.workspaceId, conversation.data.conversationId, user.data.userId, Pagination.data)
     loggers.db.info("Messages Fetched Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
-        conversationId: conversation.data.id,
+        conversationId: conversation.data.conversationId,
         fetchedAt: new Date().toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",
         })
@@ -131,8 +130,7 @@ export const getMessages = asyncHandler(async (req, res) => {
 })
 
 export const editMessage = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
-    const editMessageParams = editMessageSchema.safeParse(req.params)
+    const editMessageParams = MessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const updatedContent = messageSchema.safeParse(req.body)
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
@@ -156,8 +154,7 @@ export const editMessage = asyncHandler(async (req, res) => {
 })
 
 export const postReply = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
-    const postReplyParams = editMessageSchema.safeParse(req.params)
+    const postReplyParams = MessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const updatedContent = messageSchema.safeParse(req.body)
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
@@ -180,8 +177,7 @@ export const postReply = asyncHandler(async (req, res) => {
 })
 
 export const postReaction = asyncHandler(async (req, res) => {
-    //  const conversation = wsConversationIdSchema.safeParse(req.params)
-    const postReplyParams = editMessageSchema.safeParse(req.params)
+    const postReplyParams = MessageSchema.safeParse(req.params)
     const User = reqUserSchema.safeParse(req.user)
     const emoji = emojiSchema.safeParse(req.body)
 
@@ -231,13 +227,13 @@ export const createGDM = asyncHandler(async (req, res) => {
 export const renameGDM = asyncHandler(async (req, res) => {
     const gdm = renameGroupName.safeParse(req.body)
     const user = reqUserSchema.safeParse(req.user)
-    const conversation = idSchema.safeParse(req.params)
+    const conversation = wsConversationIdSchema.safeParse(req.params)
 
     if (!gdm.success) throw new UserInputValidationError("Invalid Input", gdm.error.flatten().fieldErrors);
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
     if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
 
-    const newGDM = await conversationService.renameGDM(gdm.data.groupName, user.data.userId, conversation.data.id)
+    const newGDM = await conversationService.renameGDM(gdm.data.groupName, user.data.userId, conversation.data.conversationId, conversation.data.workspaceId)
 
     loggers.db.info("GDM Renamed Sucessfully", {
         ip: req.ip,

@@ -31,8 +31,10 @@ class ConversationService {
         return dm
     }
 
-    async getConversations(userId: string) {
+    async getConversations(userId: string, workspaceId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversations = await conversationRepository.getConversations(userId)
         if (conversations.length === 0) throw new NotFoundError("No Conversations Found")
         const conversationList = conversations.map(({ conversation }) => {
@@ -54,11 +56,13 @@ class ConversationService {
         return conversationList
     }
 
-    async postMessage(conversationId: string, userId: string, content: string, attachments: Express.Multer.File[]) {
-         
+    async postMessage(workspaceId: string, conversationId: string, userId: string, content: string, attachments: Express.Multer.File[]) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation not Found")
-            if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
+        if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
 
         let attachmentData: {
             filename: string;
@@ -106,7 +110,10 @@ class ConversationService {
 
         }
     }
-    async getConversation(conversationId: string, userId: string) {
+    async getConversation(workspaceId: string, conversationId: string, userId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
         if (conversation?.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
         if (!conversation) throw new NotFoundError("Conversation Not Found")
@@ -128,8 +135,10 @@ class ConversationService {
         }
 
     }
-    async getMessages(conversationId: string, userId: string, pagination: { limit: number, cursor?: string | undefined }) {
+    async getMessages(workspaceId: string, conversationId: string, userId: string, pagination: { limit: number, cursor?: string | undefined }) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
@@ -149,7 +158,10 @@ class ConversationService {
         }
 
     }
-    async editMessage(editMessageParams: { conversationId: string, messageId: string }, userId: string, content: string) {
+    async editMessage(editMessageParams: { conversationId: string, messageId: string, workspaceId: string }, userId: string, content: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, editMessageParams.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(editMessageParams.conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
@@ -170,7 +182,10 @@ class ConversationService {
         const editedMessage = await messageRepository.editMessage(content, editMessageParams.messageId)
         return editedMessage
     }
-    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string }, content: string) {
+    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string, workspaceId: string }, content: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, postReplyParams.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(postReplyParams.conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         const message = await messageRepository.messageExists(postReplyParams.messageId)
@@ -201,7 +216,10 @@ class ConversationService {
 
 
     }
-    async postReaction(userId: string, postReactionParams: { messageId: string, conversationId: string }, emoji: string) {
+    async postReaction(userId: string, postReactionParams: { messageId: string, conversationId: string, workspaceId: string }, emoji: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, postReactionParams.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(postReactionParams.conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         const message = await messageRepository.messageExists(postReactionParams.messageId)
@@ -261,7 +279,10 @@ class ConversationService {
 
     }
 
-    async renameGDM(groupName: string, userId: string, conversationId: string) {
+    async renameGDM(groupName: string, userId: string, conversationId: string, workspaceId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
         if (!conversation) {
             throw new NotFoundError("Group conversation not found");
@@ -279,6 +300,9 @@ class ConversationService {
     }
 
     async addMembers(memberIds: string[], userId: string, reqParams: { conversationId: string, workspaceId: string }) {
+         const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
         if (!conversation) {
             throw new NotFoundError("Group conversation not found");
@@ -317,6 +341,9 @@ class ConversationService {
 
     }
     async deleteMembers(memberIds: string[], userId: string, reqParams: { workspaceId: string, conversationId: string }) {
+         const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
         if (!conversation) {
             throw new NotFoundError("Group conversation not found");
@@ -351,20 +378,20 @@ class ConversationService {
         return {}
 
     }
-    async leaveGroup(userId: string, reqParams: { workspaceId: string, conversationId: string }){
-          const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
+    async leaveGroup(userId: string, reqParams: { workspaceId: string, conversationId: string }) {
+        const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
         if (!conversation) {
             throw new NotFoundError("Group conversation not found");
         }
-          if (conversation.conversation.type !== ConvoType.GDM) {
+        if (conversation.conversation.type !== ConvoType.GDM) {
             throw new BadRequestError("Only group conversations support add members");
         }
 
-        try{
-            await conversationRepository.leaveGroup(userId,reqParams.conversationId)
+        try {
+            await conversationRepository.leaveGroup(userId, reqParams.conversationId)
 
-        }catch(err){
-            if(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025"){
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
                 throw new NotFoundError("You are not an member of this Conversation")
             }
             throw err

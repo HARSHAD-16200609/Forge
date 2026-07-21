@@ -6,9 +6,10 @@ export const createDMSchema = z.object({
     idempotencyKey: z.uuidv4()
 })
 
-export const editMessageSchema = z.object({
+export const MessageSchema = z.object({
     conversationId: z.uuid(),
-    messageId: z.uuid()
+    messageId: z.uuid(),
+    workspaceId:z.uuid()
 })
 
 export const renameGroupName = z.object({
