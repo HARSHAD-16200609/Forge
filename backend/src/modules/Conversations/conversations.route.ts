@@ -20,6 +20,7 @@ conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").post(verifyJwt, postReply)
 conversationRouter.route("/workspaces/:id/conversations").get(verifyJwt, getConversations)
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId/reactions").post(verifyJwt, postReaction)
+// conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").post(verifyJwt, deleteMessage)
 
 
 

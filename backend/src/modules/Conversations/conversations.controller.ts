@@ -8,6 +8,7 @@ import { conversationService } from "./conversations.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { idSchema } from "../../db/workspace";
 import { emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
+import { conversationRepository } from "./conversations.repository";
 
 
 export const createDM = asyncHandler(async (req, res) => {
@@ -315,6 +316,28 @@ export const leaveGroup = asyncHandler(async (req, res) => {
     })
 
     res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Group leaved sucessfully"))
+
+
+})
+
+export const deleteMessage = asyncHandler(async(req,res)=>{
+ const conversation = MessageSchema.safeParse(req.params)
+    const user = reqUserSchema.safeParse(req.user)
+
+    if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+
+    const message = await conversationService.deleteMessage(user.data.userId,conversation.data.workspaceId,conversation.data.messageId,conversation.data.conversationId)
+
+ loggers.db.info("Message deleted Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        editedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, message ?? {}, "Message Deleted sucessfully"))
 
 
 })

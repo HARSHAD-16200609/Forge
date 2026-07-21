@@ -6,6 +6,7 @@ import { ConversationMessageDTO, MessageDTO } from "../../types/message"
 import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors"
 import { loggers } from "../../utility/logger/serviceLoggers"
 import { authRepository } from "../Auth/auth.repository"
+import { deleteMessage } from "../Messages/message.controller"
 import { messageRepository } from "../Messages/message.repositoty"
 import { uploadService } from "../Messages/upload.service"
 import { workspaceRepository } from "../Workspace/workspace.repository"
@@ -300,7 +301,7 @@ class ConversationService {
     }
 
     async addMembers(memberIds: string[], userId: string, reqParams: { conversationId: string, workspaceId: string }) {
-         const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
+        const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
@@ -341,7 +342,7 @@ class ConversationService {
 
     }
     async deleteMembers(memberIds: string[], userId: string, reqParams: { workspaceId: string, conversationId: string }) {
-         const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
+        const workspaceMember = await workspaceRepository.memberExists(userId, reqParams.workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
@@ -396,6 +397,34 @@ class ConversationService {
             }
             throw err
         }
+    }
+    async deleteMessage(userId: string, workspaceId: string, messageId: string, conversationId: string) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+
+        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
+
+        const conversation = await conversationRepository.conversationExists(conversationId, userId)
+        if (!conversation) {
+            throw new NotFoundError("conversation not found");
+        }
+        const message = await messageRepository.messageExists(messageId)
+        if (!message) {
+            throw new NotFoundError("Message not found");
+        }
+        if (message.senderId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
+        if (message.deletedAt) throw new BadRequestError("Message is already Deleted")
+
+        try {
+            await messageRepository.deleteMessage(messageId)
+
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+                return {}
+            }
+            throw err
+        }
+
+
     }
 }
 
