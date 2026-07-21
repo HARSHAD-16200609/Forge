@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { reqUserSchema } from "../../db/auth-schema";
-import { addGDMMembers, createDMSchema, createGDMSchema, editMessageSchema, renameGroupName, wsConversationIdSchema } from "../../db/conversation.schema";
+import { createDMSchema, createGDMSchema, editMessageSchema, GDMMembers, renameGroupName, wsConversationIdSchema } from "../../db/conversation.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
@@ -36,6 +36,7 @@ export const createDM = asyncHandler(async (req, res) => {
 })
 
 export const getConversations = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     if (!user.success) throw new UserInputValidationError("Invalid Token", user.error.flatten().fieldErrors)
     const conversations = await conversationService.getConversations(user.data.userId)
@@ -55,6 +56,7 @@ export const getConversations = asyncHandler(async (req, res) => {
 })
 
 export const postMessage = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const conversation = idSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const messageBody = messageSchema.safeParse(req.body)
@@ -81,6 +83,7 @@ export const postMessage = asyncHandler(async (req, res) => {
 })
 
 export const getConversation = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const conversation = idSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
 
@@ -103,6 +106,7 @@ export const getConversation = asyncHandler(async (req, res) => {
 })
 
 export const getMessages = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const Pagination = getMessagesSchema.safeParse(req.query)
     const conversation = idSchema.safeParse(req.params)
@@ -127,6 +131,7 @@ export const getMessages = asyncHandler(async (req, res) => {
 })
 
 export const editMessage = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const editMessageParams = editMessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const updatedContent = messageSchema.safeParse(req.body)
@@ -151,6 +156,7 @@ export const editMessage = asyncHandler(async (req, res) => {
 })
 
 export const postReply = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const postReplyParams = editMessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const updatedContent = messageSchema.safeParse(req.body)
@@ -174,6 +180,7 @@ export const postReply = asyncHandler(async (req, res) => {
 })
 
 export const postReaction = asyncHandler(async (req, res) => {
+    //  const conversation = wsConversationIdSchema.safeParse(req.params)
     const postReplyParams = editMessageSchema.safeParse(req.params)
     const User = reqUserSchema.safeParse(req.user)
     const emoji = emojiSchema.safeParse(req.body)
@@ -248,7 +255,7 @@ export const renameGDM = asyncHandler(async (req, res) => {
 export const addMembers = asyncHandler(async (req, res) => {
     const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
-    const members = addGDMMembers.safeParse(req.body)
+    const members = GDMMembers.safeParse(req.body)
 
     if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
@@ -266,6 +273,52 @@ export const addMembers = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, updatedGDM ?? {}, "GDM member added sucessfully"))
 
+
+
+})
+
+export const removeMembers = asyncHandler(async (req, res) => {
+    const conversation = wsConversationIdSchema.safeParse(req.params)
+    const members = GDMMembers.safeParse(req.body)
+    const user = reqUserSchema.safeParse(req.user)
+
+    if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
+    if (!members.success) throw new UserInputValidationError("Invalid Input", members.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+
+    await conversationService.deleteMembers(members.data.memberIds, user.data.userId, conversation.data)
+    loggers.db.info("GDM member removed Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        editedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "GDM member removed sucessfully"))
+
+
+})
+
+export const leaveGroup = asyncHandler(async (req, res) => {
+    const conversation = wsConversationIdSchema.safeParse(req.params)
+    const user = reqUserSchema.safeParse(req.user)
+
+    if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
+    if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
+
+
+    await conversationService.leaveGroup(user.data.userId, conversation.data)
+
+    loggers.db.info("Group leaved Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        editedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Group leaved sucessfully"))
 
 
 })

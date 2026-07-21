@@ -107,10 +107,15 @@ class ConversationRepository {
                     conversation: {
                         select: {
                             type: true,
-                            groupName: true
-                        }
-                    }
-                }
+                            groupName: true,
+                            _count: {
+                                select: {
+                                    members: true,
+                                },
+                            },
+                        },
+                    },
+                },
 
             }
         )
@@ -238,7 +243,7 @@ class ConversationRepository {
             }
         })
     }
-    async addMembers(members: { userId: string, convoId: string }[], conversationId: string) {
+    async addMembers(members: { userId: string, convoId: string }[]) {
         await prisma.conversationMember.createMany({
             data: members,
             skipDuplicates: true,
@@ -267,13 +272,28 @@ class ConversationRepository {
                         convoId: true,
                     }
                 }
-            },omit:{
-                workspaceId : true,
-                idempotencyKey:true
+            }, omit: {
+                workspaceId: true,
+                idempotencyKey: true
             }
 
         })
     }
-
+    async removeMembers(members: string[]) {
+        return await prisma.conversationMember.deleteMany({
+            where: {
+                userId: {
+                    in: members
+                }
+            }
+        })
+    }
+    async leaveGroup(userId: string, convoId: string) {
+        return await prisma.conversationMember.delete({
+            where: {
+                userId_convoId: { userId, convoId }
+            }
+        })
+    }
 }
 export const conversationRepository = new ConversationRepository()

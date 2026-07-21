@@ -36,7 +36,7 @@ export const createGDMSchema = z.object({
         ),
 })
 
-export const addGDMMembers = z.object({
+export const GDMMembers = z.object({
     memberIds: z
         .array(z.uuid())
         .min(1, "At least one member is required.")

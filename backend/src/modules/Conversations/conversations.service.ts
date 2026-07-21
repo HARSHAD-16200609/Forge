@@ -16,7 +16,7 @@ class ConversationService {
         const workspaceMember = await workspaceRepository.memberExists(senderId, workspaceId)
         const receiverWsMember = await workspaceRepository.memberExists(receiverId, workspaceId)
 
-        if(!receiverWsMember) throw new ForbiddenError("Can't create Dm with user form another workspace")
+        if (!receiverWsMember) throw new ForbiddenError("Can't create Dm with user form another workspace")
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         if (senderId === receiverId) throw new BadRequestError("You can't create an Dm with self")
@@ -55,9 +55,10 @@ class ConversationService {
     }
 
     async postMessage(conversationId: string, userId: string, content: string, attachments: Express.Multer.File[]) {
+         
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
-        if (conversation?.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
         if (!conversation) throw new NotFoundError("Conversation not Found")
+            if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
 
         let attachmentData: {
             filename: string;
@@ -128,6 +129,7 @@ class ConversationService {
 
     }
     async getMessages(conversationId: string, userId: string, pagination: { limit: number, cursor?: string | undefined }) {
+
         const conversation = await conversationRepository.conversationExists(conversationId, userId)
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
@@ -297,14 +299,11 @@ class ConversationService {
 
         if (invalidMemberIds.length > 0) {
             const InvalidMembers = await workspaceRepository.nonMembers(invalidMemberIds)
-            return {
+            throw new ForbiddenError(JSON.stringify({
                 nonMembersCount: invalidMemberIds.length,
                 InvalidMembers,
                 msg: "You can't invite non Workspace Members"
-            }
-        }
-        if (invalidMemberIds.length === 0) {
-            return {}
+            }))
         }
 
         const members = memberIds.map((memberId => ({
@@ -312,10 +311,64 @@ class ConversationService {
             convoId: reqParams.conversationId
         })))
 
-        conversationRepository.addMembers(members, reqParams.conversationId)
+        conversationRepository.addMembers(members)
         const updatedConvo = await conversationRepository.getConversation(reqParams.conversationId, userId)
-      return  updatedConvo
+        return updatedConvo
 
+    }
+    async deleteMembers(memberIds: string[], userId: string, reqParams: { workspaceId: string, conversationId: string }) {
+        const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
+        if (!conversation) {
+            throw new NotFoundError("Group conversation not found");
+        }
+
+        if (conversation.conversation.type !== ConvoType.GDM) {
+            throw new BadRequestError("Only group conversations support add members");
+        }
+        const wsMembers = await workspaceRepository.getWorkspaceMembers(memberIds, reqParams.workspaceId)
+        const validMemberIds = new Set(
+            wsMembers.map(member => member.userId)
+        );
+
+        const invalidMemberIds = memberIds.filter(
+            id => !validMemberIds.has(id)
+        );
+
+
+        if (invalidMemberIds.length > 0) {
+            const InvalidMembers = await workspaceRepository.nonMembers(invalidMemberIds)
+            throw new ForbiddenError(JSON.stringify({
+                nonMembersCount: invalidMemberIds.length,
+                InvalidMembers,
+                msg: "You can't remove non Workspace Members"
+            }))
+        }
+
+        if (conversation.conversation._count.members === memberIds.length) {
+            throw new BadRequestError("Can't remove all the group members")
+        }
+        conversationRepository.removeMembers(memberIds)
+        return {}
+
+    }
+    async leaveGroup(userId: string, reqParams: { workspaceId: string, conversationId: string }){
+          const conversation = await conversationRepository.conversationExists(reqParams.conversationId, userId)
+        if (!conversation) {
+            throw new NotFoundError("Group conversation not found");
+        }
+          if (conversation.conversation.type !== ConvoType.GDM) {
+            throw new BadRequestError("Only group conversations support add members");
+        }
+
+        try{
+            await conversationRepository.leaveGroup(userId,reqParams.conversationId)
+
+        }catch(err){
+            if(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025"){
+                throw new NotFoundError("You are not an member of this Conversation")
+            }
+            throw err
+        }
     }
 }
 
