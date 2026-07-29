@@ -25,17 +25,10 @@ export async function verifyAccessToken(token: string) {
             token,
             env.JWT_SECRET
         ) as jwtPayload  ;
-        const user = await prisma.user.findFirst({
-            where: {
-                id: payload.userId
-            }, select: {
-                id: true,
-                username: true
-            }
-        })
+        
 
 
-        return {...user,sessionId:payload.sessionId}
+        return payload
 
     } catch (err) {
         if (
