@@ -59,9 +59,7 @@ class AuthService {
         if (!match) {
             throw new UnauthorizedAccessError("Invalid Credentials !!!")
         }
-        const accessToken = genJwtToken({ userId: existingUser.id, username: existingUser.username! }
-            , env.JWT_EXPIRES_IN as SignOptions["expiresIn"],
-            env.JWT_SECRET)
+
 
         const refreshToken = genJwtToken({ userId: existingUser.id, username: existingUser.username! }, env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"], env.REFRESH_TOKEN_SECRET)
         const refreshTokenHash = hashToken(refreshToken)
@@ -70,7 +68,7 @@ class AuthService {
         const sessionInfo = {
             email: existingUser.email,
             userId: existingUser.id,
-            refreshToken, accessToken
+            refreshToken
         }
         try {
             const session = {
@@ -80,11 +78,15 @@ class AuthService {
                 createdAt: new Date(),
                 ipAddress: userMetaData.ip,
                 userAgent: userMetaData.userAgent,
-       
-            }
-            await authRepository.createSession(session)
 
-            return sessionInfo
+            }
+            const sessionId = await authRepository.createSession(session)
+
+            const accessToken = genJwtToken({ userId: existingUser.id, username: existingUser.username! ,sessionId:sessionId.id }
+                , env.JWT_EXPIRES_IN as SignOptions["expiresIn"],
+                env.JWT_SECRET)
+
+            return { ...sessionInfo, sessionId, accessToken }
         }
         catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -110,7 +112,7 @@ class AuthService {
             throw new UnauthorizedAccessError("Invalid or Expired Token")
         }
 
-        const accessToken = genJwtToken({ userId: decoded.userId, username: decoded.username }, env.JWT_EXPIRES_IN as SignOptions["expiresIn"], env.JWT_SECRET)
+        const accessToken = genJwtToken({ userId: decoded.userId, username: decoded.username,sessionId:session.id }, env.JWT_EXPIRES_IN as SignOptions["expiresIn"], env.JWT_SECRET)
 
         return accessToken
 
@@ -138,7 +140,7 @@ class AuthService {
 
     async LogoutFromAllDevices(userId: string) {
         try {
-         await authRepository.deleteAllSession(userId)
+            await authRepository.deleteAllSession(userId)
 
         }
         catch (err) {

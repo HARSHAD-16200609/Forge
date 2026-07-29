@@ -3,13 +3,14 @@ import jwt from "jsonwebtoken"
 import { BadRequestError, UnauthorizedAccessError } from "../utility/errorHandling/customErrors"
 import { env } from "../config/env"
 import { prisma } from "../config/prisma"
+import { verifyAccessToken } from "../utility/auth/jwt"
 
 
 
 export const verifyJwt = async (req: Request, res: Response, next: NextFunction) => {
- 
-  
-   
+
+
+
   const cookieToken = req.cookies.accessToken;
 
   const bearerToken = req
@@ -25,37 +26,14 @@ export const verifyJwt = async (req: Request, res: Response, next: NextFunction)
   }
 
 
-  try {
-    const payload = jwt.verify(
-      token,
-      env.JWT_SECRET
-    ) as jwtPayload;
-    const user = await prisma.user.findFirst({
-      where: {
-        id: payload.userId
-      }, select: {
-        id: true,
-        username: true
-      }
-    })
+  const user = await verifyAccessToken(token)
 
+  if (!user) throw new BadRequestError("Unauthorized Access Please Login First")
 
-    if (!user) throw new BadRequestError("Unauthorized Access Please Login First")
-    req.user = {userId:user.id,username:user.username}
-
-  } catch {
-    throw new UnauthorizedAccessError(
-      "Invalid or expired access token"
-    );
-  }
-
-
-
-
-
-
+  req.user = { userId: user.id, username: user.username , sessionId: user.sessionId ?? ""}
 
 
   next()
 }
+
 

@@ -100,8 +100,11 @@ export class AuthRepository {
   }
 
   async createSession(session: session) {
-    await prisma.session.create({
-      data: session
+  return  await prisma.session.create({
+      data: session,
+      select:{
+        id:true
+      }
     })
   }
   async findSession(refreshTokenHash: string, expiry?: Date) {
@@ -114,6 +117,7 @@ export class AuthRepository {
           },
         }),
       }, select: {
+        id:true,
         userId: true
       }
     })
