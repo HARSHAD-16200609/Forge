@@ -2,6 +2,7 @@ import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto"
 import { env } from "../../config/env";
 import { UnauthorizedAccessError } from "../errorHandling/customErrors";
+import { authRepository } from "../../modules/Auth/auth.repository";
 
 
 
@@ -42,4 +43,15 @@ export async function verifyAccessToken(token: string, secret = env.JWT_SECRET) 
 
         throw err;
     }
+}
+
+
+export async function validateSession(payload:jwtPayload) {
+    const session = await authRepository.validateSession(payload.sessionId ?? "")
+
+    if (!session) throw new UnauthorizedAccessError("Session Expired")
+
+    if (session.userId !== payload.userId) throw new UnauthorizedAccessError("Invalid Token")
+
+
 }
