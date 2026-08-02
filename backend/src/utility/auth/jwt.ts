@@ -1,8 +1,8 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto"
 import { env } from "../../config/env";
-import { BadRequestError, UnauthorizedAccessError } from "../errorHandling/customErrors";
-import { prisma } from "../../config/prisma";
+import { UnauthorizedAccessError } from "../errorHandling/customErrors";
+
 
 
 export function genJwtToken(payload: jwtPayload, expiry: SignOptions["expiresIn"] = "15m", secret: string) {
@@ -19,13 +19,13 @@ export function hashToken(refreshToken: string): string {
         .digest("hex");
 }
 
-export async function verifyAccessToken(token: string) {
+export async function verifyAccessToken(token: string, secret = env.JWT_SECRET) {
     try {
         const payload = jwt.verify(
             token,
-            env.JWT_SECRET
-        ) as jwtPayload  ;
-        
+            secret
+        ) as jwtPayload;
+
 
 
         return payload
