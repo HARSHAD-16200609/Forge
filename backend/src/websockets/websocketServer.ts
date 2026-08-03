@@ -21,9 +21,7 @@ websocketServer.on("connection", (ws: WebSocket, req: AuthenticatedUpgradeReques
 
 
     ws.on("message", (data) => {
-        console.log(data)
-
-        console.log(data.toString())
+      
         const metadata = connectionManager.getMetadata(ws)
 
         ws.send("Hii "+metadata?.userId + " u are our first connection this is your first message "+data.toString())
