@@ -1,3 +1,5 @@
+import { WebSocket } from "ws";
+
 class SubscriptionManager {
 
     private readonly subscriptions = new Map<WebSocket, Set<string>>();

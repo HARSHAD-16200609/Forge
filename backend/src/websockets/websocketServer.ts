@@ -1,7 +1,7 @@
 import { WebSocket, WebSocketServer } from "ws";
-import { AuthenticatedUpgradeRequest } from "./types";
+import { AuthenticatedUpgradeRequest } from "./types/auth";
 import { connectionManager } from "./connectionManager";
-import { webcrypto } from "node:crypto";
+import { eventRouter } from "./eventRouter";
 
 
 
@@ -22,9 +22,9 @@ websocketServer.on("connection", (ws: WebSocket, req: AuthenticatedUpgradeReques
 
     ws.on("message", (data) => {
       
-        const metadata = connectionManager.getMetadata(ws)
-
-        ws.send("Hii "+metadata?.userId + " u are our first connection this is your first message "+data.toString())
+    const wsMessage = JSON.parse(data.toString())
+console.log(wsMessage)
+    eventRouter.dispatch(ws,wsMessage)
 
     })
 

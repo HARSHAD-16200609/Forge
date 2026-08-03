@@ -1,9 +1,9 @@
 import { IncomingMessage } from "http";
 
 export interface ConnectionMetadata {
-    userId: string;
-    sessionId: string;
-    connectedAt: Date;
+  userId: string;
+  sessionId: string;
+  connectedAt: Date;
 }
 
 

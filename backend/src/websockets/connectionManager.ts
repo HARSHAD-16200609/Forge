@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { ConnectionMetadata } from "./types";
+import { ConnectionMetadata } from "./types/auth";
 
 class ConnectionManager {
 
