@@ -38,7 +38,7 @@ class SubscriptionManager {
             return
         }
         subscribers.delete(ws)
-        if(subscribers.size == 0){
+        if (subscribers.size == 0) {
             this.subscribers.delete(conversationId)
         }
         let subscriptions = this.subscriptions.get(ws)

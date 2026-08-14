@@ -9,29 +9,33 @@ export const envelopeSchema = z.object({
 
 
 export function parseEnvelope(raw: string) {
-    const json = JSON.parse(raw);
+    try {
+        const json = JSON.parse(raw);
 
-    return envelopeSchema.parse(json);
+        return envelopeSchema.safeParse(json);
+    } catch (error) {
+        if (error instanceof SyntaxError) {
+            return {
+                success: false as const,
+                error: "Malformed JSON",
+            };
+        }
+
+        throw error;
+    }
 }
-
 export const messageEnvelopeSchema = z.object({
-    type: z.string().min(20).max(30),
-    payload : z.object({
-        conversationId:z.uuid(),
-        content : z.string().max(500)
+    payload: z.object({
+        conversationId: z.uuid(),
+        content: z.string().max(500)
     })
-
 })
 
-export const subscribeEnvelopeSchema = z.object({
-    type: z.string().min(20).max(30),
-    payload : z.object({
-        content : z.string().max(500)
-    })
-    
+export const conversationIdSchema = z.object({
+     conversationId: z.uuid() 
 })
 
 
 export type Envelope = z.infer<typeof envelopeSchema>;
-export type SubscribePayload = z.infer<typeof subscribeEnvelopeSchema>
+export type convoId = z.infer<typeof conversationIdSchema>
 export type MessagePayload = z.infer<typeof messageEnvelopeSchema>

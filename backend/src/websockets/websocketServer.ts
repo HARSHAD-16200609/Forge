@@ -2,6 +2,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { AuthenticatedUpgradeRequest } from "./types/auth";
 import { connectionManager } from "./connectionManager";
 import { eventRouter } from "./eventRouter";
+import { parseEnvelope } from "./schema/envelope";
 
 
 
@@ -21,10 +22,20 @@ websocketServer.on("connection", (ws: WebSocket, req: AuthenticatedUpgradeReques
 
 
     ws.on("message", (data) => {
-      
-    const wsMessage = JSON.parse(data.toString())
-console.log(wsMessage)
-    eventRouter.dispatch(ws,wsMessage)
+
+        const wsMessage = parseEnvelope(data.toString())
+        
+        if(!wsMessage.success){
+            ws.send(JSON.stringify({
+                type: "error",
+                payload: {
+                    message: wsMessage.error
+                }
+            }))
+            return
+        }
+
+        eventRouter.dispatch(ws, wsMessage.data)
 
     })
 

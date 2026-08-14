@@ -4,6 +4,7 @@ import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
 
 class ConversationHandler {
+    
     async message(
         ws: WebSocket,
         message: WebSocketMessage

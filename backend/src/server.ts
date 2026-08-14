@@ -5,7 +5,7 @@ import { websocketServer } from "./websockets/websocketServer";
 import { UnauthorizedAccessError } from "./utility/errorHandling/customErrors";
 import { parseCookie } from "cookie"
 import { validateSession, verifyAccessToken } from "./utility/auth/jwt";
-import { AuthenticatedUpgradeRequest, AuthenticatedUser } from "./websockets/types";
+import { AuthenticatedUpgradeRequest, AuthenticatedUser } from "./websockets/types/auth";
 
 const PORT = Number(env.PORT) || 8000;
 

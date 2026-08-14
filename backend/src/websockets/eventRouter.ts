@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-
+import {loggers} from "../utility/logger/serviceLoggers";
 import { WsEvent } from "./types/events";
 import { WebSocketMessage } from "./types/websocketMessage";
 
@@ -13,6 +13,7 @@ type EventHandler = (
 ) => Promise<void>;
 
 class EventRouter {
+
     private readonly handlers = new Map<WsEvent, EventHandler>();
 
     constructor() {
@@ -46,13 +47,32 @@ class EventRouter {
         ws: WebSocket,
         message: WebSocketMessage
     ): Promise<void> {
-        const handler = this.handlers.get(message.type);
+        try {
+            const handler = this.handlers.get(message.type);
 
-        if (!handler) {
-            throw new Error(`Unknown WebSocket event: ${message.type}`);
+            if (!handler) {
+                throw new Error(`Unknown WebSocket event: ${message.type}`);
+            }
+
+            await handler(ws, message);
+            
+        } catch (error) {
+    
+            loggers.audit.error(`Error processing WebSocket event: ${error}`, {
+                eventType: message.type,
+                payload: message.payload,
+            });
+
+
+            ws.send(
+                JSON.stringify({
+                    type: "error",
+                    payload: {
+                        message: "Failed to process WebSocket event",
+                    },
+                })
+            );
         }
-
-        await handler(ws, message);
     }
 }
 
