@@ -2,17 +2,17 @@ import { Outlet } from "react-router-dom";
 
 export function AppLayout() {
     return (
-        <div>
-            <header>
+        <div className="app-shell">
+            <header className="app-header">
                 <h1>WorkSphere</h1>
             </header>
 
-            <div>
-                <aside>
+            <div className="app-body">
+                <aside className="app-sidebar">
                     <p>Sidebar</p>
                 </aside>
 
-                <main>
+                <main className="app-content">
                     <Outlet />
                 </main>
             </div>
