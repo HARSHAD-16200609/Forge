@@ -8,3 +8,13 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+
+// src/
+// ├── app/
+// ├── components/
+// │   └── ui/
+// ├── features/
+// ├── hooks/
+// ├── lib/
+// └── types/
