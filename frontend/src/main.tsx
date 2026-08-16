@@ -1,20 +1,15 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
+import { AppProviders } from "./app/providers/AppProvider.tsx";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+        <AppProviders>
+            <App />
+        </AppProviders>
+    </StrictMode>,
+);
 
 
-// src/
-// ├── app/
-// ├── components/
-// │   └── ui/
-// ├── features/
-// ├── hooks/
-// ├── lib/
-// └── types/
