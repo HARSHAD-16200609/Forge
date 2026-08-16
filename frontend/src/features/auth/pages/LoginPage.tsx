@@ -1,9 +1,10 @@
 import { Outlet } from "react-router-dom";
+import {LoginForm} from "../components/LoginForm";
 
 export function LoginPage() {
     return (
-        <div>
-            <h1>Login</h1>
+        <div className="Login-cont">
+            <LoginForm/>
             <Outlet />
         </div>
     );
