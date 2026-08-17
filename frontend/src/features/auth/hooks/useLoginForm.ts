@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import type { LoginFormData } from "../types";
 import axios from "axios";
-import { api } from "../../../lib/api";
+import { login } from "../services/auth.service";
 
 export function useLoginForm() {
     const navigate = useNavigate();
@@ -21,8 +21,7 @@ export function useLoginForm() {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            const response = await api.post("/auth/login", data);
-            console.log("Login successful:", response.data);
+            await login(data)
             reset();
             navigate("/app");
         } catch (error) {
