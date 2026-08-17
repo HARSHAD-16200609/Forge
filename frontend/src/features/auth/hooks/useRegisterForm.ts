@@ -11,6 +11,7 @@ export function useRegisterForm() {
         handleSubmit,
         reset,
         setError,
+        watch,
         formState: { errors, isSubmitting },
     } = useForm<RegisterFormData>({
         defaultValues: {
@@ -22,6 +23,7 @@ export function useRegisterForm() {
     });
 
     const onSubmit = async (data: RegisterFormData) => {
+        delete data.confirmPassword;
         try {
             await api.post("/auth/register", data);
             reset();
@@ -46,6 +48,7 @@ export function useRegisterForm() {
         handleSubmit,
         onSubmit,
         reset,
+        watch,
         errors,
         isSubmitting,
     };
