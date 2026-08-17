@@ -1,10 +1,10 @@
-import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import type { LoginFormData } from "../types";
+import type { RegisterFormData } from "../types";
+import { useForm } from "react-hook-form";
 import axios from "axios";
 import { api } from "../../../lib/api";
 
-export function useLoginForm() {
+export function useRegisterForm() {
     const navigate = useNavigate();
     const {
         register,
@@ -12,24 +12,25 @@ export function useLoginForm() {
         reset,
         setError,
         formState: { errors, isSubmitting },
-    } = useForm<LoginFormData>({
+    } = useForm<RegisterFormData>({
         defaultValues: {
+            name: "",
             email: "",
             password: "",
+            username: "",
         },
     });
 
-    const onSubmit = async (data: LoginFormData) => {
+    const onSubmit = async (data: RegisterFormData) => {
         try {
-            const response = await api.post("/auth/login", data);
-            console.log("Login successful:", response.data);
+            await api.post("/auth/register", data);
             reset();
-            navigate("/app");
+            navigate("/auth/login");
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 setError("email", {
                     type: "server",
-                    message: error.response?.data?.message ?? "Login failed. Please check your credentials.",
+                    message: error.response?.data?.message ?? "Registration failed. Please try again.",
                 });
             } else {
                 setError("email", {
