@@ -1,31 +1,36 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { LoginForm } from "../components/LoginForm";
 import logo from "../../../assets/logo.png";
-import "./auth.css";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
 export function LoginPage() {
     return (
-        <div className="auth-page">
-            <div className="auth-panel">
-                <img className="auth-logo" src={logo} alt="WorkSphere" />
-                <div className="auth-card">
-                    <h1>Sign in to your workspace</h1>
-                    <p className="auth-subtitle">Welcome back — pick up where you left off.</p>
+        <main className="bg-linear-to-b from-background to-muted/40 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+            <img src={logo} alt="WorkSphere" className="h-24 w-auto rounded-2xl object-contain" />
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="text-lg">Sign in to your workspace</CardTitle>
+                    <CardDescription>Welcome back — pick up where you left off.</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <LoginForm />
-                    <p className="auth-switch">
-                        Don't have an account? <Link className="auth-link" to="/auth/register">Create one</Link>
-                    </p>
-                </div>
-            </div>
-            <aside className="auth-side">
-                <div className="auth-shape auth-shape-1" />
-                <div className="auth-shape auth-shape-2" />
-                <div className="auth-shape auth-shape-3" />
-                <div className="auth-shape auth-shape-4" />
-                <h2>Where your team's work comes together</h2>
-                <p>Channels, projects, and messages — organized in one calm, focused workspace.</p>
-            </aside>
-            <Outlet />
-        </div>
+                </CardContent>
+            </Card>
+            <p className="text-muted-foreground text-sm">
+                Don't have an account?{" "}
+                <Link
+                    className="text-foreground font-medium underline-offset-4 hover:underline"
+                    to="/auth/register"
+                >
+                    Create one
+                </Link>
+            </p>
+        </main>
     );
 }
