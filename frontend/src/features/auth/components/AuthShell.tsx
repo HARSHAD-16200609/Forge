@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import logo from "../../../assets/logo.png";
+import logo from "@/assets/logo.png";
 
 type AuthShellProps = {
     children: ReactNode;

@@ -1,4 +1,4 @@
-import { api } from "../../../lib/api";
+import { api } from "@/lib/api";
 import type { LoginFormData, RegisterFormData } from "../types";
 
 export async function login(data: LoginFormData) {

@@ -1,15 +1,15 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter } from "react-router-dom";
 
-import { DashboardPage } from "../pages/DashBoard";
-import { AppLayout } from "../layouts/Applayout";
-import { Root } from "../pages/HomePage";
-import { LoginPage } from "../../features/auth/pages/LoginPage";
-import { RegisterPage } from "../../features/auth/pages/RegisterPage";
+import { AppLayout } from "@/app/layouts/AppLayout";
+import { DashboardPage } from "@/app/pages/DashboardPage";
+import { HomePage } from "@/app/pages/HomePage";
+import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 
 export const router = createBrowserRouter([
     {
         path: "/",
-        Component: Root,
+        Component: HomePage,
     },
     {
         path: "app",

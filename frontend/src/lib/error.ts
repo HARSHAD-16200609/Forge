@@ -1,10 +1,20 @@
 export class ApiError extends Error {
-    public status: number;
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+  public readonly details?: unknown;
 
-    constructor(message: string, status: number) {
-        super(message);
+  constructor(
+    statusCode: number,
+    message: string,
+    details?: unknown,
+    isOperational = true
+  ) {
+    super(message);
 
-        this.name = "ApiError";
-        this.status = status;
-    }
+    this.statusCode = statusCode ?? 500;
+    this.isOperational = isOperational;
+    this.details = details;
+
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
 }

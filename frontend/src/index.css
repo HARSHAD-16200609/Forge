@@ -202,39 +202,3 @@
         animation: none;
     }
 }
-
-/* Legacy app-shell styles used by src/app/layouts/Applayout.tsx */
-.app-shell {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.app-header {
-    height: 56px;
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    border-bottom: 1px solid #ddd;
-}
-
-.app-header h1 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.app-body {
-    flex: 1;
-    display: flex;
-}
-
-.app-sidebar {
-    width: 240px;
-    padding: 20px;
-    border-right: 1px solid #ddd;
-}
-
-.app-content {
-    flex: 1;
-    padding: 24px;
-}
