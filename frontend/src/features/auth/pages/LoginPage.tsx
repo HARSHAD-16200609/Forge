@@ -1,36 +1,29 @@
 import { Link } from "react-router-dom";
+
+import { AuthShell } from "../components/AuthShell";
 import { LoginForm } from "../components/LoginForm";
-import logo from "../../../assets/logo.png";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 
 export function LoginPage() {
     return (
-        <main className="bg-linear-to-b from-background to-muted/40 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <img src={logo} alt="WorkSphere" className="h-24 w-auto rounded-2xl object-contain" />
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle className="text-lg">Sign in to your workspace</CardTitle>
-                    <CardDescription>Welcome back — pick up where you left off.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <LoginForm />
-                </CardContent>
-            </Card>
-            <p className="text-muted-foreground text-sm">
-                Don't have an account?{" "}
+        <AuthShell footer={<>© {new Date().getFullYear()} WorkSphere Labs. All rights reserved.</>}>
+            <div className="flex flex-col gap-1.5 text-center">
+                <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
+                <p className="text-muted-foreground text-sm">
+                    Enter your email below to log in to your account
+                </p>
+            </div>
+
+            <LoginForm />
+
+            <div className="text-muted-foreground relative z-10 text-center text-sm">
+                Don&apos;t have an account?{" "}
                 <Link
-                    className="text-foreground font-medium underline-offset-4 hover:underline"
                     to="/auth/register"
+                    className="underline underline-offset-4 hover:text-foreground"
                 >
-                    Create one
+                    Sign up
                 </Link>
-            </p>
-        </main>
+            </div>
+        </AuthShell>
     );
 }

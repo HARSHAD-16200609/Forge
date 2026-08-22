@@ -111,7 +111,7 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: "Geist Variable", sans-serif;
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
@@ -124,6 +124,7 @@
     body {
         @apply bg-background text-foreground;
         font-family:
+            "Geist Variable",
             Inter,
             system-ui,
             -apple-system,
@@ -131,8 +132,74 @@
             "Segoe UI",
             sans-serif;
     }
-  html {
-    @apply font-sans;
+    html {
+        @apply font-sans;
+    }
+}
+
+/* ── Auth pages: fluid CSS motion (transform/opacity only) ─────────────── */
+
+@keyframes auth-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+}
+
+@keyframes auth-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-9px);
+    }
+}
+
+@keyframes auth-breathe {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(0.75);
+    }
+}
+
+.auth-reveal {
+    animation: auth-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.auth-reveal-1 {
+    animation-delay: 60ms;
+}
+.auth-reveal-2 {
+    animation-delay: 120ms;
+}
+.auth-reveal-3 {
+    animation-delay: 180ms;
+}
+.auth-reveal-4 {
+    animation-delay: 240ms;
+}
+.auth-reveal-5 {
+    animation-delay: 300ms;
+}
+
+.auth-float {
+    animation: auth-float 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.auth-breathe {
+    animation: auth-breathe 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-reveal,
+    .auth-float,
+    .auth-breathe {
+        animation: none;
     }
 }
 

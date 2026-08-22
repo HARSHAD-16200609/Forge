@@ -1,36 +1,29 @@
 import { Link } from "react-router-dom";
+
+import { AuthShell } from "../components/AuthShell";
 import { RegisterForm } from "../components/RegisterForm";
-import logo from "../../../assets/logo.png";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 
 export function RegisterPage() {
     return (
-        <main className="bg-linear-to-b from-background to-muted/40 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <img src={logo} alt="WorkSphere" className="h-24 w-auto rounded-2xl object-contain" />
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle className="text-lg">Create your account</CardTitle>
-                    <CardDescription>Set up your workspace in a few minutes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <RegisterForm />
-                </CardContent>
-            </Card>
-            <p className="text-muted-foreground text-sm">
+        <AuthShell footer={<>© {new Date().getFullYear()} WorkSphere Labs. All rights reserved.</>}>
+            <div className="flex flex-col gap-1.5 text-center">
+                <h1 className="text-3xl font-semibold tracking-tight">Create an account</h1>
+                <p className="text-muted-foreground text-sm">
+                    Enter your details below to create your account
+                </p>
+            </div>
+
+            <RegisterForm />
+
+            <div className="text-muted-foreground relative z-10 text-center text-sm">
                 Already have an account?{" "}
                 <Link
-                    className="text-foreground font-medium underline-offset-4 hover:underline"
                     to="/auth/login"
+                    className="underline underline-offset-4 hover:text-foreground"
                 >
-                    Sign in
+                    Log in
                 </Link>
-            </p>
-        </main>
+            </div>
+        </AuthShell>
     );
 }

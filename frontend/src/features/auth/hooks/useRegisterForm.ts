@@ -32,7 +32,8 @@ export function useRegisterForm() {
             if (axios.isAxiosError(error)) {
                 setError("email", {
                     type: "server",
-                    message: error.response?.data?.message ?? "Registration failed. Please try again.",
+                    message:
+                        error.response?.data?.message ?? "Registration failed. Please try again.",
                 });
             } else {
                 setError("email", {

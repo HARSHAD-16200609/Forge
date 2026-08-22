@@ -21,14 +21,16 @@ export function useLoginForm() {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            await login(data)
+            await login(data);
             reset();
             navigate("/app");
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 setError("email", {
                     type: "server",
-                    message: error.response?.data?.message ?? "Login failed. Please check your credentials.",
+                    message:
+                        error.response?.data?.message ??
+                        "Login failed. Please check your credentials.",
                 });
             } else {
                 setError("email", {

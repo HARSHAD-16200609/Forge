@@ -1,10 +1,9 @@
 export interface LoginFormData {
     password: string;
-    email:string,
-
+    email: string;
 }
 
-export interface RegisterFormData{
+export interface RegisterFormData {
     name: string;
     email: string;
     password: string;
