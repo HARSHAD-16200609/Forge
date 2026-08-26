@@ -66,12 +66,6 @@ class AuthService {
         const refreshToken = genJwtToken({ userId: existingUser.id, username: existingUser.username! }, env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"], env.REFRESH_TOKEN_SECRET)
         const refreshTokenHash = hashToken(refreshToken)
 
-
-        const sessionInfo = {
-            email: existingUser.email,
-            userId: existingUser.id,
-            refreshToken, accessToken
-        }
         try {
             const session = {
                 userId: existingUser.id,
@@ -83,8 +77,9 @@ class AuthService {
        
             }
             await authRepository.createSession(session)
+            const {password , ...userInfo} = existingUser 
 
-            return sessionInfo
+            return {refreshToken, accessToken,userInfo}
         }
         catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError) {

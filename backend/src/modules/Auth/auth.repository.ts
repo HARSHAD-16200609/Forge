@@ -56,6 +56,8 @@ export class AuthRepository {
         username: true,
         email: true,
         password: true,
+        name:true,
+        avatar : true
       }
     });
   }

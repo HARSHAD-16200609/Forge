@@ -49,8 +49,8 @@ export const Login = asyncHandler(async (req, res) => {
   const sessionInfo = await authService.Login(result.data,userMetaData)
 
   loggers.auth.info("Login successful", {
-    userId: sessionInfo?.userId,
-    email: sessionInfo?.email,
+    userId: sessionInfo?.userInfo.id || "",
+    email: sessionInfo?.userInfo.email || "",
     ip: req.ip,
     userAgent: req.get("user-agent"),
   });
@@ -61,6 +61,7 @@ export const Login = asyncHandler(async (req, res) => {
 
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {
     sucess: true,
+    user:sessionInfo?.userInfo || {}
   }, "User Logged in Sucessfully"))
 
 
