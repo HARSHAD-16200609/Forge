@@ -10,3 +10,10 @@ export interface RegisterFormData {
     username: string;
     confirmPassword?: string;
 }
+
+export interface AuthenticatedUser {
+    sessionId : string;
+    username : string;
+    
+
+}
