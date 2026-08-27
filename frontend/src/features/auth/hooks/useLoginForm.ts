@@ -7,7 +7,7 @@ import useAuth from "./useAuth";
 
 export function useLoginForm() {
     const navigate = useNavigate();
-    const { setUser } = useAuth();
+    const { setUser, setIsLoading } = useAuth();
     const {
         register,
         handleSubmit,
@@ -26,8 +26,10 @@ export function useLoginForm() {
 
             const response = await login(data);
             reset();
-            setUser(response.data.user)
+            setIsLoading(true);
             navigate("/app");
+            setUser(response.data.user);
+            setIsLoading(false);
 
 
         } catch (error) {

@@ -5,6 +5,7 @@ import { DashboardPage } from "@/app/pages/DashboardPage";
 import { HomePage } from "@/app/pages/HomePage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 export const router = createBrowserRouter([
     {
@@ -12,9 +13,19 @@ export const router = createBrowserRouter([
         Component: HomePage,
     },
     {
-        path: "app",
-        Component: AppLayout,
-        children: [{ index: true, Component: DashboardPage }],
+        Component: ProtectedRoute,
+        children: [
+            {
+                path: "app",
+                Component: AppLayout,
+                children: [
+                    {
+                        index: true,
+                        Component: DashboardPage,
+                    },
+                ],
+            },
+        ],
     },
     {
         path: "auth",
