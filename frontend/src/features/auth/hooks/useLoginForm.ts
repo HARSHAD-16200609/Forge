@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import type { LoginFormData } from "../types";
 import axios from "axios";
 import { login } from "../services/auth.service";
+import useAuth from "./useAuth";
 
 export function useLoginForm() {
     const navigate = useNavigate();
+    const { setUser } = useAuth();
     const {
         register,
         handleSubmit,
@@ -21,10 +23,16 @@ export function useLoginForm() {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            await login(data);
+
+            const response = await login(data);
             reset();
+            setUser(response.data.user)
             navigate("/app");
+
+
         } catch (error) {
+            console.log("Axios error")
+            console.log(error)
             if (axios.isAxiosError(error)) {
                 setError("email", {
                     type: "server",
