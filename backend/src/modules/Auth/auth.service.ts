@@ -143,6 +143,10 @@ class AuthService {
             throw err
         }
     }
+    async getUser(userId : string){
+        const user = await authRepository.getUser(userId)
+        return user
+    }
 
 }
 

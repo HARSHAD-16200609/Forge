@@ -43,10 +43,10 @@ export const Login = asyncHandler(async (req, res) => {
     throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
   }
   const userMetaData = {
-   ip: req.ip ?? "",
-   userAgent : req.get("user-agent") ?? "",
+    ip: req.ip ?? "",
+    userAgent: req.get("user-agent") ?? "",
   }
-  const sessionInfo = await authService.Login(result.data,userMetaData)
+  const sessionInfo = await authService.Login(result.data, userMetaData)
 
   loggers.auth.info("Login successful", {
     userId: sessionInfo?.userInfo.id || "",
@@ -61,7 +61,7 @@ export const Login = asyncHandler(async (req, res) => {
 
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {
     sucess: true,
-    user:sessionInfo?.userInfo || {}
+    user: sessionInfo?.userInfo || {}
   }, "User Logged in Sucessfully"))
 
 
@@ -107,14 +107,14 @@ export const Logout = asyncHandler(async (req, res) => {
 
 })
 
-export const LogoutFromAllDevices = asyncHandler(async(req,res)=>{
-      const result = reqUserSchema.safeParse(req.user)
+export const LogoutFromAllDevices = asyncHandler(async (req, res) => {
+  const result = reqUserSchema.safeParse(req.user)
 
   if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
 
 
   await authService.LogoutFromAllDevices(result.data.userId)
-    loggers.auth.info("Logout Successfully", {
+  loggers.auth.info("Logout Successfully", {
 
     userId: req.user.userId,
     username: req.user.username,
@@ -125,3 +125,20 @@ export const LogoutFromAllDevices = asyncHandler(async(req,res)=>{
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {}, "Logged Out From all Devices"))
 })
 
+export const getUser = asyncHandler(async (req, res) => {
+
+  const result = reqUserSchema.safeParse(req.user)
+
+  if (!result.success) throw new UserInputValidationError("validation-error please check your Entered details", result.error.flatten().fieldErrors)
+
+  const response = await authService.getUser(result.data.userId);
+  loggers.audit.info("User Fetched Sucessfully", {
+    userId: req.user.userId,
+    username: req.user.username,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  })
+
+  res.status(200).json(new ApiResponse(StatusCodes.OK, response ?? {}, "User Details Fetched"))
+
+})
