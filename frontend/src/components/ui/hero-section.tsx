@@ -1,12 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Menu, X } from 'lucide-react'
+import { ChevronRight, Menu, Moon, Sun, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { cn } from '@/lib/utils'
 import type { Variants } from 'framer-motion'
 import logo from "@/assets/logo.png"
 import { DotPattern } from './dot-pattern'
+import { useTheme } from '@/providers/ThemeProvider'
 const transitionVariants: {
     item: Variants;
 } = {
@@ -51,19 +52,16 @@ export function HeroSection() {
                             cr={1.5}
                             className="z-0 fill-white"
                         />
-                      
+
                         <div className="mx-auto max-w-7xl px-6">
                             <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                                 <AnimatedGroup variants={transitionVariants}>
 
                                     <h1
-                                        className="mt-8 max-w-4xl mx-auto text-balance text-6xl font-semibold tracking-tight leading-[1.05] text-zinc-900 md:text-7xl lg:mt-16 xl:text-[4.25rem]">
+                                        className="mt-8 max-w-4xl mx-auto text-balance text-6xl font-semibold tracking-tight leading-[1.05] text-foreground md:text-7xl lg:mt-16 xl:text-[4.25rem]">
                                         One Workspace for Everything Your Team Does
                                     </h1>
-                                    <p
-                                        className="mx-auto mt-8 max-w-2xl text-balance text-lg">
-                                        Highly customizable components for building modern websites and applications that look and feel the way you mean it.
-                                    </p>
+
                                 </AnimatedGroup>
 
                                 <AnimatedGroup
@@ -274,6 +272,7 @@ const menuItems = [
 const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     const [isScrolled, setIsScrolled] = React.useState(false)
+    const { theme, toggleTheme } = useTheme();
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -340,7 +339,7 @@ const HeroHeader = () => {
                                     asChild
                                     variant="outline"
                                     size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
+                                    className={cn("transition-transform duration-200 hover:scale-120 ", isScrolled && 'lg:hidden')}>
                                     <Link to="auth/login">
                                         <span>Login</span>
                                     </Link>
@@ -348,15 +347,24 @@ const HeroHeader = () => {
                                 <Button
                                     asChild
                                     size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
+                                    className={cn("transition-transform duration-200 hover:scale-120 ", isScrolled && 'lg:hidden')}>
                                     <Link to="auth/register">
                                         <span>Sign Up</span>
                                     </Link>
                                 </Button>
                                 <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={toggleTheme}
+                                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                                >
+                                    {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
+                                </Button>
+                                <Button
                                     asChild
                                     size="sm"
-                                    className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
+                                    className={cn("transition-transform duration-200 hover:scale-120 ", isScrolled ? 'lg:inline-flex' : 'hidden')}>
                                     <Link to="#">
                                         <span>Get Started</span>
                                     </Link>

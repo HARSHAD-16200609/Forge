@@ -2,17 +2,20 @@ import type { ReactNode } from "react";
 
 import { QueryProvider } from "./QueryProvider";
 import AuthProvider from "@/providers/AuthProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 interface AppProvidersProps {
     children: ReactNode;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-    return <>
-        <QueryProvider>
+    return (
+        <ThemeProvider>
             <AuthProvider>
-                {children}
+                <QueryProvider>
+                    {children}
+                </QueryProvider>
             </AuthProvider>
-        </QueryProvider>
-    </>;
+        </ThemeProvider>
+    );
 }
