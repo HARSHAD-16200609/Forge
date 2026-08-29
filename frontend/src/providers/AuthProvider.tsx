@@ -3,8 +3,7 @@ import Auth from "@/context/AuthContext"
 import type { UserProfile } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { AxiosError } from 'axios'
-
-
+import { login } from '@/features/auth/services/auth.service'
 
 
 function AuthProvider({ children }: { children: ReactNode }) {
@@ -46,7 +45,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated }}>
+        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated ,login}}>
             {children}
         </Auth.Provider>
     )

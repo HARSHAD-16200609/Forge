@@ -2,12 +2,12 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import type { LoginFormData } from "../types";
 import axios from "axios";
-import { login } from "../services/auth.service";
+
 import useAuth from "./useAuth";
 
 export function useLoginForm() {
     const navigate = useNavigate();
-    const { setUser, setIsLoading } = useAuth();
+    const { setUser, setIsLoading, login } = useAuth();
     const {
         register,
         handleSubmit,
@@ -33,9 +33,15 @@ export function useLoginForm() {
 
 
         } catch (error) {
-            console.log("Axios error")
-            console.log(error)
             if (axios.isAxiosError(error)) {
+
+                if (!error.response) {
+                    setError("email", {
+                        type: "server",
+                        message: "Unable to connect to the server. Please try again later.",
+                    });
+                    return;
+                }
                 setError("email", {
                     type: "server",
                     message:

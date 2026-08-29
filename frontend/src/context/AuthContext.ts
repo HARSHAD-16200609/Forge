@@ -1,4 +1,4 @@
-import type { UserProfile } from "@/features/auth/types";
+import type { LoginFormData, UserProfile } from "@/features/auth/types";
 import { createContext, type Dispatch, type SetStateAction } from "react";
 
 type AuthContextType = {
@@ -7,6 +7,7 @@ type AuthContextType = {
   isAuthenticated : Boolean;
   isLoading : Boolean;
   setIsLoading: Dispatch<SetStateAction<Boolean>>;
+  login:(data:LoginFormData)=>Promise<any>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
