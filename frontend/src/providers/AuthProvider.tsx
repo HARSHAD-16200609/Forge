@@ -11,7 +11,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
     const [user, setUser] = useState<UserProfile | null>(null)
-    const [isLoading, setisLoading] = useState<Boolean>(true);
+    const [isLoading, setIsLoading] = useState<Boolean>(true);
     const isAuthenticated = user !== null;
 
     const fetchUser = async () => {
@@ -19,7 +19,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
             let response = await api.get("auth/user");
             setUser(response.data.data);
-            setisLoading(false)
+            setIsLoading(false)
 
 
 
@@ -29,12 +29,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
                     await api.post("auth/refresh")
                     let response = await api.get("auth/user");
                     setUser(response.data.data);
-                    setisLoading(false)
+                    setIsLoading(false)
 
                 } catch (e) {
                     console.log("Refresh failed");
                 } finally {
-                    setisLoading(false);
+                    setIsLoading(false);
                 }
             }
         }
@@ -46,7 +46,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <Auth.Provider value={{ user, setUser, isLoading, setIsLoading: setisLoading, isAuthenticated }}>
+        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated }}>
             {children}
         </Auth.Provider>
     )
