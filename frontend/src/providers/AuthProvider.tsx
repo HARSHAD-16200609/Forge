@@ -3,7 +3,7 @@ import Auth from "@/context/AuthContext"
 import type { UserProfile } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { AxiosError } from 'axios'
-import { login } from '@/features/auth/services/auth.service'
+import { login,registerUser ,logout } from '@/features/auth/services/auth.service'
 
 
 function AuthProvider({ children }: { children: ReactNode }) {
@@ -15,27 +15,20 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchUser = async () => {
         try {
-
             let response = await api.get("auth/user");
             setUser(response.data.data);
-            setIsLoading(false)
-
-
-
         } catch (e) {
             if (e instanceof AxiosError && Number(e.response?.status) === 401) {
                 try {
-                    await api.post("auth/refresh")
+                    await api.post("auth/refresh");
                     let response = await api.get("auth/user");
                     setUser(response.data.data);
-                    setIsLoading(false)
-
                 } catch (e) {
                     console.log("Refresh failed");
-                } finally {
-                    setIsLoading(false);
                 }
             }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -45,7 +38,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated ,login}}>
+        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated ,login , registerUser ,logout}}>
             {children}
         </Auth.Provider>
     )

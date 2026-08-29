@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { RegisterFormData } from "../types";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import { registerUser } from "../services/auth.service";
+import useAuth from "./useAuth";
 
 export function useRegisterForm() {
     const navigate = useNavigate();
@@ -21,6 +21,7 @@ export function useRegisterForm() {
             username: "",
         },
     });
+    const { registerUser } = useAuth();
 
     const onSubmit = async (data: RegisterFormData) => {
         delete data.confirmPassword;

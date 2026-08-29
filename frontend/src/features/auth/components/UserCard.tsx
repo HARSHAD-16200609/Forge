@@ -7,13 +7,35 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { UserProfile } from "../types";
+import { Button } from "@/components/ui/button";
+import useAuth from "../hooks/useAuth";
+// import {  useNavigate } from "react-router-dom";
+import {  isAxiosError } from "axios";
+
 
 type UserCardProps = {
     user: UserProfile;
 };
 
 export function UserCard({ user }: UserCardProps) {
+    // const navigate = useNavigate()
+    const { logout, setUser } = useAuth()
+    const logoutUser =  () => {
+        try {
+            logout()
+            console.log("Loggedout user null")
+            setUser(null)
+        } catch (error) {
+    if(isAxiosError(error)){
+        if(error.response?.status === 401) {
+            console.log("Already logged out ")
+        }
+
+    }
+        }
+    }
     return (
+
         <Card className="w-full max-w-sm">
             <CardHeader className="items-center text-center">
                 <img
@@ -40,6 +62,7 @@ export function UserCard({ user }: UserCardProps) {
                         </span>
                     </div>
                 </div>
+                <Button className="mt-2" onClick={logoutUser}>Logout</Button>
             </CardContent>
         </Card>
     );

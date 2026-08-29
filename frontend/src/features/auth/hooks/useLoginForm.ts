@@ -40,18 +40,20 @@ export function useLoginForm() {
                         type: "server",
                         message: "Unable to connect to the server. Please try again later.",
                     });
+                    setError("password", {
+                        type: "server",
+                        message: "Unable to connect to the server. Please try again later.",
+                    });
                     return;
                 }
-                setError("email", {
-                    type: "server",
-                    message:
-                        error.response?.data?.message ??
-                        "Login failed. Please check your credentials.",
-                });
             } else {
                 setError("email", {
                     type: "server",
-                    message: "Something went wrong. Please try again.",
+                    message: "Unable to connect to the server. Please try again later.",
+                });
+                setError("password", {
+                    type: "server",
+                    message: "Unable to connect to the server. Please try again later.",
                 });
             }
         }

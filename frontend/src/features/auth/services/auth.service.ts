@@ -11,3 +11,7 @@ export async function registerUser(data: RegisterFormData) {
     const response = await api.post("/auth/register", data);
     return response.data;
 }
+
+export async function logout () : Promise<void>{
+    await api.post("/auth/logout")
+} 

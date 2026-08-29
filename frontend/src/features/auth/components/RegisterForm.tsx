@@ -8,19 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-function usernameFromName(name: string) {
-    return name
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, ".")
-        .replace(/^\.+|\.+$/g, "");
-}
-
 export function RegisterForm() {
     const { register, handleSubmit, onSubmit, watch, errors, isSubmitting } = useRegisterForm();
     const [showPassword, setShowPassword] = useState(false);
 
-    const username = usernameFromName(watch("name"));
     const password = watch("password") ?? "";
 
     const checks = useMemo(
@@ -28,12 +19,14 @@ export function RegisterForm() {
             { label: "At least 8 characters", valid: password.length >= 8 },
             { label: "One uppercase letter", valid: /[A-Z]/.test(password) },
             { label: "One number", valid: /\d/.test(password) },
+            { label: "One special character", valid: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
         ],
         [password],
     );
 
     const errorMessage =
         errors.name?.message ??
+        errors.username?.message ??
         errors.email?.message ??
         errors.password?.message ??
         errors.confirmPassword?.message;
@@ -42,7 +35,6 @@ export function RegisterForm() {
         <Card>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <input type="hidden" {...register("username")} value={username} />
                     <div className="flex flex-col gap-5">
                         <div className="grid gap-2">
                             <Label htmlFor="name">Full name</Label>
@@ -53,6 +45,26 @@ export function RegisterForm() {
                                 aria-invalid={Boolean(errors.name)}
                                 {...register("name", {
                                     required: "Name is required",
+                                })}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                                id="username"
+                                placeholder="janedoe"
+                                autoComplete="username"
+                                aria-invalid={Boolean(errors.username)}
+                                {...register("username", {
+                                    required: "Username is required",
+                                    minLength: {
+                                        value: 6,
+                                        message: "Username must be at least 6 characters",
+                                    },
+                                    maxLength: {
+                                        value: 20,
+                                        message: "Username cannot exceed 20 characters",
+                                    },
                                 })}
                             />
                         </div>
