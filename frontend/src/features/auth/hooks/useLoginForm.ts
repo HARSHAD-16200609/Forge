@@ -34,18 +34,16 @@ export function useLoginForm() {
 
         } catch (error) {
             if (axios.isAxiosError(error)) {
-
-                if (!error.response) {
-                    setError("email", {
-                        type: "server",
-                        message: "Unable to connect to the server. Please try again later.",
-                    });
-                    setError("password", {
-                        type: "server",
-                        message: "Unable to connect to the server. Please try again later.",
-                    });
-                    return;
-                }
+                const message =
+                    error.response?.data?.message ?? "Invalid email or password.";
+                setError("email", {
+                    type: "server",
+                    message,
+                });
+                setError("password", {
+                    type: "server",
+                    message,
+                });
             } else {
                 setError("email", {
                     type: "server",
