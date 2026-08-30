@@ -23,7 +23,6 @@ export function UserCard({ user }: UserCardProps) {
     const logoutUser =  () => {
         try {
             logout()
-            console.log("Loggedout user null")
             setUser(null)
         } catch (error) {
     if(isAxiosError(error)){

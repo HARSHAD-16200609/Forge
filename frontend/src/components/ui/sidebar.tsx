@@ -30,10 +30,14 @@ import {
     Security,
     Notification,
     Integration,
+    Moon,
+    Sun,
 } from "@carbon/icons-react";
 import Profile from "./avatar";
 import useAuth from "@/features/auth/hooks/useAuth";
 import { Link } from "react-router-dom";
+import { useTheme } from "@/providers/ThemeProvider";
+import { Button } from "./button";
 
 /** ======================= Local SVG paths (inline) ======================= */
 const svgPaths = {
@@ -615,6 +619,7 @@ function IconNavigation({
     activeSection: string;
     onSectionChange: (section: string) => void;
 }) {
+    const { theme, toggleTheme } = useTheme();
     const navItems = [
         { id: "dashboard", icon: <Dashboard size={16} />, label: "Dashboard" },
         { id: "tasks", icon: <Task size={16} />, label: "Tasks" },
@@ -650,8 +655,18 @@ function IconNavigation({
             <div className="flex-1" />
 
             {/* Bottom section */}
-            <div className="flex flex-col gap-2 w-full items-center">
+            <div className="flex flex-col gap-1 w-full items-center justify-center">
+                  <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleTheme}
+                        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    >
+                        {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
+                    </Button>
                 <Link to="/app/settings">
+                
                     <IconNavButton isActive={activeSection === "settings"} onClick={() => onSectionChange("settings")}>
 
                         <SettingsIcon size={16} />

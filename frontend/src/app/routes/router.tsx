@@ -1,11 +1,13 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppLayout } from "@/app/layouts/AppLayout";
-import { DashboardPage } from "@/app/pages/DashboardPage";
+import { Workspaces } from "@/app/pages/Workspaces";
 import { HomePage } from "@/app/pages/HomePage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { ProtectedRoute } from "./ProtectedRoute";
+import Settings from "../pages/Settings";
+
 
 export const router = createBrowserRouter([
     {
@@ -20,9 +22,15 @@ export const router = createBrowserRouter([
                 Component: AppLayout,
                 children: [
                     {
-                        index: true,
-                        Component: DashboardPage,
+                        path: "workspaces",
+                        Component: Workspaces,
+
                     },
+                    {
+                        path: "settings",
+                        Component: Settings
+                    }
+
                 ],
             },
         ],

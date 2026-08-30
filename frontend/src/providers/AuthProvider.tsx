@@ -3,11 +3,10 @@ import Auth from "@/context/AuthContext"
 import type { UserProfile } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { AxiosError } from 'axios'
-import { login,registerUser ,logout } from '@/features/auth/services/auth.service'
+import { authService } from '@/features/auth/services/auth.service'
 
 
 function AuthProvider({ children }: { children: ReactNode }) {
-
 
     const [user, setUser] = useState<UserProfile | null>(null)
     const [isLoading, setIsLoading] = useState<Boolean>(true);
@@ -38,7 +37,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 
     return (
-        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated ,login , registerUser ,logout}}>
+        <Auth.Provider value={{ user, setUser, isLoading,  setIsLoading, isAuthenticated ,login:authService.login , registerUser:authService.registerUser ,logout:authService.logout}}>
             {children}
         </Auth.Provider>
     )
