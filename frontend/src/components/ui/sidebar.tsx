@@ -33,6 +33,7 @@ import {
 } from "@carbon/icons-react";
 import Profile from "./avatar";
 import useAuth from "@/features/auth/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 /** ======================= Local SVG paths (inline) ======================= */
 const svgPaths = {
@@ -650,12 +651,17 @@ function IconNavigation({
 
             {/* Bottom section */}
             <div className="flex flex-col gap-2 w-full items-center">
-                <IconNavButton isActive={activeSection === "settings"} onClick={() => onSectionChange("settings")}>
-                    <SettingsIcon size={16} />
-                </IconNavButton>
+                <Link to="/app/settings">
+                    <IconNavButton isActive={activeSection === "settings"} onClick={() => onSectionChange("settings")}>
+
+                        <SettingsIcon size={16} />
+
+
+                    </IconNavButton>
+                </Link>
 
             </div>
-        </aside>
+        </aside >
     );
 }
 
