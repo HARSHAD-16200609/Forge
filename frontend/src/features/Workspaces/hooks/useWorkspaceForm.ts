@@ -24,8 +24,8 @@ export function useWorkspaceForm() {
     const onSubmit = async (data: WorkspaceObject) => {
         try {
             await mutation.mutateAsync(data);
-        } catch (error) {
-            console.log("Mutation Error ",mutation.error)
+} catch {
+            console.log("Mutation Error ", mutation.error)
         }
     };
 

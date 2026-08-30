@@ -1,7 +1,9 @@
 import { ArrowRight, Lock, Globe, Crown, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Workspace, WorkspaceListProps } from "../types";
-
+import { Button } from "@/components/ui/button";
+import { useDeleteWorkspace } from "../hooks/useWorkspaces";
+import { Trash2 } from "lucide-react";
 
 
 export function WorkspaceList({
@@ -55,6 +57,8 @@ function WorkspaceCard({
     role,
     onClick,
 }: WorkspaceCardProps) {
+
+    const handleDelete = useDeleteWorkspace()
     return (
         <div
             onClick={onClick}
@@ -131,9 +135,10 @@ function WorkspaceCard({
                 </div>
 
                 {/* Open */}
+                <Button  onClick={async () => { await handleDelete.mutateAsync(workspace.id) }}><Trash2 className="size-4"></Trash2></Button>
                 <div
                     className={cn(
-                        "flex size-8 items-center justify-center rounded-full",
+                        "flex size-8 items-center justify-center rounded-full gap-24",
                         "bg-muted transition-all duration-300",
                         "group-hover:bg-primary group-hover:text-primary-foreground",
                         "group-hover:translate-x-0.5"

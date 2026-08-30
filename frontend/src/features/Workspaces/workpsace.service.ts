@@ -27,6 +27,11 @@ class WorkspaceService {
        const response =  await api.post("/workspace",data)
        return response.data.data
     }
+ 
+     async deleteWorkspace(id : string) : Promise<void>{
+        await api.delete(`/workspace/${id}`)
+         
+     }
 }
 
 
