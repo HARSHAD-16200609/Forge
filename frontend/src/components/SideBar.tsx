@@ -12,10 +12,14 @@ import {
     Bell,
     Bookmark,
     Building2,
+    Check,
+    ChevronDown,
+    CirclePlus,
     Hash,
     Home,
     Mail,
     MessageSquare,
+    Plus,
     Users,
 } from "lucide-react";
 import Profile from "./ui/avatar";
@@ -23,21 +27,147 @@ import useAuth from "@/features/auth/hooks/useAuth";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Button } from "./ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import logoUrl from "@/assets/forge.png";
+import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
+import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
-/* ----------------------------- Brand / Logos ----------------------------- */
+/* ----------------------------- Workspace Switcher ------------------------ */
 
-function BrandBadge() {
+const tileColors = [
+    "bg-[#3F0E40]",
+    "bg-[#1264a3]",
+    "bg-[#2bac76]",
+    "bg-[#e01e5a]",
+    "bg-[#7c3aed]",
+    "bg-[#c4320f]",
+];
+
+function getInitials(name: string) {
+    return name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join("");
+}
+
+function WorkspaceSwitcher() {
+    const Workspaces = useWorkspaces();
+    const { selectedWorkspaceId, setSelectedWorkspaceId } = useWorkspaceStore();
+   
+    const active =
+        Workspaces?.data?.find((w) => w.workspace.id === selectedWorkspaceId)?.workspace ??
+        Workspaces?.data?.[0]?.workspace ??
+        null;
+
+    const isLoading = Workspaces.isLoading 
+    const isError = Workspaces.isError 
+
+    if (isLoading) {
+        return (
+            <div className="flex w-full shrink-0 items-center gap-2 rounded-lg px-2 py-1.5">
+                <span className="size-8 shrink-0 animate-pulse rounded-lg bg-sidebar-accent" />
+                <span className="h-4 flex-1 animate-pulse rounded bg-sidebar-accent" />
+            </div>
+        );
+    }
+
+    if (isError || !Workspaces?.data?.length) {
+        return (
+            <div className="flex w-full shrink-0 items-center gap-2 rounded-lg px-2 py-1.5">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#3F0E40] text-[13px] font-bold text-white">
+                    {getInitials(active?.workspaceName ?? "Workspace")}
+                </span>
+                <span className="truncate text-[15px] text-sidebar-foreground">Error</span>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex items-center gap-2 px-2 py-1 w-full shrink-0">
-            <img src={logoUrl} alt="Forge" className="size-6 object-contain" />
-            <span className="font-['Lexend:SemiBold',_sans-serif] text-[15px] text-sidebar-foreground truncate">
-                WorkSphere
-            </span>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    type="button"
+                    className="group flex w-full shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors duration-200 hover:bg-sidebar-accent focus:outline-none focus:ring-0"
+                >
+                    <span
+                        className={cn(
+                            "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
+                            tileColors[
+                                (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
+                                    -1) % tileColors.length
+                            ] ?? tileColors[0],
+                        )}
+                    >
+                        {active ? getInitials(active.workspaceName) : ""}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block truncate font-['Lexend:SemiBold',_sans-serif] text-[15px] leading-[20px] text-sidebar-foreground">
+                            {active?.workspaceName}
+                        </span>
+                        <span className="block truncate text-[11px] leading-[14px] text-sidebar-foreground/50">
+                            Workspace
+                        </span>
+                    </span>
+                    <ChevronDown
+                        size={16}
+                        className="shrink-0 text-sidebar-foreground/50 transition-colors group-hover:text-sidebar-foreground"
+                    />
+                </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="start" sideOffset={6} className="w-72 p-2">
+                <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Your workspaces
+                </DropdownMenuLabel>
+
+                {Workspaces?.data?.map((w, i) => {
+                    const isActive = w.workspace.id === selectedWorkspaceId;
+                    return (
+                        <DropdownMenuItem
+                            key={w.workspace.id}
+                            onSelect={() => setSelectedWorkspaceId(w.workspace.id)}
+                            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2"
+                        >
+                            <span
+                                className={cn(
+                                    "flex size-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold text-white",
+                                    tileColors[i % tileColors.length],
+                                )}
+                            >
+                                {getInitials(w.workspace.workspaceName)}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                                {w.workspace.workspaceName}
+                            </span>
+                            {isActive && <Check className="size-4 shrink-0 text-[#1D1C1D]" />}
+                        </DropdownMenuItem>
+                    );
+                })}
+
+                <DropdownMenuSeparator className="my-1.5" />
+
+                <DropdownMenuItem className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-muted-foreground">
+                    <Plus className="size-4 shrink-0" />
+                    <span className="text-[14px]">Create a new workspace</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-muted-foreground">
+                    <CirclePlus className="size-4 shrink-0" />
+                    <span className="text-[14px]">Add workspaces</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
@@ -58,12 +188,7 @@ const navItems: NavItem[] = [
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
 ];
 
-const channels = [
-    { name: "general", unread: 2 },
-    { name: "random", unread: 0 },
-    { name: "design-review", unread: 5 },
-    { name: "engineering", unread: 0 },
-];
+
 
 const dms = [
     { name: "Jane Cooper", online: false, initials: "JC" },
@@ -518,6 +643,9 @@ function DetailSidebar({
     onResize: (w: number) => void;
     activeSection: string;
 }) {
+    const {selectedWorkspaceId} = useWorkspaceStore()
+     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
+
     const startResize = (e: React.PointerEvent) => {
         e.preventDefault();
         const startX = e.clientX;
@@ -566,7 +694,7 @@ function DetailSidebar({
     const renderKindSection = (section: Section) => {
         switch (section.kind) {
             case "channels":
-                return channels.map((c) => <ChannelRow key={c.name} {...c} />);
+                return WorkspaceDetails.data?.channels.map((c) => <ChannelRow  name = {c.channelName} unread={2} />);
             case "dms":
                 return dms.map((d) => <DMRow key={d.name} {...d} />);
             case "groups":
@@ -584,7 +712,7 @@ function DetailSidebar({
                 className="bg-sidebar flex flex-col items-start p-4 gap-3 rounded-r-2xl h-full overflow-hidden"
                 style={{ width }}
             >
-                <BrandBadge />
+                <WorkspaceSwitcher />
                 <SearchContainer />
 
                 <div className="flex flex-col gap-4 w-full min-h-0 flex-1 overflow-y-auto pb-2">

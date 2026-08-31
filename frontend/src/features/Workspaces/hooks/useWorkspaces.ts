@@ -18,7 +18,6 @@ export function useWorkspaces() {
             return failureCount < 3;
         },
     });
-
 }
 
 export function useWorkspace(id: string) {
@@ -26,6 +25,15 @@ export function useWorkspace(id: string) {
         queryKey: ["workspace", id],
         queryFn: () => workspaceService.getWorkspace(id),
         enabled: !!id,
+        staleTime: 5 * 60 * 1000,
+        retry: (failureCount, error) => {
+
+            if (error instanceof AxiosError && error.status === 401) {
+                return false;
+            }
+
+            return failureCount < 3;
+        },
     })
 }
 

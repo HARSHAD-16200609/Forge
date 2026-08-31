@@ -1,4 +1,6 @@
 import { z } from "zod"
+import type { UserProfile } from "../auth/types";
+
 
 export interface Workspace {
     role: "OWNER" | "MEMBER";
@@ -8,6 +10,21 @@ export interface Workspace {
         visibility: "PUBLIC" | "PRIVATE";
         description: string;
     };
+}
+
+export interface WorkspaceDetails {
+    id: string;
+    workspaceName: string;
+    visibility: "PUBLIC" | "PRIVATE";
+    description: string;
+    createdAt: "2026-06-28T13:32:12.894Z",
+    updatedAt: "2026-06-28T13:32:12.894Z",
+    channels: Channel[],
+    members: ChannelMember[],
+    memberCount: number
+}
+export interface Channel {
+  channelName: string;
 }
 
 export interface WorkspaceListProps {
@@ -28,3 +45,12 @@ export const workspaceSchema = z.object({
 })
 
 export type WorkspaceObject = z.infer<typeof workspaceSchema>
+
+
+
+export type User = Omit<UserProfile, "name" | "email">
+
+export interface ChannelMember {
+    role: "OWNER" | "MEMBER",
+    user: User
+}

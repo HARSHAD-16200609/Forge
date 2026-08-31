@@ -1,26 +1,31 @@
-import { create } from "zustand"
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-interface workspaceState {
-    selectedWorkspaceId: string | null;
-    setSelectedWorkspaceId: (workspaceId: string) => void;
-    clearSelectedWorkpsaceId: () => void
+interface WorkspaceState {
+  selectedWorkspaceId: string | null;
+  setSelectedWorkspaceId: (workspaceId: string) => void;
+  clearSelectedWorkspaceId: () => void;
 }
 
+export const useWorkspaceStore = create<WorkspaceState>()(
+  persist(
+    (set) => ({
+      selectedWorkspaceId: null,
 
-export const useworkspaceStore = create<workspaceState>((set) => ({
-    selectedWorkspaceId: null,
-    setSelectedWorkspaceId: (workspaceId) => {
+      setSelectedWorkspaceId: (workspaceId) => {
         set({
-            selectedWorkspaceId: workspaceId
-        })
-    },
-    clearSelectedWorkpsaceId: () => {
+          selectedWorkspaceId: workspaceId,
+        });
+      },
+
+      clearSelectedWorkspaceId: () => {
         set({
-            selectedWorkspaceId: null
-        })
+          selectedWorkspaceId: null,
+        });
+      },
+    }),
+    {
+      name: "active-workspace-id",
     }
-}
-
-))
-
-
+  )
+);

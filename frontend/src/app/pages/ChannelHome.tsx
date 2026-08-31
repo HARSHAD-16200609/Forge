@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
     Bell,
     Hash,
@@ -11,6 +12,7 @@ import {
     Star,
     Users,
 } from "lucide-react";
+import { useState } from "react";
 
 const messages = [
     {
@@ -48,24 +50,36 @@ const messages = [
 ];
 
 export function ChannelHome() {
+    const [isFavourite, setFavourite] = useState(false)
     return (
         <div className="flex h-full flex-col bg-background">
             {/* Header */}
             <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
                 <div className="flex min-w-0 items-center gap-2">
-                    <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground">
-                        <Hash className="size-5" />
-                    </span>
                     <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                            <h2 className="truncate text-[15px] font-bold leading-tight">
-                                general
-                            </h2>
-                            <Star className="size-4 shrink-0 text-amber-500" />
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-amber-500 "
+                                onClick={() => setFavourite((prev) => !prev)}
+                            >
+                                <Star className={cn(
+                                    "size-5 transition-colors",
+                                    isFavourite ? "text-amber-500" : "text-muted-foreground"
+                                )} fill={isFavourite ? "currentColor" : "none"}
+                                    strokeWidth={isFavourite ? 0 : 2} />
+                            </button>
+
+                            <div className="flex min-w-0 items-center gap-1">
+                                <Hash className="size-5 shrink-0 text-muted-foreground " />
+
+                                <span className="truncate text-[15px] font-bold leading-tight ">
+                                    general
+                                </span>
+                            </div>
                         </div>
-                        <p className="truncate text-xs leading-tight text-muted-foreground">
-                            Company-wide announcements and team updates
-                        </p>
+
+                       
                     </div>
                 </div>
 
@@ -101,16 +115,9 @@ export function ChannelHome() {
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
                 {/* Channel intro banner */}
                 <div className="mb-6">
-                    <div className="flex size-16 items-center justify-center rounded-xl bg-violet-500 text-white">
-                        <Hash className="size-9" />
-                    </div>
-                    <h1 className="mt-3 text-2xl font-black tracking-tight"># general</h1>
-                    <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-                        This is the very beginning of the{" "}
-                        <span className="font-semibold text-foreground">#general</span> channel.
-                        This channel is for the whole company — here you can share updates,
-                        shout-outs, and start conversations.
-                    </p>
+
+
+                 
                 </div>
 
                 {/* Date divider */}
