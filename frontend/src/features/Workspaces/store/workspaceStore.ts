@@ -5,11 +5,14 @@ interface WorkspaceState {
   selectedWorkspaceId: string | null;
   setSelectedWorkspaceId: (workspaceId: string) => void;
   clearSelectedWorkspaceId: () => void;
+  showCreateWorkspaceForm: boolean;
+  setShowCreateWorkspaceForm: (show: boolean) => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set) => ({
+      showCreateWorkspaceForm: false,
       selectedWorkspaceId: null,
 
       setSelectedWorkspaceId: (workspaceId) => {
@@ -21,6 +24,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       clearSelectedWorkspaceId: () => {
         set({
           selectedWorkspaceId: null,
+        });
+      },
+
+      setShowCreateWorkspaceForm: (show) => {
+        set({
+          showCreateWorkspaceForm: show,
         });
       },
     }),

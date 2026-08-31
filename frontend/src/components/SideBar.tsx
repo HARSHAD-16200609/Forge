@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
     Search as SearchIcon,
     Settings as SettingsIcon,
@@ -6,6 +5,7 @@ import {
     Moon,
     Sun,
 } from "@carbon/icons-react";
+import { useUIStore } from "@/stores/uiStore";
 import {
     Archive,
     AtSign,
@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import logoUrl from "@/assets/forge.png";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
+import { CreateWorkspaceForm } from "@/features/Workspaces/components/CreateWorkspaceForm";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
@@ -64,15 +65,20 @@ function getInitials(name: string) {
 
 function WorkspaceSwitcher() {
     const Workspaces = useWorkspaces();
-    const { selectedWorkspaceId, setSelectedWorkspaceId } = useWorkspaceStore();
-   
+    const {
+        selectedWorkspaceId,
+        showCreateWorkspaceForm,
+        setShowCreateWorkspaceForm,
+        setSelectedWorkspaceId,
+    } = useWorkspaceStore();
+
     const active =
         Workspaces?.data?.find((w) => w.workspace.id === selectedWorkspaceId)?.workspace ??
         Workspaces?.data?.[0]?.workspace ??
         null;
 
-    const isLoading = Workspaces.isLoading 
-    const isError = Workspaces.isError 
+    const isLoading = Workspaces.isLoading;
+    const isError = Workspaces.isError;
 
     if (isLoading) {
         return (
@@ -158,7 +164,10 @@ function WorkspaceSwitcher() {
 
                 <DropdownMenuSeparator className="my-1.5" />
 
-                <DropdownMenuItem className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-muted-foreground">
+                <DropdownMenuItem
+                    className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-muted-foreground"
+                    onSelect={() => setShowCreateWorkspaceForm(true)}
+                >
                     <Plus className="size-4 shrink-0" />
                     <span className="text-[14px]">Create a new workspace</span>
                 </DropdownMenuItem>
@@ -167,6 +176,13 @@ function WorkspaceSwitcher() {
                     <span className="text-[14px]">Add workspaces</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
+
+            {showCreateWorkspaceForm && (
+                <CreateWorkspaceForm
+                    onDone={() => setShowCreateWorkspaceForm(false)}
+                    onClose={() => setShowCreateWorkspaceForm(false)}
+                />
+            )}
         </DropdownMenu>
     );
 }
@@ -187,8 +203,6 @@ const navItems: NavItem[] = [
     { id: "members", label: "Members", icon: <Users size={18} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
 ];
-
-
 
 const dms = [
     { name: "Jane Cooper", online: false, initials: "JC" },
@@ -311,7 +325,8 @@ function IconNavigation({
 /* ------------------------------ Search Input ----------------------------- */
 
 function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
-    const [searchValue, setSearchValue] = useState("");
+    const searchValue = useUIStore((s) => s.searchValue);
+    const setSearchValue = useUIStore((s) => s.setSearchValue);
 
     if (collapsed) {
         return (
@@ -352,20 +367,52 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
 
 /* ------------------------- Sections / Rows ---------------------------------- */
 
-function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
+function SectionHeader({
+    title,
+    icon,
+    collapseIcon = false,
+    collapsed = false,
+    onToggle,
+}: {
+    title: string;
+    icon: React.ReactNode;
+    collapseIcon?: boolean;
+    collapsed?: boolean;
+    onToggle?: () => void;
+}) {
+    const isToggle = collapseIcon || !!onToggle;
     return (
         <div className="flex items-center justify-between w-full pl-2 pr-1 h-7">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 select-none">
-                {icon}
-                {title}
-            </div>
             <button
                 type="button"
-                className="flex items-center justify-center rounded-md size-5 hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground"
-                aria-label={`Add to ${title}`}
+                onClick={onToggle}
+                className={cn(
+                    "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 select-none",
+                    isToggle && "flex-1 text-left hover:text-sidebar-foreground transition-colors",
+                )}
             >
-                <AddLarge size={14} />
+                {isToggle && (
+                    <ChevronDown
+                        size={12}
+                        className={cn(
+                            "transition-transform duration-200",
+                            !collapsed && "rotate-0",
+                            collapsed && "-rotate-90",
+                        )}
+                    />
+                )}
+                {icon}
+                {title}
             </button>
+            {!isToggle && (
+                <button
+                    type="button"
+                    className="flex items-center justify-center rounded-md size-5 hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground"
+                    aria-label={`Add to ${title}`}
+                >
+                    <AddLarge size={14} />
+                </button>
+            )}
         </div>
     );
 }
@@ -643,8 +690,11 @@ function DetailSidebar({
     onResize: (w: number) => void;
     activeSection: string;
 }) {
-    const {selectedWorkspaceId} = useWorkspaceStore()
-     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
+    const { selectedWorkspaceId } = useWorkspaceStore();
+    const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
+
+    const collapsedSections = useUIStore((s) => s.collapsedSections);
+    const toggleSection = useUIStore((s) => s.toggleSection);
 
     const startResize = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -691,17 +741,24 @@ function DetailSidebar({
         }
     };
 
-    const renderKindSection = (section: Section) => {
+    const renderKindSection = (section: Section, collapsed: boolean) => {
         switch (section.kind) {
             case "channels":
-                return WorkspaceDetails.data?.channels.map((c) => <ChannelRow  name = {c.channelName} unread={2} />);
+                if (collapsed) return null;
+                return WorkspaceDetails.data?.channels.map((c) => (
+                    <ChannelRow key={c.channelName} name={c.channelName} unread={2} />
+                ));
             case "dms":
+                if (collapsed) return null;
                 return dms.map((d) => <DMRow key={d.name} {...d} />);
             case "groups":
+                if (collapsed) return null;
                 return groupDms.map((g) => <GroupDMRow key={g.name} {...g} />);
             case "members":
+                if (collapsed) return null;
                 return allMembers.map((m) => <MemberRow key={m.name} {...m} />);
             default:
+                if (collapsed) return null;
                 return (section.rows || []).map((row) => renderRow(row, section.kind));
         }
     };
@@ -716,15 +773,29 @@ function DetailSidebar({
                 <SearchContainer />
 
                 <div className="flex flex-col gap-4 w-full min-h-0 flex-1 overflow-y-auto pb-2">
-                    {sections.map((section, index) => (
-                        <div
-                            key={`${activeSection}-${index}`}
-                            className="flex flex-col gap-0.5 w-full"
-                        >
-                            <SectionHeader title={section.title} icon={section.icon} />
-                            {renderKindSection(section)}
-                        </div>
-                    ))}
+                    {sections.map((section, index) => {
+                        const isCollapsible = true;
+                        const collapsed = isCollapsible && !!collapsedSections[section.title];
+                        return (
+                            <div
+                                key={`${activeSection}-${index}`}
+                                className="flex flex-col gap-0.5 w-full"
+                            >
+                                <SectionHeader
+                                    title={section.title}
+                                    icon={section.icon}
+                                    collapseIcon={isCollapsible}
+                                    collapsed={collapsed}
+                                    onToggle={
+                                        isCollapsible
+                                            ? () => toggleSection(section.title)
+                                            : undefined
+                                    }
+                                />
+                                {renderKindSection(section, collapsed)}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <UserFooter />
@@ -746,13 +817,19 @@ function DetailSidebar({
 /* ------------------------------- Root Frame ------------------------------ */
 
 export function Frame760() {
-    const [activeSection, setActiveSection] = useState("home");
-    const [width, setWidth] = useState(320);
+    const activeSection = useUIStore((s) => s.activeSection);
+    const setActiveSection = useUIStore((s) => s.setActiveSection);
+    const sidebarWidth = useUIStore((s) => s.sidebarWidth);
+    const setSidebarWidth = useUIStore((s) => s.setSidebarWidth);
 
     return (
         <div className="bg-sidebar flex h-full">
             <IconNavigation activeSection={activeSection} onSectionChange={setActiveSection} />
-            <DetailSidebar width={width} onResize={setWidth} activeSection={activeSection} />
+            <DetailSidebar
+                width={sidebarWidth}
+                onResize={setSidebarWidth}
+                activeSection={activeSection}
+            />
         </div>
     );
 }
