@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import forge from "@/assets/forge.png";
 
 type AuthShellProps = {
     children: ReactNode;
@@ -19,7 +19,7 @@ export function AuthShell({ children, footer }: AuthShellProps) {
                     to="/"
                     className="flex items-center justify-center gap-2 self-center font-medium"
                 >
-                    <img src={logo} alt="" className="h-30 w-auto object-contain" />
+                    <img src={forge} alt="" className="h-30 w-auto object-contain" />
                    
                 </Link>
                 {children}

@@ -5,7 +5,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
 import type { UserProfile } from "../types";
 import { Button } from "@/components/ui/button";
 import useAuth from "../hooks/useAuth";
@@ -18,7 +18,7 @@ type UserCardProps = {
 };
 
 export function UserCard({ user }: UserCardProps) {
-    // const navigate = useNavigate()
+
     const { logout, setUser } = useAuth()
     const logoutUser =  () => {
         try {
@@ -53,13 +53,7 @@ export function UserCard({ user }: UserCardProps) {
                             {user.email}
                         </span>
                     </div>
-                    <Separator />
-                    <div className="flex items-center justify-between gap-4">
-                        <span className="text-muted-foreground">User ID</span>
-                        <span className="truncate font-mono text-xs">
-                            {user.id}
-                        </span>
-                    </div>
+                   
                 </div>
                 <Button className="mt-2" onClick={logoutUser}>Logout</Button>
             </CardContent>

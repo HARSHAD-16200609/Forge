@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { cn } from '@/lib/utils'
 import type { Variants } from 'framer-motion'
-import logo from "@/assets/logo.png"
+import logo from "@/assets/forge.png"
 import { DotPattern } from './dot-pattern'
 import { useTheme } from '@/providers/ThemeProvider'
 const transitionVariants: {
@@ -293,7 +293,7 @@ const HeroHeader = () => {
                                 to="/"
                                 className="flex items-center justify-center gap-2 self-center font-medium"
                             >
-                                <img src={logo} alt="" className="h-20 w-auto object-contain" />
+                                <img src={logo} alt="Forge" className="h-20 w-auto object-contain" />
 
                             </Link>
 

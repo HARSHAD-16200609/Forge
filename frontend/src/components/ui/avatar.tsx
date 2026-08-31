@@ -121,7 +121,7 @@ const Profile = ({ avatarUrl, username }: profileProps) => {
       <AvatarImage src={avatarUrl || "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-5.png"} alt={username || "Hallie Richards"} />
       <AvatarFallback>HR</AvatarFallback>
       <AvatarBadge className='-right-1.5 -bottom-1.5 bg-green-600 ring-0 group-data-[size=default]/avatar:size-4 dark:bg-green-400 group-data-[size=default]/avatar:[&>svg]:size-3'>
-        <CheckIcon className='text-white' />
+       
       </AvatarBadge>
     </Avatar>
   )

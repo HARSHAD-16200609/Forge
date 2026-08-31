@@ -1,4 +1,4 @@
-import Frame760 from "@/components/ui/sidebar";
+import Frame760 from "@/components/SideBar";
 import { Outlet } from "react-router-dom";
 
 export function AppLayout() {

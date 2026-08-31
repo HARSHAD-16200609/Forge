@@ -4,12 +4,14 @@ import type { Workspace, WorkspaceListProps } from "../types";
 import { Button } from "@/components/ui/button";
 import { useDeleteWorkspace } from "../hooks/useWorkspaces";
 import { Trash2 } from "lucide-react";
+// import { useworkspaceStore } from "../store/workspaceStore";
 
 
 export function WorkspaceList({
     workspaces,
     onWorkspaceClick,
 }: WorkspaceListProps) {
+    // const {selectedWorkspaceId,setSelectedWorkspaceId,clearSelectedWorkpsaceId} = useworkspaceStore()
     return (
         <div className="w-full">
             {/* Header */}
