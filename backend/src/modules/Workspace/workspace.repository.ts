@@ -82,6 +82,7 @@ class WorkspaceRepository {
       }, include: {
         channels: {
           select: {
+            id:true,
             channelName: true,
           }
         },

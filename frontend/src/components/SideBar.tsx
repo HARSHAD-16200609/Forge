@@ -72,6 +72,7 @@ function WorkspaceSwitcher() {
         setSelectedWorkspaceId,
     } = useWorkspaceStore();
 
+
     const active =
         Workspaces?.data?.find((w) => w.workspace.id === selectedWorkspaceId)?.workspace ??
         Workspaces?.data?.[0]?.workspace ??
@@ -111,8 +112,8 @@ function WorkspaceSwitcher() {
                         className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
                             tileColors[
-                                (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
-                                    -1) % tileColors.length
+                            (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
+                                -1) % tileColors.length
                             ] ?? tileColors[0],
                         )}
                     >
@@ -417,9 +418,10 @@ function SectionHeader({
     );
 }
 
-function ChannelRow({ name, unread }: { name: string; unread: number }) {
+function ChannelRow({ name, unread, channelId }: { name: string; unread: number, channelId: string }) {
+    const { setSelectedChannelId } = useUIStore()
     return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
+        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group" onClick={() => { setSelectedChannelId(channelId) }}>
             <span className="flex items-center justify-center shrink-0 size-5 text-sidebar-foreground/50 [&>svg]:size-4">
                 <Hash />
             </span>
@@ -692,7 +694,7 @@ function DetailSidebar({
 }) {
     const { selectedWorkspaceId } = useWorkspaceStore();
     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
-
+     
     const collapsedSections = useUIStore((s) => s.collapsedSections);
     const toggleSection = useUIStore((s) => s.toggleSection);
 
@@ -746,7 +748,7 @@ function DetailSidebar({
             case "channels":
                 if (collapsed) return null;
                 return WorkspaceDetails.data?.channels.map((c) => (
-                    <ChannelRow key={c.channelName} name={c.channelName} unread={2} />
+                    <ChannelRow key={c.id} name={c.channelName} unread={2} channelId={c.id} />
                 ));
             case "dms":
                 if (collapsed) return null;

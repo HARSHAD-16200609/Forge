@@ -13,6 +13,9 @@ interface UIState {
     setSearchValue: (value: string) => void;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
+    selectedChannelId: string | null;
+    setSelectedChannelId: (id: string) => void;
+    clearSelectedChannelId: () => void
 }
 
 const MIN_WIDTH = 220;
@@ -22,6 +25,13 @@ const DEFAULT_WIDTH = 320;
 export const useUIStore = create<UIState>()(
     persist(
         (set) => ({
+            selectedChannelId: null,
+            setSelectedChannelId: (id) => set({
+                selectedChannelId: id
+            }),
+            clearSelectedChannelId: () => set({
+                selectedChannelId: null
+            }),
             activeSection: "home",
             setActiveSection: (section) =>
                 set({
@@ -58,6 +68,8 @@ export const useUIStore = create<UIState>()(
                     sidebarWidth: Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH),
                 }),
         }),
+
+
         {
             name: "ui-state",
         },

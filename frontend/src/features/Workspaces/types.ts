@@ -25,6 +25,7 @@ export interface WorkspaceDetails {
 }
 export interface Channel {
   channelName: string;
+  id:string
 }
 
 export interface WorkspaceListProps {
