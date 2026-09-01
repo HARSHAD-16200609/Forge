@@ -17,11 +17,20 @@ export interface Message {
     editedAt: string;
     parentMsgId: string;
     sender: Sender;
+    uploads?: MessageAttachment[];
 }
 
 export interface Sender {
     username: string;
     avatar: string;
+}
+
+export interface MessageAttachment {
+    filename: string;
+    url: string;
+    mimeType: string;
+    fileSize: number;
+    fileType: string;
 }
 
 export interface paginatedMessages {

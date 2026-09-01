@@ -1,34 +1,59 @@
 import { MessageComposer } from "@/features/Messages/components/MessageComposer";
+import { BlocksRenderer } from "@/features/Messages/components/BlocksRenderer";
+import { MessageAttachments } from "@/features/Messages/components/MessageAttachments";
+import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
+import { formatMessageTime } from "@/features/Messages/utils/format";
 import { useMessages } from "@/features/Messages/hooks/useMessages";
+import { useSendMessage } from "@/features/Messages/hooks/useSendMessage";
 import { useWorkspace } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { cn } from "@/lib/utils";
+import { useComposerStore } from "@/stores/composerStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
-import {
-    Bell,
-    Hash,
-    Info,
-    Search,
-    Star,
-    Users,
-} from "lucide-react";
-import { useState } from "react";
+import { Bell, Hash, Info, Search, Star, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export function ChannelHome() {
     const [isFavourite, setFavourite] = useState(false);
+    const clearDraft = useComposerStore((state) => state.clearDraft);
     const { selectedWorkspaceId } = useWorkspaceStore();
     const { selectedChannelId } = useUIStore();
     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
-    const activeChannel = WorkspaceDetails.data?.channels.find((channel) => channel.id === selectedChannelId)
-    const { data, isPending, isError, error } = useMessages({
-        workspaceId: selectedWorkspaceId ?? "",
-        channelId: selectedChannelId ?? "",
-        limit: 30,
-    });
+    const activeChannel = WorkspaceDetails.data?.channels.find(
+        (channel) => channel.id === selectedChannelId,
+    );
+    const { data, isPending, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+        useMessages({
+            workspaceId: selectedWorkspaceId ?? "",
+            channelId: selectedChannelId ?? "",
+            limit: 30,
+        });
+    const sendMessage = useSendMessage(selectedWorkspaceId ?? "", selectedChannelId ?? "");
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const Messages = data?.pages.flatMap((m) => m.messages);
 
+    useEffect(() => {
+        if (sendMessage.isSuccess) {
+            clearDraft(selectedChannelId ?? "");
+        }
+    }, [sendMessage.isSuccess, selectedChannelId, clearDraft]);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (el && hasNextPage && !isFetchingNextPage && el.scrollHeight <= el.clientHeight + 120) {
+            void fetchNextPage();
+        }
+    }, [data, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    function handleScroll() {
+        const el = scrollRef.current;
+        if (!el || !hasNextPage || isFetchingNextPage) return;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+            void fetchNextPage();
+        }
+    }
 
     if (!selectedChannelId) {
         return (
@@ -41,7 +66,7 @@ export function ChannelHome() {
     }
 
     if (isPending) {
-        return <div>Loading messages...</div>;
+        return <MessageSkeleton rows={6} />;
     }
 
     if (isError) {
@@ -120,7 +145,11 @@ export function ChannelHome() {
             </header>
 
             {/* Messages area */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
+            <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
+            >
                 {/* Channel intro banner */}
                 <div className="mb-6"></div>
 
@@ -159,21 +188,36 @@ export function ChannelHome() {
                                             {message.sender.username}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {message.sentAt}
+                                            {formatMessageTime(message.sentAt)}
                                         </span>
                                     </div>
-                                    <p className="mt-0.5 text-[15px] leading-6 break-words">
-                                        {message.content}
-                                    </p>
+                                    <BlocksRenderer blocksJson={message.content} />
+                                    <MessageAttachments uploads={message.uploads} />
                                 </div>
                             </div>
                         ))}
+
+                    {isFetchingNextPage && <MessageSkeleton rows={2} />}
+
+                    {!hasNextPage && Messages && Messages.length > 0 && (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                            You&apos;re all caught up
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Composer */}
             <div className="shrink-0 px-4 pb-4">
-                <MessageComposer channelName={activeChannel?.channelName.split(' ').join('-')} />
+                <MessageComposer
+                    key={`${selectedChannelId}-${sendMessage.isSuccess ? "reset" : "draft"}`}
+                    channelId={selectedChannelId}
+                    channelName={activeChannel?.channelName ?? "new-channel"}
+                    disabled={sendMessage.isPending}
+                    onSend={(content, files) => {
+                        sendMessage.mutate({ content, files });
+                    }}
+                />
             </div>
         </div>
     );

@@ -57,12 +57,21 @@ class MessageRepository {
                 }, skip: 1
             }),
             orderBy: {
-                sentAt: "desc"
+                sentAt: "asc"
             }, include: {
                 sender: {
                     select: {
                         username: true,
                         avatar: true,
+                    },
+                },
+                uploads: {
+                    select: {
+                        filename: true,
+                        url: true,
+                        mimeType: true,
+                        fileSize: true,
+                        fileType: true,
                     },
                 },
             }, omit: {

@@ -202,3 +202,33 @@
         animation: none;
     }
 }
+
+/* ── Editor.js composer: reset default sizing/spacing ──────────────────── */
+
+.message-composer-editor .codex-editor {
+    z-index: 0;
+}
+
+.message-composer-editor .codex-editor__redactor {
+    padding-bottom: 0 !important;
+}
+
+.message-composer-editor .ce-block,
+.message-composer-editor .ce-block__content,
+.message-composer-editor .ce-toolbar__content {
+    max-width: none;
+    margin: 0;
+}
+
+.message-composer-editor .ce-block {
+    padding: 0;
+}
+
+.message-composer-editor .ce-block .cdx-block {
+    padding: 0.25em 0;
+}
+
+.message-composer-editor .ce-paragraph.cdx-block {
+    line-height: 1.6;
+    padding: 0.35em 0;
+}
