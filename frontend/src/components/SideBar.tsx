@@ -40,6 +40,8 @@ import logoUrl from "@/assets/forge.png";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { CreateWorkspaceForm } from "@/features/Workspaces/components/CreateWorkspaceForm";
+import { useDms } from "@/features/Messages/hooks/useDms";
+import type { Conversation } from "@/features/Messages/types";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
@@ -71,7 +73,6 @@ function WorkspaceSwitcher() {
         setShowCreateWorkspaceForm,
         setSelectedWorkspaceId,
     } = useWorkspaceStore();
-
 
     const active =
         Workspaces?.data?.find((w) => w.workspace.id === selectedWorkspaceId)?.workspace ??
@@ -112,8 +113,8 @@ function WorkspaceSwitcher() {
                         className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
                             tileColors[
-                            (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
-                                -1) % tileColors.length
+                                (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
+                                    -1) % tileColors.length
                             ] ?? tileColors[0],
                         )}
                     >
@@ -205,25 +206,18 @@ const navItems: NavItem[] = [
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
 ];
 
-const dms = [
-    { name: "Jane Cooper", online: false, initials: "JC" },
-    { name: "Mike Johnson", online: true, initials: "MJ" },
-    { name: "Sarah Chen", online: true, initials: "SC" },
-    { name: "Tom Lee", online: false, initials: "TL" },
-];
+// const groupDms = [
+//     { name: "Design Team", memberCount: 5, initials: "DT" },
+//     { name: "Frontend Crew", memberCount: 3, initials: "FC" },
+// ];
 
-const groupDms = [
-    { name: "Design Team", memberCount: 5, initials: "DT" },
-    { name: "Frontend Crew", memberCount: 3, initials: "FC" },
-];
-
-const allMembers = [
-    { name: "Jane Cooper", online: false, role: "Member", initials: "JC" },
-    { name: "Mike Johnson", online: true, role: "Member", initials: "MJ" },
-    { name: "Sarah Chen", online: true, role: "Member", initials: "SC" },
-    { name: "Tom Lee", online: false, role: "Member", initials: "TL" },
-    { name: "Harshad", online: true, role: "Owner", initials: "HD" },
-];
+// const allMembers = [
+//     { name: "Jane Cooper", online: false, role: "Member", initials: "JC" },
+//     { name: "Mike Johnson", online: true, role: "Member", initials: "MJ" },
+//     { name: "Sarah Chen", online: true, role: "Member", initials: "SC" },
+//     { name: "Tom Lee", online: false, role: "Member", initials: "TL" },
+//     { name: "Harshad", online: true, role: "Owner", initials: "HD" },
+// ];
 
 const activityItems = [
     { name: "Mike Johnson mentioned you", meta: "#general · 2h", icon: <AtSign size={16} /> },
@@ -418,10 +412,23 @@ function SectionHeader({
     );
 }
 
-function ChannelRow({ name, unread, channelId }: { name: string; unread: number, channelId: string }) {
-    const { setSelectedChannelId } = useUIStore()
+function ChannelRow({
+    name,
+    unread,
+    channelId,
+}: {
+    name: string;
+    unread: number;
+    channelId: string;
+}) {
+    const { setSelectedChannelId } = useUIStore();
     return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group" onClick={() => { setSelectedChannelId(channelId) }}>
+        <div
+            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+            onClick={() => {
+                setSelectedChannelId(channelId);
+            }}
+        >
             <span className="flex items-center justify-center shrink-0 size-5 text-sidebar-foreground/50 [&>svg]:size-4">
                 <Hash />
             </span>
@@ -437,21 +444,66 @@ function ChannelRow({ name, unread, channelId }: { name: string; unread: number,
     );
 }
 
-function DMRow({ name, online, initials }: { name: string; online: boolean; initials: string }) {
+function DMRow({
+    dm,
+    online,
+    onSelect,
+}: {
+    dm: Conversation;
+    online: boolean;
+    onSelect?: () => void;
+}) {
     return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
-            <AvatarDot initials={initials} online={online} />
+        <div
+            onClick={onSelect}
+            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+        >
+            <AvatarDot avatar={dm.avatar} online={online} name={dm.displayName} type="dm" />
             <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2">
-                {name}
+                {dm.displayName}
             </span>
         </div>
     );
 }
+function AvatarDot({
+    avatar,
+    online,
+    name,
+    type,
+}: {
+    avatar?: string;
+    online: boolean;
+    name?: string;
+    type?: "dm" | "gdm";
+}) {
+    const initials = (name ?? "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join("");
 
-function AvatarDot({ initials, online }: { initials: string; online: boolean }) {
     return (
-        <span className="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground">
-            {initials}
+        <span className="relative flex size-6 shrink-0 items-center justify-center overflow-visible rounded-full">
+            {avatar ? (
+                <img
+                    src={avatar}
+                    alt={name ?? "avatar"}
+                    className="size-6 rounded-full object-cover"
+                />
+            ) : (
+                <span
+                    className={cn(
+                        "flex size-6 items-center justify-center rounded-full text-[10px] font-semibold",
+                        type === "gdm"
+                            ? "bg-emerald-500/20 text-emerald-500"
+                            : "bg-violet-500/20 text-violet-600",
+                    )}
+                >
+                    {type === "gdm" && !initials ? <Users className="size-3.5" /> : initials}
+                </span>
+            )}
+
             <span
                 className={cn(
                     "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-sidebar",
@@ -473,53 +525,45 @@ function QuickLink({ icon, label }: { icon: React.ReactNode; label: string }) {
     );
 }
 
-function GroupDMRow({
-    name,
-    memberCount,
-    initials,
-}: {
-    name: string;
-    memberCount: number;
-    initials: string;
-}) {
+function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => void }) {
     return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
-            <span className="relative flex size-6 shrink-0 items-center justify-center rounded-md bg-sidebar-accent text-[10px] font-semibold text-sidebar-foreground">
-                {initials}
+        <div
+            onClick={onSelect}
+            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+        >
+            <AvatarDot avatar={gdm.avatar} online={true} name={gdm.groupName} type="gdm" />
+            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2">
+                {gdm.groupName}
             </span>
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2 flex-1">
-                {name}
-            </span>
-            <span className="text-[11px] text-sidebar-foreground/40">{memberCount}</span>
         </div>
     );
 }
 
-function MemberRow({
-    name,
-    online,
-    role,
-    initials,
-}: {
-    name: string;
-    online: boolean;
-    role: string;
-    initials: string;
-}) {
-    return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
-            <AvatarDot initials={initials} online={online} />
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2 flex-1">
-                {name}
-            </span>
-            {role === "Owner" && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 py-0.5">
-                    Owner
-                </span>
-            )}
-        </div>
-    );
-}
+// function MemberRow({
+//     name,
+//     online,
+//     role,
+//     initials,
+// }: {
+//     name: string;
+//     online: boolean;
+//     role: string;
+//     initials: string;
+// }) {
+//     return (
+//         <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
+//             <AvatarDot initials={initials} online={online} />
+//             <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2 flex-1">
+//                 {name}
+//             </span>
+//             {role === "Owner" && (
+//                 <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 py-0.5">
+//                     Owner
+//                 </span>
+//             )}
+//         </div>
+//     );
+// }
 
 function ActivityRow({ name, meta, icon }: { name: string; meta: string; icon: React.ReactNode }) {
     return (
@@ -694,9 +738,18 @@ function DetailSidebar({
 }) {
     const { selectedWorkspaceId } = useWorkspaceStore();
     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
-     
+    const chats = useDms(selectedWorkspaceId ?? "");
     const collapsedSections = useUIStore((s) => s.collapsedSections);
     const toggleSection = useUIStore((s) => s.toggleSection);
+    const setSelectedConversation = useUIStore((s) => s.setSelectedConversation);
+    const dms = chats.data?.conversations.filter((convo) => convo.type === "DM");
+    const gdms = chats.data?.conversations.filter((convo) => convo.type === "GDM");
+    if (chats.isError) {
+        return <h1>Error Loading Dms</h1>;
+    }
+    if (chats.isLoading) {
+        return <h1>Loading Dms</h1>;
+    }
 
     const startResize = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -752,13 +805,31 @@ function DetailSidebar({
                 ));
             case "dms":
                 if (collapsed) return null;
-                return dms.map((d) => <DMRow key={d.name} {...d} />);
+                return dms?.map((d) => (
+                    <DMRow
+                        key={d.id}
+                        dm={d}
+                        online={true}
+                        onSelect={() => {
+                            
+                            setSelectedConversation(d.id, "DM")
+
+                        }}
+                    />
+                ));
             case "groups":
                 if (collapsed) return null;
-                return groupDms.map((g) => <GroupDMRow key={g.name} {...g} />);
+                return gdms?.map((g) => (
+                    <GroupDMRow
+                        key={g.id}
+                        gdm={g}
+                        onSelect={() => setSelectedConversation(g.id, "GDM")}
+                    />
+                ));
             case "members":
                 if (collapsed) return null;
-                return allMembers.map((m) => <MemberRow key={m.name} {...m} />);
+                // return allMembers.map((m) => <MemberRow key={m.name} {...m} />);
+                return;
             default:
                 if (collapsed) return null;
                 return (section.rows || []).map((row) => renderRow(row, section.kind));

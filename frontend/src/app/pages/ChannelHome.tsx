@@ -13,16 +13,41 @@ import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
 import { Bell, Hash, Info, Search, Star, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Conversations } from "./Conversations";
 
 export function ChannelHome() {
+    const activeSection = useUIStore((s) => s.activeSection);
+    const selectedConversationId = useUIStore((s) => s.selectedConversationId);
+
+    if (activeSection === "dms") {
+        return <Conversations />;
+    }
+
+    if (activeSection === "home" && selectedConversationId) {
+        return <Conversations  />;
+    }
+
+    return <ChannelHomeInner />;
+}
+
+function ChannelHomeInner() {
     const [isFavourite, setFavourite] = useState(false);
     const clearDraft = useComposerStore((state) => state.clearDraft);
     const { selectedWorkspaceId } = useWorkspaceStore();
-    const { selectedChannelId } = useUIStore();
+    const { selectedChannelId, setSelectedChannelId } = useUIStore();
     const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
     const activeChannel = WorkspaceDetails.data?.channels.find(
         (channel) => channel.id === selectedChannelId,
     );
+
+    useEffect(() => {
+        const channels = WorkspaceDetails.data?.channels;
+        if (selectedChannelId || !channels || channels.length === 0) return;
+
+        const general =
+            channels.find((c) => c.channelName.toLowerCase() === "general") ?? channels[0];
+        setSelectedChannelId(general.id);
+    }, [WorkspaceDetails.data, selectedChannelId, setSelectedChannelId]);
     const { data, isPending, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
         useMessages({
             workspaceId: selectedWorkspaceId ?? "",

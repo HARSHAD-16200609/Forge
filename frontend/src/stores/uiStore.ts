@@ -15,7 +15,11 @@ interface UIState {
     setSidebarWidth: (width: number) => void;
     selectedChannelId: string | null;
     setSelectedChannelId: (id: string) => void;
-    clearSelectedChannelId: () => void
+    clearSelectedChannelId: () => void;
+    selectedConversationId: string | null;
+    selectedConversationType: "DM" | "GDM" | null;
+    setSelectedConversation: (id: string, type: "DM" | "GDM") => void;
+    clearSelectedConversation: () => void;
 }
 
 const MIN_WIDTH = 220;
@@ -26,12 +30,29 @@ export const useUIStore = create<UIState>()(
     persist(
         (set) => ({
             selectedChannelId: null,
-            setSelectedChannelId: (id) => set({
-                selectedChannelId: id
-            }),
-            clearSelectedChannelId: () => set({
-                selectedChannelId: null
-            }),
+            setSelectedChannelId: (id) =>
+                set({
+                    selectedChannelId: id,
+                    selectedConversationId: null,
+                    selectedConversationType: null,
+                }),
+            clearSelectedChannelId: () =>
+                set({
+                    selectedChannelId: null,
+                }),
+            selectedConversationId: null,
+            selectedConversationType: null,
+            setSelectedConversation: (id, type) =>
+                set({
+                    selectedConversationId: id,
+                    selectedConversationType: type,
+                    selectedChannelId: null,
+                }),
+            clearSelectedConversation: () =>
+                set({
+                    selectedConversationId: null,
+                    selectedConversationType: null,
+                }),
             activeSection: "home",
             setActiveSection: (section) =>
                 set({
@@ -68,7 +89,6 @@ export const useUIStore = create<UIState>()(
                     sidebarWidth: Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH),
                 }),
         }),
-
 
         {
             name: "ui-state",
