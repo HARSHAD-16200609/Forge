@@ -36,7 +36,7 @@ class ConversationService {
         const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversations = await conversationRepository.getConversations(userId)
+        const conversations = await conversationRepository.getConversations(userId,workspaceId)
         if (conversations.length === 0) throw new NotFoundError("No Conversations Found")
         const conversationList = conversations.map(({ conversation }) => {
 

@@ -12,7 +12,11 @@ export const ChannelParamsSchema = z.object({
     workspaceId : z.uuid(),
     memberId : z.uuid().optional()
 })
-
+export const ConversationParamsSchema = z.object({
+    conversationId : z.uuid(),
+    workspaceId : z.uuid(),
+    memberId : z.uuid().optional()
+})
 export const ChannelInviteSchema = z.object({
     inviteId : z.uuid(),
     workspaceId : z.uuid(),
@@ -52,3 +56,4 @@ export type createChannelDTO = z.infer<typeof createChannelSchema>
 export type channelParamsDTO = z.infer<typeof ChannelParamsSchema>
 export type updateChannelDTO = z.infer<typeof updateChannelSchema>
 export type channelInviteDTO = z.infer<typeof ChannelInviteSchema>
+export type conversationParamsDTO = z.infer<typeof ConversationParamsSchema>

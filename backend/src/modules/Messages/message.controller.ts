@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import { ChannelParamsSchema } from "../../db/channel.schema";
+import { ChannelParamsSchema, ConversationParamsSchema } from "../../db/channel.schema";
 import { delUploadParamsSchema, emojiSchema, getMessagesSchema, messageSchema } from "../../db/message.schema";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
@@ -52,6 +52,28 @@ export const getMessages = asyncHandler(async (req, res) => {
         ip: req.ip,
         userAgent: req.get("user-agent"),
         channelId: Channel.data.channelId,
+        fetchedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, messages, "Messages fetched sucessfully"))
+})
+export const getConvoMessages = asyncHandler(async (req, res) => {
+    const Conversation = ConversationParamsSchema.safeParse(req.params)
+    const User = reqUserSchema.safeParse(req.user)
+    const Pagination = getMessagesSchema.safeParse(req.query)
+    if (!Conversation.success) throw new UserInputValidationError("Invalid Input", Conversation.error.flatten().fieldErrors)
+    if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
+    if (!Pagination.success) throw new UserInputValidationError("Invalid Input", Pagination.error.flatten().fieldErrors)
+
+
+
+    const messages = await messageService.getConvoMessages(Conversation.data, User.data, Pagination.data)
+    loggers.db.info("Messages Fetched Sucessfully", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        channelId: Conversation.data.conversationId,
         fetchedAt: new Date().toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",
         })
@@ -196,5 +218,5 @@ export const deleteAttachment = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT,{},"Attachments Deleted Sucessfully"))
+    res.status(StatusCodes.NO_CONTENT).json(new ApiResponse(StatusCodes.NO_CONTENT, {}, "Attachments Deleted Sucessfully"))
 })

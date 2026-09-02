@@ -1,4 +1,4 @@
-import { channelParamsDTO } from "../../db/channel.schema";
+import { channelParamsDTO, conversationParamsDTO } from "../../db/channel.schema";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { channelRepository } from "../Channel/channel.repository";
 import { workspaceRepository } from "../Workspace/workspace.repository";
@@ -9,6 +9,7 @@ import { getResourceType } from "../../db/message.schema";
 import { deleteFromCloudinary } from "../../config/cloudinary";
 import { fType } from "../../../generated/prisma/enums";
 import { loggers } from "../../utility/logger/serviceLoggers";
+import { conversationRepository } from "../Conversations/conversations.repository";
 
 
 
@@ -78,6 +79,29 @@ class MessageService {
 
 
         const channelMessages = await messageRepository.getMessages(Channel.channelId, pagination)
+        if (channelMessages.length === 0) throw new NotFoundError("No Messages Found")
+        const hasMore = channelMessages.length > pagination.limit
+
+
+        const messagesVisible = hasMore ? channelMessages.slice(0, pagination.limit) : channelMessages
+        const nextCursor = hasMore ? messagesVisible[messagesVisible.length - 1]?.id : null
+
+        return {
+            messages: messagesVisible,
+            hasMore,
+            nextCursor
+        }
+
+    }
+       async getConvoMessages(Conversation: conversationParamsDTO, User: { username: string, userId: string }, pagination: { cursor?: string | undefined, limit: number }) {
+        const workspaceMember = await workspaceRepository.memberExists(User.userId, Conversation.workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
+
+        const conversation = await conversationRepository.conversationExists(Conversation.conversationId, User.userId)
+        if (!conversation) throw new NotFoundError("No Conversation Found")
+
+
+        const channelMessages = await messageRepository.getConversationMessages(Conversation.conversationId, pagination)
         if (channelMessages.length === 0) throw new NotFoundError("No Messages Found")
         const hasMore = channelMessages.length > pagination.limit
 
