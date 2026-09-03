@@ -17,7 +17,7 @@ conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId").get(verifyJwt, getConversation)
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages").get(verifyJwt, getMessages)
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").patch(verifyJwt, editMessage)
-conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").post(verifyJwt, postReply)
+conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").post(verifyJwt, upload.array("attachments", 10), postReply)
 conversationRouter.route("/workspaces/:id/conversations").get(verifyJwt, getConversations)
 conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId/reactions").post(verifyJwt, postReaction)
 // conversationRouter.route("/workspaces/:workspaceId/conversations/:conversationId/messages/:messageId").post(verifyJwt, deleteMessage)

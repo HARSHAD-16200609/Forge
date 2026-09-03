@@ -178,7 +178,7 @@ class MessageService {
 
     }
 
-    async postReply(userId: string, messageId: string, content: string) {
+    async postReply(userId: string, messageId: string, content: string, attachments: Express.Multer.File[] = []) {
         const message = await messageRepository.getById(messageId)
         if (!message) {
             throw new NotFoundError("Message not found");
@@ -199,11 +199,36 @@ class MessageService {
             content
         }
 
-        const reply = await messageRepository.createReply(messageObject, messageId)
-        if (reply === undefined) throw new BadRequestError("Invalid ParentMsgId")
+        let attachmentData: {
+            filename: string;
+            url: string;
+            publicId: string;
+            mimeType: string;
+            fileSize: number;
+            fileType: fType;
+        }[] = [];
+        try {
+            if (attachments.length > 0) {
+                attachmentData = await uploadService.uploadAttachments(attachments)
+            }
 
-        return reply
+            const reply = await messageRepository.createReply(messageObject, messageId, attachmentData)
 
+            return reply
+        } catch (err) {
+            if (attachmentData.length > 0) {
+                const results = await Promise.allSettled(
+                    attachmentData.map((attachment) => {
+                        return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
+                    })
+                )
+                const failed = results.filter((result) => result.status === "rejected")
+                if (failed.length > 0) {
+                    loggers.audit.error("UPLOAD_ROLLBACK_FAILED", { failedCount: failed.length })
+                }
+            }
+            throw err
+        }
 
     }
     async postReaction(userId: string, messageId: string, emoji: string) {

@@ -12,7 +12,7 @@ messageRouter.route("/workspace/:workspaceId/channel/:channelId/messages").get(v
 messageRouter.route("/messages/:id").get(verifyJwt, getMessage)
 messageRouter.route("/messages/:id").patch(verifyJwt, editMessage)
 messageRouter.route("/messages/:id").delete(verifyJwt, deleteMessage)
-messageRouter.route("/messages/:id/replies").post(verifyJwt, postReply)
+messageRouter.route("/messages/:id/replies").post(verifyJwt, upload.array("attachments", 10), postReply)
 messageRouter.route("/messages/:id/reactions").post(verifyJwt, postReaction)
 messageRouter.route("/messages/:id/uploads").delete(verifyJwt,deleteAttachment)
 

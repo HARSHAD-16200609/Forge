@@ -65,6 +65,17 @@ class MessageRepository {
                         avatar: true,
                     },
                 },
+                parentMsg: {
+                    select: {
+                        sender: {
+                            select: {
+                                username: true,
+                                avatar: true,
+                            },
+                        },
+                        content: true,
+                    },
+                },
                 uploads: {
                     select: {
                         filename: true,
@@ -154,19 +165,51 @@ class MessageRepository {
 
     }
 
-    async createReply(message: MessageDTO, parentMessageId: string) {
-        if ("conversationId" in message) {
-            const reply = await prisma.message.create({
+    async createReply(
+        message: MessageDTO,
+        parentMessageId: string,
+        attachments: {
+            url: string;
+            filename: string;
+            publicId: string;
+            mimeType: string;
+            fileSize: number;
+            fileType: fType;
+        }[] = [],
+    ) {
+        return await prisma.$transaction(async (tx) => {
+            const reply = await tx.message.create({
                 data: {
                     ...message,
-                    parentMsgId: parentMessageId
-                }
+                    parentMsgId: parentMessageId,
+                },
+                select: {
+                    id: true,
+                    content: true,
+                    parentMsgId: true,
+                    sentAt: true,
+                    editedAt: true,
+                    sender: {
+                        select: {
+                            id: true,
+                            username: true,
+                            avatar: true,
+                        },
+                    },
+                },
+            });
 
-            })
-            return reply
-        }
-        else return
+            if (attachments.length > 0) {
+                await tx.upload.createMany({
+                    data: attachments.map((attachment) => ({
+                        ...attachment,
+                        messageId: reply.id,
+                    })),
+                });
+            }
 
+            return reply;
+        });
     }
     async addReaction(userId: string, messageId: string, emoji: string) {
         const reaction = await prisma.reaction.create({
@@ -286,7 +329,11 @@ class MessageRepository {
             }, include: {
                 uploads: {
                     select: {
-                        url: true
+                        filename: true,
+                        url: true,
+                        mimeType: true,
+                        fileSize: true,
+                        fileType: true,
                     }
                 }, reactions: {
                     select: {
@@ -301,6 +348,16 @@ class MessageRepository {
                     }
                 }, replies: {
                     select: {
+                        content: true
+                    },
+                }, parentMsg: {
+                    select: {
+                        sender: {
+                            select: {
+                                username: true,
+                                avatar: true
+                            }
+                        },
                         content: true
                     },
                 }, sender: {
