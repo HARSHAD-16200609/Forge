@@ -104,6 +104,28 @@ class MessageService {
 
         return sentMessage.data.data;
     }
+
+    async postReply(
+        params: channelParams | dmParams,
+        messageId: string,
+        content: string,
+        files: File[] = [],
+    ): Promise<Message> {
+        const formData = new FormData();
+        formData.append("content", content);
+        files.forEach((file) => formData.append("attachments", file));
+
+        const url =
+            "channelId" in params
+                ? `/messages/${messageId}/replies`
+                : `/workspaces/${params.workspaceId}/conversations/${params.conversationId}/messages/${messageId}`;
+
+        const sentMessage = await api.post(url, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        return sentMessage.data.data;
+    }
 }
 
 export const messageService = new MessageService();

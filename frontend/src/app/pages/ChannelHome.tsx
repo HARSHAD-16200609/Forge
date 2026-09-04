@@ -1,10 +1,9 @@
 import { MessageComposer } from "@/features/Messages/components/MessageComposer";
-import { BlocksRenderer } from "@/features/Messages/components/BlocksRenderer";
-import { MessageAttachments } from "@/features/Messages/components/MessageAttachments";
+import { MessageBubble } from "@/features/Messages/components/MessageBubble";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
-import { formatMessageTime } from "@/features/Messages/utils/format";
 import { useMessages } from "@/features/Messages/hooks/useMessages";
 import { useSendMessage } from "@/features/Messages/hooks/useSendMessage";
+import { useSendReply } from "@/features/Messages/hooks/useSendReply";
 import { useWorkspace } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { cn } from "@/lib/utils";
@@ -14,6 +13,7 @@ import type { AxiosError } from "axios";
 import { Bell, Hash, Info, Search, Star, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Conversations } from "./Conversations";
+import type { Message } from "@/features/Messages/types";
 
 export function ChannelHome() {
     const activeSection = useUIStore((s) => s.activeSection);
@@ -24,7 +24,7 @@ export function ChannelHome() {
     }
 
     if (activeSection === "home" && selectedConversationId) {
-        return <Conversations  />;
+        return <Conversations />;
     }
 
     return <ChannelHomeInner />;
@@ -55,9 +55,29 @@ function ChannelHomeInner() {
             limit: 30,
         });
     const sendMessage = useSendMessage(selectedWorkspaceId ?? "", selectedChannelId ?? "");
+    const sendReply = useSendReply(
+        { workspaceId: selectedWorkspaceId ?? "", channelId: selectedChannelId ?? "" },
+        ["messages", selectedChannelId ?? ""],
+    );
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
     const Messages = data?.pages.flatMap((m) => m.messages);
+
+    const topLevelMessages = Messages?.filter((m) => !m.parentMsgId) ?? [];
+    const repliesByParent = new Map<string, Message[]>();
+    Messages?.forEach((m) => {
+        if (m.parentMsgId) {
+            const list = repliesByParent.get(m.parentMsgId) ?? [];
+            list.push(m);
+            repliesByParent.set(m.parentMsgId, list);
+        }
+    });
+    const flattened: Message[] = [];
+    topLevelMessages.forEach((m) => {
+        flattened.push(m);
+        (repliesByParent.get(m.id) ?? []).forEach((r) => flattened.push(r));
+    });
 
     useEffect(() => {
         if (sendMessage.isSuccess) {
@@ -189,38 +209,23 @@ function ChannelHomeInner() {
 
                 {/* Messages */}
                 <div className="space-y-6">
-                    {Messages &&
-                        Messages.map((message) => (
-                            <div key={message.id} className="group flex gap-3">
-                                <div
-                                    className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white `}
-                                >
-                                    {message.sender.avatar ? (
-                                        <img
-                                            src={message.sender.avatar}
-                                            alt={message.sender.username}
-                                            className="size-10 rounded-lg object-cover"
-                                        />
-                                    ) : (
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-violet-500">
-                                            {message.sender.username.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-sm font-bold">
-                                            {message.sender.username}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {formatMessageTime(message.sentAt)}
-                                        </span>
-                                    </div>
-                                    <BlocksRenderer blocksJson={message.content} />
-                                    <MessageAttachments uploads={message.uploads} />
-                                </div>
+                    {flattened.map((message) =>
+                        message.parentMsgId ? (
+                            <div key={message.id} className="ml-12 border-l-2 border-border pl-3">
+                                <MessageBubble
+                                    message={message}
+                                    isReply
+                                    onReply={(m) => setReplyingTo(m)}
+                                />
                             </div>
-                        ))}
+                        ) : (
+                            <MessageBubble
+                                key={message.id}
+                                message={message}
+                                onReply={(m) => setReplyingTo(m)}
+                            />
+                        ),
+                    )}
 
                     {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
@@ -235,12 +240,24 @@ function ChannelHomeInner() {
             {/* Composer */}
             <div className="shrink-0 px-4 pb-4">
                 <MessageComposer
-                    key={`${selectedChannelId}-${sendMessage.isSuccess ? "reset" : "draft"}`}
+                    key={selectedChannelId}
                     channelId={selectedChannelId}
                     channelName={activeChannel?.channelName ?? "new-channel"}
-                    disabled={sendMessage.isPending}
-                    onSend={(content, files) => {
-                        sendMessage.mutate({ content, files });
+                    disabled={sendMessage.isPending || sendReply.isPending}
+                    replyTo={
+                        replyingTo
+                            ? { id: replyingTo.id, sender: replyingTo.sender.username }
+                            : null
+                    }
+                    onCancelReply={() => setReplyingTo(null)}
+                    onSend={(content, files, replyToId) => {
+                        if (replyToId) {
+                            return sendReply.mutateAsync(
+                                { messageId: replyToId, content, files },
+                                { onSuccess: () => setReplyingTo(null) },
+                            );
+                        }
+                        return sendMessage.mutateAsync({ content, files });
                     }}
                 />
             </div>

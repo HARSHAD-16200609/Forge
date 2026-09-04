@@ -17,10 +17,12 @@ import {
     Bold,
     ChevronDown,
     Code,
+    CornerUpLeft,
     Italic,
     Link,
     List as ListIcon,
     ListOrdered,
+    Loader2,
     Mic,
     MoreHorizontal,
     Paperclip,
@@ -36,6 +38,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useComposerStore } from "@/stores/composerStore";
+import { Component as EmojiPicker } from "@/components/ui/emoji-picker";
 import type { BlockToolConstructable, OutputData } from "@editorjs/editorjs";
 
 function parseStoredBlocks(contentJson: string): OutputData | undefined {
@@ -56,9 +59,15 @@ type MessageComposerProps = {
     channelName?: string;
     placeholder?: string;
     onChange?: (contentJson: string) => void;
-    onSend?: (contentJson: string, files: File[]) => void;
+    onSend?: (
+        contentJson: string,
+        files: File[],
+        replyToId?: string | null,
+    ) => void | Promise<unknown>;
     disabled?: boolean;
     className?: string;
+    replyTo?: { id: string; sender: string } | null;
+    onCancelReply?: () => void;
 };
 
 function ToolbarButton({
@@ -130,17 +139,21 @@ export function MessageComposer({
     onSend,
     disabled,
     className,
+    replyTo,
+    onCancelReply,
 }: MessageComposerProps) {
     const editorHostRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<EditorJS | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [files, setFiles] = useState<File[]>([]);
+    const [showEmojiDrawer, setShowEmojiDrawer] = useState(false);
     const [inlineState, setInlineState] = useState<ActiveInline>(emptyActiveInline);
     const [blockState, setBlockState] = useState<string | null>(null);
     const [listStyle, setListStyle] = useState<"ordered" | "unordered" | null>(null);
 
     const onChangeRef = useRef(onChange);
     const placeholderRef = useRef(placeholder ?? `Message #${channelName ?? "new-channel"}`);
+    const handleSendRef = useRef<() => void>(() => {});
 
     useEffect(() => {
         onChangeRef.current = onChange;
@@ -251,12 +264,20 @@ export function MessageComposer({
 
         document.addEventListener("selectionchange", readActiveStyles);
         void editor.isReady.then(() => readActiveStyles());
+        void editor.isReady.then(() => {
+            const editable =
+                editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]");
+            editable?.addEventListener("keydown", handleKeyDown);
+        });
 
         return () => {
             disposed = true;
             document.removeEventListener("selectionchange", readActiveStyles);
             editorRef.current = null;
             void editor.isReady.then(() => {
+                const editable =
+                    editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]");
+                editable?.removeEventListener("keydown", handleKeyDown);
                 if (destroyed) return;
                 destroyed = true;
                 if (!disposed) return;
@@ -264,6 +285,12 @@ export function MessageComposer({
             });
         };
     }, [readActiveStyles, propagate, channelId]);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor?.readOnly) return;
+        void editor.readOnly.toggle(disabled);
+    }, [disabled]);
 
     function focusEditable() {
         editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]")?.focus();
@@ -378,11 +405,40 @@ export function MessageComposer({
         if (disabled) return;
         const blocks = await editorRef.current?.save();
         const contentJson = JSON.stringify(blocks?.blocks ?? []);
-        onSend?.(contentJson, files);
+        const replyToId = replyTo?.id;
+        try {
+            await onSend?.(contentJson, files, replyToId);
+            await editorRef.current?.clear();
+            setFiles([]);
+            useComposerStore.getState().clearDraft(channelId ?? "");
+            onChangeRef.current?.(JSON.stringify([]));
+        } catch {
+            /* keep editor content so the user can retry on failure */
+        }
+    }
+    handleSendRef.current = handleSend;
+
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key !== "Enter") return;
+        if (event.shiftKey) return;
+        event.preventDefault();
+        handleSendRef.current();
+    }
+
+    function handleEmojiSelect(emoji: { native: string }) {
+        focusEditable();
+        document.execCommand("insertText", false, emoji.native);
+        void propagate();
+        setShowEmojiDrawer(false);
     }
 
     return (
-        <div className={cn("w-full rounded-lg border border-border bg-background", className)}>
+        <div
+            className={cn(
+                "relative w-full rounded-lg border border-border bg-background",
+                className,
+            )}
+        >
             {/* Top formatting toolbar */}
             <div className="flex items-center gap-0.5 border-b border-border/60 px-2 py-1">
                 <ToolbarButton
@@ -459,6 +515,25 @@ export function MessageComposer({
                 </ToolbarButton>
             </div>
 
+            {replyTo && (
+                <div className="flex items-center gap-2 border-b border-border/60 bg-accent/40 px-3 py-1.5 text-xs">
+                    <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+                        <CornerUpLeft className="size-3.5" />
+                        Replying to{" "}
+                        <span className="font-semibold text-foreground">@{replyTo.sender}</span>
+                    </span>
+                    <button
+                        type="button"
+                        aria-label="Cancel reply"
+                        title="Cancel reply"
+                        onClick={onCancelReply}
+                        className="ml-auto flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    >
+                        <X className="size-3.5" />
+                    </button>
+                </div>
+            )}
+
             {/* Main editor area */}
             <div>
                 <div
@@ -466,6 +541,14 @@ export function MessageComposer({
                     className="message-composer-editor min-h-24 max-h-60 overflow-y-auto px-2 py-2"
                 />
             </div>
+
+            {/* Sending / uploading state */}
+            {disabled && (
+                <div className="flex items-center gap-2 border-t border-border/60 bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>{files.length > 0 ? "Uploading attachments…" : "Sending message…"}</span>
+                </div>
+            )}
 
             {/* Selected attachments */}
             {files.length > 0 && (
@@ -509,7 +592,7 @@ export function MessageComposer({
                 <ToolbarButton label="Text formatting">
                     <MoreHorizontal className="size-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Emoji">
+                <ToolbarButton label="Emoji" onClick={() => setShowEmojiDrawer((prev) => !prev)}>
                     <Smile className="size-4" />
                 </ToolbarButton>
                 <ToolbarButton label="Mention">
@@ -537,7 +620,11 @@ export function MessageComposer({
                         disabled={disabled}
                         className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
                     >
-                        <Send className="size-4" />
+                        {disabled ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <Send className="size-4" />
+                        )}
                     </button>
                     <button
                         type="button"
@@ -549,6 +636,17 @@ export function MessageComposer({
                     </button>
                 </div>
             </div>
+
+            {showEmojiDrawer && (
+                <div className="absolute inset-x-0 bottom-full z-30 w-80">
+                    <EmojiPicker
+                        isOpen={showEmojiDrawer}
+                        onClose={() => setShowEmojiDrawer(false)}
+                        onEmojiSelect={handleEmojiSelect}
+                        variant="drawer"
+                    />
+                </div>
+            )}
         </div>
     );
 }

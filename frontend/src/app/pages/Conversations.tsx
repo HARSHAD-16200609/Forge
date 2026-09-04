@@ -1,18 +1,18 @@
 import { MessageComposer } from "@/features/Messages/components/MessageComposer";
-import { BlocksRenderer } from "@/features/Messages/components/BlocksRenderer";
-import { MessageAttachments } from "@/features/Messages/components/MessageAttachments";
+import { MessageBubble } from "@/features/Messages/components/MessageBubble";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
 import { ConvoMembers } from "@/features/Messages/components/ConvoMembers";
 import { EmptyConversation } from "@/features/Messages/components/EmptyConversation";
-import { formatMessageTime } from "@/features/Messages/utils/format";
 import { useConversationMessages } from "@/features/Messages/hooks/useConversationMessages";
 import { useSendConversationMessage } from "@/features/Messages/hooks/useSendConversationMessage";
+import { useSendReply } from "@/features/Messages/hooks/useSendReply";
 import { useDm } from "@/features/Messages/hooks/useDms";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
 import { ArrowLeft, Bell, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Message } from "@/features/Messages/types";
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
     const selectedConversationId = useUIStore((s) => s.selectedConversationId);
@@ -42,10 +42,37 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         selectedConversationId ?? "",
     );
 
+    const sendReply = useSendReply(
+        {
+            workspaceId: selectedWorkspaceId ?? "",
+            conversationId: selectedConversationId ?? "",
+        },
+        ["conversation-messages", selectedConversationId ?? ""],
+    );
+
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+
     const Messages = useMemo(() => {
         const all = data?.pages.flatMap((page) => page.messages) ?? [];
         return [...all].sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
     }, [data]);
+
+    const flattened = useMemo(() => {
+        const topLevel = Messages?.filter((m) => !m.parentMsgId) ?? [];
+        const repliesByParent = new Map<string, Message[]>();
+        Messages?.forEach((m) => {
+            if (!m.parentMsgId) return;
+            const list = repliesByParent.get(m.parentMsgId) ?? [];
+            list.push(m);
+            repliesByParent.set(m.parentMsgId, list);
+        });
+        const result: Message[] = [];
+        topLevel.forEach((m) => {
+            result.push(m);
+            (repliesByParent.get(m.id) ?? []).forEach((r) => result.push(r));
+        });
+        return result;
+    }, [Messages]);
 
     const backendSaysEmpty =
         (error as AxiosError<{ message: string }>)?.response?.data.message === "No Messages Found";
@@ -214,37 +241,26 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                             </div>
 
                             <div className="space-y-6">
-                                {Messages.map((message) => (
-                                    <div key={message.id} className="group flex gap-3">
-                                        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-500 text-sm font-bold text-white">
-                                            {message.sender?.avatar ? (
-                                                <img
-                                                    src={message.sender.avatar}
-                                                    alt={message.sender?.username ?? "user"}
-                                                    className="size-10 rounded-lg object-cover"
-                                                />
-                                            ) : (
-                                                (message.sender?.username ?? "?")
-                                                    .charAt(0)
-                                                    .toUpperCase()
-                                            )}
+                                {flattened.map((message) =>
+                                    message.parentMsgId ? (
+                                        <div
+                                            key={message.id}
+                                            className="ml-12 border-l-2 border-border pl-3"
+                                        >
+                                            <MessageBubble
+                                                message={message}
+                                                isReply
+                                                onReply={(m) => setReplyingTo(m)}
+                                            />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-sm font-bold">
-                                                    {message.sender?.username}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatMessageTime(message.sentAt)}
-                                                </span>
-                                            </div>
-                                            <BlocksRenderer blocksJson={message.content} />
-                                            {message.uploads && message.uploads.length > 0 && (
-                                                <MessageAttachments uploads={message.uploads} />
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    ) : (
+                                        <MessageBubble
+                                            key={message.id}
+                                            message={message}
+                                            onReply={(m) => setReplyingTo(m)}
+                                        />
+                                    ),
+                                )}
 
                                 {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
@@ -270,13 +286,25 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
 
             <div className="shrink-0 px-4 pb-4">
                 <MessageComposer
-                    key={`${selectedConversationId}-${sendMessage.isSuccess ? "reset" : "draft"}`}
+                    key={selectedConversationId}
                     channelId={selectedConversationId ?? ""}
                     channelName={headerName}
                     placeholder={`Message ${headerName}`}
-                    disabled={sendMessage.isPending}
-                    onSend={(content, files) => {
-                        sendMessage.mutate({ content, files });
+                    disabled={sendMessage.isPending || sendReply.isPending}
+                    replyTo={
+                        replyingTo
+                            ? { id: replyingTo.id, sender: replyingTo.sender.username }
+                            : null
+                    }
+                    onCancelReply={() => setReplyingTo(null)}
+                    onSend={(content, files, replyToId) => {
+                        if (replyToId) {
+                            return sendReply.mutateAsync(
+                                { messageId: replyToId, content, files },
+                                { onSuccess: () => setReplyingTo(null) },
+                            );
+                        }
+                        return sendMessage.mutateAsync({ content, files });
                     }}
                 />
             </div>

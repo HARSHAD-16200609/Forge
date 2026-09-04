@@ -5,8 +5,13 @@ export interface Message {
     sentAt: string;
     editedAt: string;
     parentMsgId: string;
+    parentMsg?: {
+        sender: Sender;
+        content: string;
+    };
     sender: Sender;
     uploads?: MessageAttachment[];
+    replies?: Message[];
 }
 
 export interface Sender {
