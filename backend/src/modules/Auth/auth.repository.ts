@@ -56,8 +56,8 @@ export class AuthRepository {
         username: true,
         email: true,
         password: true,
-        name:true,
-        avatar : true
+        name: true,
+        avatar: true
       }
     });
   }
@@ -151,8 +151,19 @@ export class AuthRepository {
     return await prisma.user.findUnique({
       where: {
         id
-      },select:{
-        username:true
+      }, select: {
+        username: true
+      }
+    })
+  }
+
+  async getUser(userId: string) {
+    return await prisma.user.findUnique({
+      where: {
+        id: userId
+      },
+      omit:{
+        password:true,
       }
     })
   }

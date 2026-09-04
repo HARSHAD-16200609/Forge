@@ -158,13 +158,14 @@ export const postReply = asyncHandler(async (req, res) => {
     const postReplyParams = MessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const updatedContent = messageSchema.safeParse(req.body)
+    const attachments = (req.files as Express.Multer.File[]) ?? [];
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
     if (!postReplyParams.success) throw new UserInputValidationError("Invalid Input", postReplyParams.error.flatten().fieldErrors)
     if (!updatedContent.success) throw new UserInputValidationError("Invalid Input", updatedContent.error.flatten().fieldErrors)
 
 
 
-    const reply = await conversationService.postReply(user.data.userId, postReplyParams.data, updatedContent.data.content)
+    const reply = await conversationService.postReply(user.data.userId, postReplyParams.data, updatedContent.data.content, attachments)
     loggers.db.info("Messages replied Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),

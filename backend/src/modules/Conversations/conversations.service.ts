@@ -36,7 +36,7 @@ class ConversationService {
         const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversations = await conversationRepository.getConversations(userId)
+        const conversations = await conversationRepository.getConversations(userId,workspaceId)
         if (conversations.length === 0) throw new NotFoundError("No Conversations Found")
         const conversationList = conversations.map(({ conversation }) => {
 
@@ -183,7 +183,7 @@ class ConversationService {
         const editedMessage = await messageRepository.editMessage(content, editMessageParams.messageId)
         return editedMessage
     }
-    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string, workspaceId: string }, content: string) {
+    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string, workspaceId: string }, content: string, attachments: Express.Multer.File[] = []) {
         const workspaceMember = await workspaceRepository.memberExists(userId, postReplyParams.workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
@@ -210,11 +210,36 @@ class ConversationService {
             content
         }
 
-        const reply = await messageRepository.createReply(messageObject, postReplyParams.messageId)
-        if (reply === undefined) throw new BadRequestError("Invalid ParentMsgId")
+        let attachmentData: {
+            filename: string;
+            url: string;
+            publicId: string;
+            mimeType: string;
+            fileSize: number;
+            fileType: fType;
+        }[] = [];
+        try {
+            if (attachments.length > 0) {
+                attachmentData = await uploadService.uploadAttachments(attachments)
+            }
 
-        return reply
+            const reply = await messageRepository.createReply(messageObject, postReplyParams.messageId, attachmentData)
 
+            return reply
+        } catch (err) {
+            if (attachmentData.length > 0) {
+                const results = await Promise.allSettled(
+                    attachmentData.map((attachment) => {
+                        return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
+                    })
+                )
+                const failed = results.filter((result) => result.status === "rejected")
+                if (failed.length > 0) {
+                    loggers.audit.error("UPLOAD_ROLLBACK_FAILED", { failedCount: failed.length })
+                }
+            }
+            throw err
+        }
 
     }
     async postReaction(userId: string, postReactionParams: { messageId: string, conversationId: string, workspaceId: string }, emoji: string) {

@@ -55,10 +55,12 @@ class ConversationRepository {
             }
         })
     }
-    async getConversations(userId: string) {
+    async getConversations(userId: string,workspaceId:string) {
         return await prisma.conversationMember.findMany({
             where: {
-                userId
+                userId,
+                conversation: { workspaceId },
+
             },
             include: {
                 conversation: {
