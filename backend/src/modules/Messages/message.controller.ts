@@ -16,14 +16,14 @@ export const postMessage = asyncHandler(async (req, res) => {
     const Channel = ChannelParamsSchema.safeParse(req.params)
     const Message = messageSchema.safeParse(req.body)
     const User = reqUserSchema.safeParse(req.user)
-    const attachments = (req.files as Express.Multer.File[]) ?? [];
+   
 
     if (!Channel.success) throw new UserInputValidationError("Invalid Input", Channel.error.flatten().fieldErrors)
     if (!Message.success) throw new UserInputValidationError("Invalid Input", Message.error.flatten().fieldErrors)
     if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
 
 
-    const message = await messageService.postMessage(Channel.data, Message.data.content, User.data, attachments)
+    const message = await messageService.postMessage(Channel.data, Message.data.content, User.data)
 
     loggers.db.info("Message Posted Sucessfully", {
         ip: req.ip,
@@ -34,7 +34,7 @@ export const postMessage = asyncHandler(async (req, res) => {
         })
     })
 
-    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, message, "Message posted sucessfully"))
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, message ?? {} , "Message posted sucessfully"))
 })
 
 export const getMessages = asyncHandler(async (req, res) => {

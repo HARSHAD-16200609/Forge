@@ -247,8 +247,8 @@ model upload {
   mimeType   String
   fileType   fType
   fileSize   Int
-  messageId  String
-  message    message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId  String?
+  message    message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   uploadedAt DateTime  @default(now())
   deletedAt  DateTime?
 }

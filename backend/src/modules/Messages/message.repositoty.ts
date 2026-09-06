@@ -5,14 +5,8 @@ import { MessageDTO } from "../../types/message";
 
 class MessageRepository {
 
-    async createMessage(messageObj: MessageDTO, attachments: {
-        url: string,
-        filename: string
-        publicId: string,
-        mimeType: string,
-        fileSize: number,
-        fileType: fType
-    }[]) {
+    async createMessage(messageObj: MessageDTO
+    ) {
         return await prisma.$transaction(async (tx) => {
 
             const message = await tx.message.create({
@@ -31,16 +25,8 @@ class MessageRepository {
                     },
                 },
             });
-            const uploadData = attachments.map((attachment) => ({
-                ...attachment,
-                messageId: message.id,
-            }));
 
-            const uploads = await tx.upload.createMany({
-                data: uploadData
-            })
-
-            return { message, uploads }
+            return { message }
 
         })
 
@@ -282,13 +268,13 @@ class MessageRepository {
                 }, reactions: {
                     select: {
                         emoji: true,
-                        reactedBy:{
-                            select:{
-                                username:true,
-                                avatar:true
+                        reactedBy: {
+                            select: {
+                                username: true,
+                                avatar: true
                             }
                         }
-                        
+
                     }
                 }, replies: {
                     select: {

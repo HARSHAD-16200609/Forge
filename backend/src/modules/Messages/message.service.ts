@@ -14,26 +14,15 @@ import { loggers } from "../../utility/logger/serviceLoggers";
 
 class MessageService {
 
-    async postMessage(Channel: channelParamsDTO, content: string, User: { username: string, userId: string }, attachments: Express.Multer.File[]) {
+    async postMessage(Channel: channelParamsDTO, content: string, User: { username: string, userId: string }) {
         const workspaceMember = await workspaceRepository.memberExists(User.userId, Channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
         const channelMember = await channelRepository.memberExists(workspaceMember.id, Channel.channelId)
         if (!channelMember) throw new ForbiddenError("You are not an member of this channel")
 
-        let attachmentData: {
-            filename: string;
-            url: string;
-            publicId: string;
-            mimeType: string;
-            fileSize: number;
-            fileType: fType;
-        }[] = [];
-        try {
 
-            if (attachments.length > 0) {
-                attachmentData = await uploadService.uploadAttachments(attachments)
-            }
+        try {
 
             const messageObject: ChannelMessageDTO = {
                 channelId: Channel.channelId,
@@ -41,28 +30,12 @@ class MessageService {
                 content
             }
 
-
-            const message = await messageRepository.createMessage(messageObject, attachmentData)
+            const message = await messageRepository.createMessage(messageObject)
 
             return message
+
         } catch (err) {
-            if (attachmentData.length > 0) {
 
-                const results = await Promise.allSettled(
-                    attachmentData.map((attachment) => {
-                        return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
-                    })
-                )
-                const failed = results.filter(
-                    (result) => result.status === "rejected"
-                );
-
-                if (failed.length > 0) {
-                    loggers.audit.error("UPLOAD_ROLLBACK_FAILED", {
-                        failedCount: failed.length,
-                    });
-                }
-            }
             throw err
 
         }
@@ -218,7 +191,7 @@ class MessageService {
 
             }
         }
-      reaction = await messageRepository.addReaction(userId, messageId, emoji)
+        reaction = await messageRepository.addReaction(userId, messageId, emoji)
         return {
             action: "posted",
             data: reaction

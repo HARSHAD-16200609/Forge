@@ -5,7 +5,6 @@ import { deleteAttachment } from "./message.controller"
 class UploadRepository {
 
     async uploadAttachement(attachments: {
-        messageId: string,
         url: string,
         filename: string
         publicId: string,
@@ -13,10 +12,15 @@ class UploadRepository {
         fileSize: number,
         fileType: fType
     }[]) {
-        const upload = await prisma.upload.createMany({
-            data: attachments
+        const uploads = await prisma.upload.createManyAndReturn({
+            data: attachments,
+            select:{
+                id : true
+            }
+
         }
         )
+        return uploads
     }
     async deleteAttachments(uploadIds: string[]) {
         await prisma.upload.updateMany({
