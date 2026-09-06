@@ -22,6 +22,7 @@ class SubscriptionManager {
         }
 
         subscribers.add(ws)
+        console.log(subscribers.size)
     }
 
     getSubscribers(conversationId: string): ReadonlySet<WebSocket> | undefined {
@@ -49,7 +50,7 @@ class SubscriptionManager {
         if (subscriptions.size === 0) {
             this.subscriptions.delete(ws);
         }
-
+ 
     }
 
 

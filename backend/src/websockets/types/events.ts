@@ -1,4 +1,3 @@
-
 export const WsEvent = {
     ConversationSubscribe: "conversation.subscribe",
     ConversationUnsubscribe: "conversation.unsubscribe",
@@ -14,11 +13,11 @@ export const WsEvent = {
 
     Ping: "ping",
     Pong: "pong",
+
+    error: "error",
 } as const;
 
 export type WsEvent =
     typeof WsEvent[keyof typeof WsEvent];
 
-
-
-    export type HandlerFunction = (event : WsEvent) =>void
+export type HandlerFunction = (event: WsEvent) => void

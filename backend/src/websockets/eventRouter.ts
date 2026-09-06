@@ -1,9 +1,12 @@
 import { WebSocket } from "ws";
-import {loggers} from "../utility/logger/serviceLoggers";
+import { StatusCodes } from "http-status-codes";
+import { loggers } from "../utility/logger/serviceLoggers";
 import { WsEvent } from "./types/events";
 import { WebSocketMessage } from "./types/websocketMessage";
+import { sendWs, WsResponse } from "./utility/wsResponse";
 
 import { conversationHandler } from "./handlers/conversationHandler";
+import { connectionManager } from "./connectionManager";
 // import { messageHandler } from "./handlers/messageHandler";
 // import { presenceHandler } from "./handlers/presenceHandler";
 
@@ -41,36 +44,51 @@ class EventRouter {
         //     WsEvent.TypingStop,
         //     presenceHandler.typingStop
         // );
+
     }
 
     async dispatch(
         ws: WebSocket,
         message: WebSocketMessage
     ): Promise<void> {
-        try {
-            const handler = this.handlers.get(message.type);
+        const handler = this.handlers.get(message.type);
 
-            if (!handler) {
-                throw new Error(`Unknown WebSocket event: ${message.type}`);
-            }
-
-            await handler(ws, message);
-            
-        } catch (error) {
-    
-            loggers.audit.error(`Error processing WebSocket event: ${error}`, {
+        if (!handler) {
+            loggers.audit.warn("UNKNOWN_WS_EVENT", {
                 eventType: message.type,
-                payload: message.payload,
+                userId: connectionManager.getMetadata(ws)?.userId,
             });
 
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.BAD_REQUEST,
+                    "UNKNOWN_EVENT",
+                    `Unknown event: ${message.type}`
+                )
+            );
+            return;
+        }
 
-            ws.send(
-                JSON.stringify({
-                    type: "error",
-                    payload: {
-                        message: "Failed to process WebSocket event",
-                    },
-                })
+        try {
+            await handler(ws, message);
+        } catch (error) {
+            loggers.audit.error("WS_EVENT_PROCESSING_FAILED", {
+                eventType: message.type,
+                userId: connectionManager.getMetadata(ws)?.userId,
+                payload: message.payload,
+                error: error instanceof Error ? error.stack : String(error),
+            });
+
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to process WebSocket event"
+                )
             );
         }
     }
