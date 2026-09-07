@@ -240,8 +240,8 @@ model notification {
 
 model upload {
   id String @id @default(uuid())
-
   filename   String
+  uploaderId String
   url        String
   publicId   String    @unique
   mimeType   String
