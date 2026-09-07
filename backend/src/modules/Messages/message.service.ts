@@ -2,7 +2,7 @@ import { channelParamsDTO } from "../../db/channel.schema";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { channelRepository } from "../Channel/channel.repository";
 import { workspaceRepository } from "../Workspace/workspace.repository";
-import { messageRepository } from "./message.repositoty";
+import { messageRepository } from "./message.repository";
 import { ChannelMessageDTO } from "../../types/message";
 import { uploadService } from "./upload.service";
 import { getResourceType } from "../../db/message.schema";
@@ -14,7 +14,7 @@ import { loggers } from "../../utility/logger/serviceLoggers";
 
 class MessageService {
 
-    async postMessage(Channel: channelParamsDTO, content: string, User: { username: string, userId: string }) {
+    async postMessage(Channel: channelParamsDTO, content: string, uploadIds: string[], User: { username: string, userId: string }) {
         const workspaceMember = await workspaceRepository.memberExists(User.userId, Channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
@@ -30,7 +30,7 @@ class MessageService {
                 content
             }
 
-            const message = await messageRepository.createMessage(messageObject)
+            const message = await messageRepository.postMessage(messageObject,uploadIds,User.userId)
 
             return message
 

@@ -1,12 +1,10 @@
-import { fType } from "../../../generated/prisma/enums";
 import { prisma } from "../../config/prisma";
-import upload from "../../middlewares/multer.midleware";
 import { MessageDTO } from "../../types/message";
+import { BadRequestError } from "../../utility/errorHandling/customErrors";
 
 class MessageRepository {
 
-    async createMessage(messageObj: MessageDTO
-    ) {
+    async postMessage(messageObj: MessageDTO, uploadIds: string[], uploaderId: string) {
         return await prisma.$transaction(async (tx) => {
 
             const message = await tx.message.create({
@@ -26,9 +24,35 @@ class MessageRepository {
                 },
             });
 
-            return { message }
+            const attachments = await tx.upload.updateMany({
+                data: {
+                    messageId: message.id,
+
+                }, where: {
+                    id: {
+                        in: uploadIds
+                    },
+                    messageId: null,
+                    uploaderId: uploaderId
+
+                },
+
+            })
+            if (attachments.count !== uploadIds.length) throw new BadRequestError("Some uipload Id's are invlaid or already attached")
+
+            const uploads = await tx.upload.findMany({
+                where: {
+                    id: {
+                        in: uploadIds
+                    }
+                }, select: {
+                    id: true, url: true, filename: true, mimeType: true, fileSize: true, fileType: true , uploaderId :true
+                }
+            })
+            return { message,uploads }
 
         })
+
 
     }
 

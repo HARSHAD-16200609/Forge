@@ -105,13 +105,13 @@ describe("EventRouter error handling", () => {
         const ws = mockWs(WebSocket.OPEN);
 
         await eventRouter.dispatch(ws as unknown as WebSocket, {
-            type: WsEvent.MessageCreate,
+            type: "unknown.event" as WsEvent,
             payload: {},
         });
 
         expect(ws.send).toHaveBeenCalledTimes(1);
         const frame = sentFrame(ws);
-        expect(frame.type).toBe("message.create");
+        expect(frame.type).toBe("unknown.event");
         expect(frame.success).toBe(false);
         expect(frame.error?.code).toBe("UNKNOWN_EVENT");
     });

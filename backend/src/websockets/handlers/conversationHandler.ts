@@ -7,6 +7,12 @@ import { conversationIdSchema } from "../schema/envelope";
 import { connectionManager } from "../connectionManager";
 import { sendWs, WsResponse } from "../utility/wsResponse";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
+import { WsEvent } from "../types/events";
+import { createChannelMessageSchema, createConversationMessageSchema } from "../schema/message.types";
+import { formatValidationError } from "../utility/error";
+import { workspaceRepository } from "../../modules/Workspace/workspace.repository";
+import { ConversationMessageDTO } from "../../types/message";
+import { messageRepository } from "../../modules/Messages/message.repository";
 
 class ConversationHandler {
     async subscribe(
@@ -19,7 +25,7 @@ class ConversationHandler {
             sendWs(
                 ws,
                 WsResponse.fail(
-                    message.type,
+                    WsEvent.ConversationSubscribe,
                     StatusCodes.BAD_REQUEST,
                     "VALIDATION_ERROR",
                     result.error.flatten().fieldErrors.conversationId?.join(", ") || "Invalid conversation payload"
@@ -30,12 +36,12 @@ class ConversationHandler {
 
         const conversationId = result.data.conversationId
 
-        const subscriberMetadata = connectionManager.getMetadata(ws)
-        if (subscriberMetadata === undefined) {
+        const userMetadata = connectionManager.getMetadata(ws)
+        if (userMetadata === undefined) {
             sendWs(
                 ws,
                 WsResponse.fail(
-                    message.type,
+                   WsEvent.ConversationSubscribe,
                     StatusCodes.UNAUTHORIZED,
                     "UNAUTHORIZED",
                     "Unauthenticated user, please login first"
@@ -44,13 +50,13 @@ class ConversationHandler {
             return;
         }
 
-        const conversation = await conversationRepository.conversationExists(conversationId, subscriberMetadata.userId)
+        const conversation = await conversationRepository.conversationExists(conversationId, userMetadata.userId)
 
         if (!conversation) {
             sendWs(
                 ws,
                 WsResponse.fail(
-                    message.type,
+                    WsEvent.ConversationSubscribe,
                     StatusCodes.FORBIDDEN,
                     "FORBIDDEN",
                     "You are not a member of this conversation"
@@ -64,7 +70,7 @@ class ConversationHandler {
         sendWs(
             ws,
             WsResponse.ok(
-                message.type,
+                  WsEvent.ConversationSubscribe,
                 "Conversation subscribed successfully"
             )
         )
@@ -80,7 +86,7 @@ class ConversationHandler {
             sendWs(
                 ws,
                 WsResponse.fail(
-                    message.type,
+                      WsEvent.ConversationUnsubscribe,
                     StatusCodes.BAD_REQUEST,
                     "VALIDATION_ERROR",
                     result.error.flatten().fieldErrors.conversationId?.join(", ") || "Invalid conversation payload"
@@ -91,15 +97,104 @@ class ConversationHandler {
 
         const conversationId = result.data.conversationId
 
+        const userMetadata = connectionManager.getMetadata(ws)
+        if (userMetadata === undefined) {
+            sendWs(
+                ws,
+                WsResponse.fail(
+                       WsEvent.ConversationUnsubscribe,
+                    StatusCodes.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "Unauthenticated user, please login first"
+                )
+            )
+            return;
+        }
+
+        const conversation = await conversationRepository.conversationExists(conversationId, userMetadata.userId)
+
+        if (!conversation) {
+            sendWs(
+                ws,
+                WsResponse.fail(
+                      WsEvent.ConversationUnsubscribe,
+                    StatusCodes.FORBIDDEN,
+                    "FORBIDDEN",
+                    "You are not a member of this conversation"
+                )
+            )
+            return
+        }
+
         subscriptionManager.unsubscribe(conversationId, ws);
 
         sendWs(
             ws,
             WsResponse.ok(
-                message.type,
-                "Conversation unsubscribed successfully"
+                WsEvent.ConversationUnsubscribe,
+                "Conversation Unsubscribed successfully"
             )
         )
+    }
+
+    async createMessage(
+        ws: WebSocket,
+        message: WebSocketMessage
+    ): Promise<void> {
+
+        const messagePayload = createConversationMessageSchema.safeParse(message.payload)
+        const userMetadata = connectionManager.getMetadata(ws)
+        if (!userMetadata) {
+            sendWs(ws, WsResponse.fail(WsEvent.ConversationMessage, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
+            return
+        }
+        if (!messagePayload.success) {
+            sendWs(
+                ws,
+                WsResponse.fail(
+                   WsEvent.ConversationMessage,
+                    StatusCodes.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    formatValidationError(messagePayload.error)
+                )
+            )
+            return
+        }
+
+        const workspaceMember = await workspaceRepository.memberExists(userMetadata.userId, messagePayload.data.workspaceId)
+        if (!workspaceMember) {
+            sendWs(ws, WsResponse.fail(WsEvent.ConversationMessage, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the workspace"))
+            return
+        }
+
+        const conversation = await conversationRepository.conversationExists(messagePayload.data.conversationId, userMetadata.userId)
+        if (!conversation) {
+            sendWs(ws, WsResponse.fail(WsEvent.ConversationMessage, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the conversation"))
+
+            return
+        }
+        let messageObj: ConversationMessageDTO = {
+            conversationId: messagePayload.data.conversationId,
+            content: messagePayload.data.content,
+            senderId: userMetadata.userId
+
+        }
+        const posts = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
+
+        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
+
+
+
+        sendWs(ws, WsResponse.ok(WsEvent.ConversationMessageCreated, JSON.stringify(posts), StatusCodes.OK))
+
+
+
+        subscribers?.forEach((subscriber) => {
+            if (subscriber !== ws) {
+
+                sendWs(subscriber, WsResponse.ok(WsEvent.ConversationMessageCreated, JSON.stringify(posts), StatusCodes.OK))
+            }
+        })
     }
 }
 

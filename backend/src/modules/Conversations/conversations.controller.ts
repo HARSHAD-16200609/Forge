@@ -70,7 +70,7 @@ export const postMessage = asyncHandler(async (req, res) => {
 
 
 
-    const message = await conversationService.postMessage(conversation.data.workspaceId, conversation.data.conversationId, user.data.userId, messageBody.data.content, attachments)
+    const message = await conversationService.postMessage(conversation.data.workspaceId, conversation.data.conversationId, messageBody.data, user.data.userId, attachments)
     loggers.db.info("Message sent Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
@@ -107,7 +107,7 @@ export const getConversation = asyncHandler(async (req, res) => {
 })
 
 export const getMessages = asyncHandler(async (req, res) => {
-    const conversation =wsConversationIdSchema.safeParse(req.params)
+    const conversation = wsConversationIdSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
     const Pagination = getMessagesSchema.safeParse(req.query)
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors)
@@ -320,16 +320,16 @@ export const leaveGroup = asyncHandler(async (req, res) => {
 
 })
 
-export const deleteMessage = asyncHandler(async(req,res)=>{
- const conversation = MessageSchema.safeParse(req.params)
+export const deleteMessage = asyncHandler(async (req, res) => {
+    const conversation = MessageSchema.safeParse(req.params)
     const user = reqUserSchema.safeParse(req.user)
 
     if (!conversation.success) throw new UserInputValidationError("Invalid Input", conversation.error.flatten().fieldErrors);
     if (!user.success) throw new UserInputValidationError("Invalid Input", user.error.flatten().fieldErrors);
 
-    const message = await conversationService.deleteMessage(user.data.userId,conversation.data.workspaceId,conversation.data.messageId,conversation.data.conversationId)
+    const message = await conversationService.deleteMessage(user.data.userId, conversation.data.workspaceId, conversation.data.messageId, conversation.data.conversationId)
 
- loggers.db.info("Message deleted Sucessfully", {
+    loggers.db.info("Message deleted Sucessfully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
         editedAt: new Date().toLocaleString("en-IN", {

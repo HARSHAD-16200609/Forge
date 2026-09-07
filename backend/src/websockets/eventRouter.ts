@@ -7,7 +7,7 @@ import { sendWs, WsResponse } from "./utility/wsResponse";
 
 import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
-// import { messageHandler } from "./handlers/messageHandler";
+import { messageHandler } from "./handlers/messageHandler";
 // import { presenceHandler } from "./handlers/presenceHandler";
 
 type EventHandler = (
@@ -29,22 +29,26 @@ class EventRouter {
             WsEvent.ConversationUnsubscribe,
             conversationHandler.unsubscribe
         );
+        this.handlers.set(
+            WsEvent.ConversationMessage,
+            conversationHandler.createMessage
+        );
 
-        // this.handlers.set(
-        //     WsEvent.MessageCreate,
-        //     messageHandler.create
-        // );
 
-        // this.handlers.set(
-        //     WsEvent.TypingStart,
-        //     presenceHandler.typingStart
-        // );
+        this.handlers.set(
+            WsEvent.ChannelSubscribe,
+            messageHandler.subscribe
+        );
 
-        // this.handlers.set(
-        //     WsEvent.TypingStop,
-        //     presenceHandler.typingStop
-        // );
+        this.handlers.set(
+            WsEvent.ChannelUnsubscribe,
+            messageHandler.unsubscribe
+        );
 
+        this.handlers.set(
+            WsEvent.ChannelMessage,
+            messageHandler.createMessage
+        );
     }
 
     async dispatch(
@@ -52,6 +56,7 @@ class EventRouter {
         message: WebSocketMessage
     ): Promise<void> {
         const handler = this.handlers.get(message.type);
+
 
         if (!handler) {
             loggers.audit.warn("UNKNOWN_WS_EVENT", {

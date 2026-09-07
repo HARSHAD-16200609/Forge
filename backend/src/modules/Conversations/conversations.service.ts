@@ -7,7 +7,7 @@ import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFou
 import { loggers } from "../../utility/logger/serviceLoggers"
 import { authRepository } from "../Auth/auth.repository"
 import { deleteMessage } from "../Messages/message.controller"
-import { messageRepository } from "../Messages/message.repositoty"
+import { messageRepository } from "../Messages/message.repository"
 import { uploadService } from "../Messages/upload.service"
 import { workspaceRepository } from "../Workspace/workspace.repository"
 import { conversationRepository } from "./conversations.repository"
@@ -57,7 +57,7 @@ class ConversationService {
         return conversationList
     }
 
-    async postMessage(workspaceId: string, conversationId: string, userId: string, content: string, attachments: Express.Multer.File[]) {
+    async postMessage(workspaceId: string, conversationId: string, message: { content: string, uploadIds: string[] }, userId: string, attachments: Express.Multer.File[]) {
         const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
@@ -67,8 +67,8 @@ class ConversationService {
 
         let attachmentData: {
             filename: string;
+            publicId: string
             url: string;
-            publicId: string;
             mimeType: string;
             fileSize: number;
             fileType: fType;
@@ -76,19 +76,19 @@ class ConversationService {
         try {
 
             if (attachments.length > 0) {
-                attachmentData = await uploadService.uploadAttachments(attachments)
+                attachmentData = await uploadService.uploadAttachments(attachments, userId)
             }
 
             const messageObject: ConversationMessageDTO = {
                 conversationId,
                 senderId: userId,
-                content
+                content: message.content
             }
 
 
-            const message = await messageRepository.createMessage(messageObject, attachmentData)
+            const post = await messageRepository.postMessage(messageObject, message.uploadIds, userId)
 
-            return message
+            return post
         } catch (err) {
             if (attachmentData.length > 0) {
 

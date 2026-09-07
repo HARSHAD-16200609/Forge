@@ -5,48 +5,47 @@ class SubscriptionManager {
     private readonly subscriptions = new Map<WebSocket, Set<string>>();
     private readonly subscribers = new Map<string, Set<WebSocket>>();
 
-    subscribe(conversationId: string, ws: WebSocket): void {
+    subscribe(entityId: string, ws: WebSocket): void {
 
-        let conversationIds = this.subscriptions.get(ws)
-        if (!conversationIds) {
-            conversationIds = new Set<string>()
-            this.subscriptions.set(ws, conversationIds)
+        let entityIds = this.subscriptions.get(ws)
+        if (!entityIds) {
+            entityIds = new Set<string>()
+            this.subscriptions.set(ws, entityIds)
         }
 
-        conversationIds.add(conversationId)
+        entityIds.add(entityId)
 
-        let subscribers = this.subscribers.get(conversationId)
+        let subscribers = this.subscribers.get(entityId)
         if (!subscribers) {
             subscribers = new Set<WebSocket>()
-            this.subscribers.set(conversationId, subscribers)
+            this.subscribers.set(entityId, subscribers)
         }
 
         subscribers.add(ws)
-        console.log(subscribers.size)
     }
 
-    getSubscribers(conversationId: string): ReadonlySet<WebSocket> | undefined {
-        return this.subscribers.get(conversationId)
+    getSubscribers(entityId: string): ReadonlySet<WebSocket> | undefined {
+        return this.subscribers.get(entityId)
     }
     getSubscriptions(ws: WebSocket): ReadonlySet<string> | undefined {
         return this.subscriptions.get(ws)
     }
 
 
-    unsubscribe(conversationId: string, ws: WebSocket): void {
-        const subscribers = this.subscribers.get(conversationId)
+    unsubscribe(entityId: string, ws: WebSocket): void {
+        const subscribers = this.subscribers.get(entityId)
         if (!subscribers) {
             return
         }
         subscribers.delete(ws)
         if (subscribers.size == 0) {
-            this.subscribers.delete(conversationId)
+            this.subscribers.delete(entityId)
         }
         let subscriptions = this.subscriptions.get(ws)
         if (!subscriptions) {
             return
         }
-        subscriptions.delete(conversationId)
+        subscriptions.delete(entityId)
         if (subscriptions.size === 0) {
             this.subscriptions.delete(ws);
         }
@@ -55,21 +54,21 @@ class SubscriptionManager {
 
 
     removeSocket(ws: WebSocket): void {
-        const conversations = this.subscriptions.get(ws);
+        const entities = this.subscriptions.get(ws);
 
-        if (!conversations) return;
+        if (!entities) return;
 
-        for (const conversationId of conversations) {
+        for (const entityId of entities) {
 
             const subscribers =
-                this.subscribers.get(conversationId);
+                this.subscribers.get(entityId);
 
             if (!subscribers) continue;
 
             subscribers.delete(ws);
 
             if (subscribers.size === 0) {
-                this.subscribers.delete(conversationId);
+                this.subscribers.delete(entityId);
             }
         }
 

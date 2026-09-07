@@ -4,12 +4,12 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../../config/cloudinar
 import { getFileType, getResourceType } from "../../db/message.schema";
 import { ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
-import { messageRepository } from "./message.repositoty";
+import { messageRepository } from "./message.repository";
 import { messageService } from "./message.service";
 import { uploadRepository } from "./upload.repository";
 
 class UploadService {
-    async uploadAttachments(attachments: Express.Multer.File[]) {
+    async uploadAttachments(attachments: Express.Multer.File[], userId: string) {
         let attachmentData: {
             filename: string;
             url: string;
@@ -17,6 +17,7 @@ class UploadService {
             mimeType: string;
             fileSize: number;
             fileType: fType;
+            uploaderId: string;
         }[] = [];
         try {
             const uploadedAttachments = await Promise.all(
@@ -38,6 +39,8 @@ class UploadService {
                     mimeType: attachment.mimetype,
                     fileSize: attachment.size,
                     fileType: getFileType(attachment.mimetype),
+                    uploaderId: userId
+
                 };
             });
             const uploads = uploadRepository.uploadAttachement(attachmentData)

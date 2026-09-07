@@ -34,6 +34,9 @@ export const messageEnvelopeSchema = z.object({
 export const conversationIdSchema = z.object({
      conversationId: z.uuid() 
 })
+export const channelIdSchema = z.object({
+     channelId: z.uuid() 
+})
 
 
 export type Envelope = z.infer<typeof envelopeSchema>;

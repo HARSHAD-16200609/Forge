@@ -2,8 +2,13 @@ export const WsEvent = {
     ConversationSubscribe: "conversation.subscribe",
     ConversationUnsubscribe: "conversation.unsubscribe",
 
-    MessageCreate: "message.create",
-    MessageUpdate: "message.update",
+    ConversationMessage: "conversation.message.create",
+    ChannelMessage: "channel.message.create",
+
+    ConversationMessageCreated: "conversation.message.created",
+    ChannelMessageCreated: "channel.message.created",
+
+    ChannelMessageUpdate: "message.update",
     MessageDelete: "message.delete",
 
     TypingStart: "typing.start",
@@ -15,6 +20,9 @@ export const WsEvent = {
     Pong: "pong",
 
     error: "error",
+    ChannelSubscribe:"channel.subscribe",
+    ChannelUnsubscribe : "channel.unsubscribe",
+
 } as const;
 
 export type WsEvent =

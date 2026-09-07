@@ -1,6 +1,5 @@
 import { fType } from "../../../generated/prisma/enums"
 import { prisma } from "../../config/prisma"
-import { deleteAttachment } from "./message.controller"
 
 class UploadRepository {
 
@@ -10,12 +9,21 @@ class UploadRepository {
         publicId: string,
         mimeType: string,
         fileSize: number,
-        fileType: fType
+        fileType: fType,
+        uploaderId :string
+
     }[]) {
         const uploads = await prisma.upload.createManyAndReturn({
             data: attachments,
-            select:{
-                id : true
+            select: {
+                id: true,
+                url: true,
+                filename: true,
+                mimeType: true,
+                fileSize: true,
+                fileType: true,
+                publicId:true
+                
             }
 
         }
@@ -35,7 +43,7 @@ class UploadRepository {
         })
     }
     async hardDeleteAttachments(uploadIds: string[]) {
-       const deletedAttachments =  await prisma.upload.deleteMany({
+        const deletedAttachments = await prisma.upload.deleteMany({
             where: {
                 id: {
                     in: uploadIds

@@ -9,7 +9,6 @@ import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { reqUserSchema } from "../../db/auth-schema";
 import { idSchema } from "../../db/workspace";
 import { uploadService } from "./upload.service";
-import { id } from "zod/v4/locales";
 
 
 export const postMessage = asyncHandler(async (req, res) => {
@@ -23,7 +22,7 @@ export const postMessage = asyncHandler(async (req, res) => {
     if (!User.success) throw new UserInputValidationError("Invalid Input", User.error.flatten().fieldErrors)
 
 
-    const message = await messageService.postMessage(Channel.data, Message.data.content, User.data)
+    const message = await messageService.postMessage(Channel.data, Message.data.content,Message.data.uploadIds, User.data)
 
     loggers.db.info("Message Posted Sucessfully", {
         ip: req.ip,
