@@ -9,7 +9,7 @@ import { reactionHandler } from "./handlers/reactionHandler";
 import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
 import { messageHandler } from "./handlers/messageHandler";
-// import { presenceHandler } from "./handlers/presenceHandler";
+import { presenceHandler } from "./presenceManager";
 
 
 type EventHandler = (
@@ -83,6 +83,11 @@ class EventRouter {
         this.handlers.set(
             WsEvent.ConversationMessageReaction,
             reactionHandler.react
+        );
+
+        this.handlers.set(
+            WsEvent.PresenceUpdate,
+            presenceHandler.registerConnection.bind(presenceHandler)
         );
 
     }

@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import { AuthenticatedUpgradeRequest } from "./types/auth";
 import { connectionManager } from "./connectionManager";
 import { eventRouter } from "./eventRouter";
+import { presenceHandler } from "./presenceManager";
 import { parseEnvelope } from "./schema/envelope";
 import { WsEvent } from "./types/events";
 import { subscriptionManager } from "./subscriptionManager";
@@ -17,8 +18,9 @@ export const websocketServer = new WebSocketServer({
 
 
 websocketServer.on("connection", (ws: WebSocket, req: AuthenticatedUpgradeRequest) => {
-    const metadata = {
+const metadata = {
         userId: req.user.userId,
+        username: req.user.username,
         sessionId: req.user.sessionId,
         connectedAt: new Date()
     }
@@ -56,12 +58,19 @@ websocketServer.on("connection", (ws: WebSocket, req: AuthenticatedUpgradeReques
     });
 
     ws.on("close", () => {
-        const closedUserId = connectionManager.getMetadata(ws)?.userId;
-        const closedSessionId = connectionManager.getMetadata(ws)?.sessionId;
+        const closedMetadata = connectionManager.getMetadata(ws);
+        const closedUserId = closedMetadata?.userId;
+        const closedUsername = closedMetadata?.username;
+        const closedSessionId = closedMetadata?.sessionId;
 
         try {
             subscriptionManager.removeSocket(ws);
+            const previousWorkspaceId = presenceHandler.removeConnection(ws);
             connectionManager.removeConnection(ws);
+
+            if (previousWorkspaceId && closedUserId ) {
+                presenceHandler.notifyOffline(previousWorkspaceId, closedUserId, closedUsername);
+            }
 
             loggers.audit.info("WS_CONNECTION_CLOSED", {
                 userId: closedUserId,

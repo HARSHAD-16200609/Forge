@@ -4,6 +4,7 @@ export interface ConnectionMetadata {
   userId: string;
   sessionId: string;
   connectedAt: Date;
+  username?: string;
 }
 
 
