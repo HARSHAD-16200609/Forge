@@ -6,6 +6,7 @@ import { WebSocketMessage } from "./types/websocketMessage";
 import { sendWs, WsResponse } from "./utility/wsResponse";
 import { typingHandler } from "./handlers/typingHandler";
 import { reactionHandler } from "./handlers/reactionHandler";
+import { replyHandler } from "./handlers/replyHandler";
 import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
 import { messageHandler } from "./handlers/messageHandler";
@@ -84,6 +85,16 @@ class EventRouter {
         this.handlers.set(
             WsEvent.ConversationMessageReaction,
             reactionHandler.react
+        );
+
+        this.handlers.set(
+            WsEvent.ChannelMessageReply,
+            replyHandler.reply
+        );
+
+        this.handlers.set(
+            WsEvent.ConversationMessageReply,
+            replyHandler.reply
         );
 
         this.handlers.set(

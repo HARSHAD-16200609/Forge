@@ -4,18 +4,19 @@ import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
 import { connectionManager } from "../connectionManager";
 import { sendWs, WsResponse } from "../utility/wsResponse";
-import { postReactionSchema } from "../schema/message.types";
+import { postReplySchema } from "../schema/message.types";
 import { formatValidationError } from "../utility/error";
 import { messageRepository } from "../../modules/Messages/message.repository";
 import { workspaceRepository } from "../../modules/Workspace/workspace.repository";
 import { channelRepository } from "../../modules/Channel/channel.repository";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
+import { ChannelMessageDTO, ConversationMessageDTO } from "../../types/message";
 
-async function react(
+async function reply(
     ws: WebSocket,
     message: WebSocketMessage
 ): Promise<void> {
-    const messagePayload = postReactionSchema.safeParse(message.payload)
+    const messagePayload = postReplySchema.safeParse(message.payload)
     const userMetadata = connectionManager.getMetadata(ws)
     if (!userMetadata) {
         sendWs(ws, WsResponse.fail(message.type, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
@@ -33,15 +34,15 @@ async function react(
         )
         return
     }
-    const { workspaceId, entityId, entityType, messageId, reaction } = messagePayload.data
+    const { workspaceId, parentMsgId, entityId, content, entityType } = messagePayload.data
 
-    const post = await messageRepository.messageExists(messageId)
-    if (!post) {
-        sendWs(ws, WsResponse.fail(message.type, StatusCodes.NOT_FOUND, "NOT_FOUND_ERROR", "Message does not exist"))
+    const parent = await messageRepository.messageExists(parentMsgId)
+    if (!parent) {
+        sendWs(ws, WsResponse.fail(message.type, StatusCodes.NOT_FOUND, "NOT_FOUND_ERROR", "Parent message does not exist"))
         return
     }
-    if (post.deletedAt) {
-        sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message is already deleted"))
+    if (parent.deletedAt) {
+        sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Parent message is already deleted"))
         return
     }
 
@@ -51,9 +52,10 @@ async function react(
         return
     }
 
+    let messageObj: ChannelMessageDTO | ConversationMessageDTO
     if (entityType === "channel") {
-        if (post.channelId !== entityId) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Message does not belong to this channel"))
+        if (parent.channelId !== entityId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Parent message does not belong to this channel"))
             return
         }
         const channelMember = await channelRepository.memberExists(workspaceMember.id, entityId)
@@ -61,9 +63,14 @@ async function react(
             sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
             return
         }
+        messageObj = {
+            channelId: entityId,
+            content,
+            senderId: userMetadata.userId,
+        }
     } else {
-        if (post.conversationId !== entityId) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Message does not belong to this conversation"))
+        if (parent.conversationId !== entityId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Parent message does not belong to this conversation"))
             return
         }
         const conversation = await conversationRepository.conversationExists(entityId, userMetadata.userId)
@@ -71,34 +78,20 @@ async function react(
             sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the conversation"))
             return
         }
-    }
-
-    const existing = await messageRepository.reactionExists(userMetadata.userId, messageId)
-
-    let action: "added" | "removed" = "added"
-
-    if (existing) {
-        if (existing.emoji === reaction) {
-            await messageRepository.toggleReaction(userMetadata.userId, messageId, reaction)
-            action = "removed"
-        } else {
-            await messageRepository.toggleReaction(userMetadata.userId, messageId, existing.emoji)
-            action = "added"
+        messageObj = {
+            conversationId: entityId,
+            content,
+            senderId: userMetadata.userId,
         }
     }
 
-    if (!existing || existing.emoji !== reaction) {
-        await messageRepository.addReaction(userMetadata.userId, messageId, reaction)
+    const createdReply = await messageRepository.createReply(messageObj, parentMsgId)
+    if (!createdReply) {
+        sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Invalid ParentMsgId"))
+        return
     }
 
-    const data = {
-        userId: userMetadata.userId,
-        messageId,
-        reaction,
-        action,
-    }
-
-    const response = WsResponse.ok(message.type, "OK", StatusCodes.OK, data)
+    const response = WsResponse.ok(message.type, "OK", StatusCodes.OK, createdReply)
     const subscribers = subscriptionManager.getSubscribers(entityId)
 
     sendWs(ws, response)
@@ -110,4 +103,4 @@ async function react(
     })
 }
 
-export const reactionHandler = { react }
+export const replyHandler = { reply }

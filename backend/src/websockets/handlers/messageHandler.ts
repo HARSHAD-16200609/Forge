@@ -11,7 +11,6 @@ import { WsEvent } from "../types/events";
 import { messageRepository } from "../../modules/Messages/message.repository";
 import { ChannelMessageDTO } from "../../types/message";
 import { formatValidationError } from "../utility/error";
-import { messageService } from "../../modules/Messages/message.service";
 
 
 
@@ -337,7 +336,7 @@ class MessageHandler {
 
 
 
-    }
+}
 
 }
 

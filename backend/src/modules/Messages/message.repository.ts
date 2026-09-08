@@ -156,17 +156,14 @@ class MessageRepository {
     }
 
     async createReply(message: MessageDTO, parentMessageId: string) {
-        if ("conversationId" in message) {
-            const reply = await prisma.message.create({
-                data: {
-                    ...message,
-                    parentMsgId: parentMessageId
-                }
+        const reply = await prisma.message.create({
+            data: {
+                ...message,
+                parentMsgId: parentMessageId
+            }
 
-            })
-            return reply
-        }
-        else return
+        })
+        return reply
 
     }
     async addReaction(userId: string, messageId: string, emoji: string) {

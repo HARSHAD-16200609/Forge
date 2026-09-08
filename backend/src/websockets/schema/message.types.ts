@@ -1,5 +1,6 @@
 import emojiRegex from "emoji-regex";
 import { uuid, z } from "zod";
+import { EntityType } from "../../../generated/prisma/enums";
 
 export const createChannelMessageSchema = z.object({
     workspaceId: z.uuid(),
@@ -67,8 +68,10 @@ export const deleteConversationMessageSchema = z.object({
 
 const regex = emojiRegex();
 
-export const messageReactionSchema = z.object({
+export const postReactionSchema = z.object({
     workspaceId: z.uuid(),
+    entityId: z.uuid(),
+    entityType: z.enum(["conversation", "channel"]),
     messageId: z.uuid(),
     reaction: z.string().refine((value) => {
         const matches = value.match(regex);
@@ -86,6 +89,21 @@ export const typingIndicatorSchema = z.object({
     entityId: z.uuid(),
     entityType: z.enum(["conversation", "channel"])
 
+})
+
+export const postReplySchema = z.object({
+    workspaceId: z.uuid(),
+    parentMsgId: z.uuid(),
+    entityId: z.uuid(),
+    content: z
+        .string()
+        .trim()
+        .max(4000, "Message is too long"),
+    uploadIds: z.array(uuid()).max(3).default([]),
+    entityType: z.enum(["conversation", "channel"])
+
+}).refine((data) => data.content.length > 0, {
+    message: "Reply content is required"
 })
 
 export type channelMessage = z.infer<typeof createChannelMessageSchema>

@@ -129,7 +129,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         expect(messageRepository.addReaction).toHaveBeenCalledWith("user-1", MESSAGE_ID, REACTION);
@@ -169,7 +169,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ConversationMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CONVO_ID, entityType: "conversation", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         expect(conversationRepository.conversationExists).toHaveBeenCalledWith(CONVO_ID, "user-1");
@@ -201,7 +201,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         expect(messageRepository.toggleReaction).toHaveBeenCalledWith("user-1", MESSAGE_ID, REACTION);
@@ -224,7 +224,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: "👍" },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: "👍" },
         });
 
         expect(messageRepository.toggleReaction).toHaveBeenCalledWith("user-1", MESSAGE_ID, "😀");
@@ -245,7 +245,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -263,7 +263,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -278,7 +278,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -293,7 +293,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -308,7 +308,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ConversationMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CONVO_ID, entityType: "conversation", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -321,11 +321,11 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: "not-a-uuid", reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: "not-a-uuid", reaction: REACTION },
         });
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: "not-an-emoji" },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: "not-an-emoji" },
         });
 
         const sent = sentFrames;
@@ -343,7 +343,7 @@ describe("reactionHandler.react", () => {
 
         await reactionHandler.react(ws, {
             type: WsEvent.ChannelMessageReaction,
-            payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+            payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
         });
 
         const response = lastFrame();
@@ -369,7 +369,7 @@ describe("eventRouter.dispatch reaction path", () => {
         await expect(
             eventRouter.dispatch(ws, {
                 type: WsEvent.ChannelMessageReaction,
-                payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+                payload: { workspaceId: WORKSPACE_ID, entityId: CHANNEL_ID, entityType: "channel", messageId: MESSAGE_ID, reaction: REACTION },
             })
         ).resolves.toBeUndefined();
 
@@ -401,7 +401,7 @@ describe("eventRouter.dispatch reaction path", () => {
         await expect(
             eventRouter.dispatch(ws, {
                 type: WsEvent.ConversationMessageReaction,
-                payload: { workspaceId: WORKSPACE_ID, messageId: MESSAGE_ID, reaction: REACTION },
+                payload: { workspaceId: WORKSPACE_ID, entityId: CONVO_ID, entityType: "conversation", messageId: MESSAGE_ID, reaction: REACTION },
             })
         ).resolves.toBeUndefined();
 
