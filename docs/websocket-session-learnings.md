@@ -137,14 +137,24 @@ Broadcast ack data = `{ userId, ... }` (who did it + what was sent).
 
 ### Replies (postReply)
 - Events `ChannelMessageReply`/`ConversationMessageReply`, single `replyHandler.reply` (no `this`) for BOTH entities —
-  mirror of the reaction pattern; no client-facing reply REST anymore.
+  mirror of the reaction pattern; all reply/reaction/messaging writes are WS-only, no client-facing REST anymore.
 - `postReplySchema` = `{ workspaceId, parentMsgId, entityId, entityType, content, uploadIds }`. Client always sends the
   entity (`entityId` + `entityType`) — the server never guesses the entity from the message row (no `channelId`-null
-  sniffing). Same for reactions (`postReactionSchema` = `{ workspaceId, entityId, entityType, parentMessageId, reaction }`).
+  sniffing). Same for reactions (`postReactionSchema` = `{ workspaceId, entityId, entityType, messageId, reaction }`).
 - `createReply` in `message.repository.ts` previously only handled `ConversationMessageDTO` (channel replies returned
   `undefined`, silently broken in REST too) — now creates for both DTO shapes.
 - Reply/reaction integrity: the handler still verifies `post.channelId === entityId` (or `post.conversationId === entityId`)
   so a claimed entity must actually own the message; this validates the claim without guessing the branch.
+
+### REST/WS boundary (after removing stale REST messaging)
+- **Removed REST endpoints** (now WS-only): channel + conversation message create/edit/delete, replies, reactions
+  (`POST/PATCH/DELETE /messages/:id`, `POST /messages/:id/replies`, `POST /messages/:id/reactions`,
+  `POST/PATCH /conversations/:cid/messages...`, reactions, commented-out delete).
+- **REST still owns:** auth, workspace/channel/conversation management, invites, uploads (`POST /uploads` cap 3,
+  `DELETE /messages/:id/uploads`), and history reads (`GET */messages`, `GET /messages/:id`, conversation GETs).
+- Pruned dead code: `messageService`/`conversationService` write methods and `message.controller.ts` /
+  `conversations.controller.ts` write exports, `messageSchema` + `emojiSchema` (zero consumers left),
+  and the unused `src/websockets/types/wsError.ts`.
 
 ## 6. Lessons / Debug Stories
 
@@ -178,8 +188,8 @@ Broadcast ack data = `{ userId, ... }` (who did it + what was sent).
 
 ## 8. Repo State & Loose Ends
 
-- **Verification:** `npm run type-check` (clean) + `npm test` (test count grows: 82 → 95 → **106** with presence → **112** with heartbeat).
+- **Verification:** `npm run type-check` (clean) + `npm test` (test count grows: 82 → 95 → **106** with presence → **112** with heartbeat → **124** with replies).
 - **Roadmap:** typing ✅, reactions ✅, presence ✅, heartbeat/ping-pong ✅ — all four realtime features complete.
-- Stale `src/websockets/types/wsError.ts` (unused, has a `MessageDelete` entry) — candidate for deletion.
+- **REST messaging writes removed** (WS-first migration done): stale `.route/.controller/.service` write endpoints pruned.
 - Unrelated unstaged change in `src/server.ts`; git has staged modifications + untracked `docs/` files.
 - Frontend WS client is out of scope (build artifacts only).

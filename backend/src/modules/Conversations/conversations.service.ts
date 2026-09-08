@@ -1,14 +1,8 @@
 import { Prisma } from "../../../generated/prisma/client"
-import { ConvoType, fType } from "../../../generated/prisma/enums"
-import { deleteFromCloudinary } from "../../config/cloudinary"
-import { getResourceType } from "../../db/message.schema"
-import { ConversationMessageDTO, MessageDTO } from "../../types/message"
-import { BadGatewayError, BadRequestError, ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors"
-import { loggers } from "../../utility/logger/serviceLoggers"
+import { ConvoType } from "../../../generated/prisma/enums"
+import { BadRequestError, ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors"
 import { authRepository } from "../Auth/auth.repository"
-import { deleteMessage } from "../Messages/message.controller"
 import { messageRepository } from "../Messages/message.repository"
-import { uploadService } from "../Messages/upload.service"
 import { workspaceRepository } from "../Workspace/workspace.repository"
 import { conversationRepository } from "./conversations.repository"
 
@@ -57,60 +51,6 @@ class ConversationService {
         return conversationList
     }
 
-    async postMessage(workspaceId: string, conversationId: string, message: { content: string, uploadIds: string[] }, userId: string, attachments: Express.Multer.File[]) {
-        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
-
-        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversation = await conversationRepository.conversationExists(conversationId, userId)
-        if (!conversation) throw new NotFoundError("Conversation not Found")
-        if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
-
-        let attachmentData: {
-            filename: string;
-            publicId: string
-            url: string;
-            mimeType: string;
-            fileSize: number;
-            fileType: fType;
-        }[] = [];
-        try {
-
-            if (attachments.length > 0) {
-                attachmentData = await uploadService.uploadAttachments(attachments, userId)
-            }
-
-            const messageObject: ConversationMessageDTO = {
-                conversationId,
-                senderId: userId,
-                content: message.content
-            }
-
-
-            const post = await messageRepository.postMessage(messageObject, message.uploadIds, userId)
-
-            return post
-        } catch (err) {
-            if (attachmentData.length > 0) {
-
-                const results = await Promise.allSettled(
-                    attachmentData.map((attachment) => {
-                        return deleteFromCloudinary(attachment.publicId, getResourceType(attachment.mimeType))
-                    })
-                )
-                const failed = results.filter(
-                    (result) => result.status === "rejected"
-                );
-
-                if (failed.length > 0) {
-                    loggers.audit.error("UPLOAD_ROLLBACK_FAILED", {
-                        failedCount: failed.length,
-                    });
-                }
-            }
-            throw err
-
-        }
-    }
     async getConversation(workspaceId: string, conversationId: string, userId: string) {
         const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
@@ -159,104 +99,6 @@ class ConversationService {
         }
 
     }
-    async editMessage(editMessageParams: { conversationId: string, messageId: string, workspaceId: string }, userId: string, content: string) {
-        const workspaceMember = await workspaceRepository.memberExists(userId, editMessageParams.workspaceId)
-
-        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversation = await conversationRepository.conversationExists(editMessageParams.conversationId, userId)
-        if (!conversation) throw new NotFoundError("Conversation Not Found")
-        if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
-
-        const message = await messageRepository.messageExists(editMessageParams.messageId)
-        if (!message) throw new NotFoundError("Message Not Found")
-        if (!message.conversationId) {
-            throw new BadRequestError("Message does not belong to a conversation");
-        }
-
-        if (message.conversationId !== editMessageParams.conversationId) {
-            throw new BadRequestError(
-                "Message does not belong to the specified conversation"
-            );
-        }
-        if (message.senderId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
-
-        const editedMessage = await messageRepository.editMessage(content, editMessageParams.messageId)
-        return editedMessage
-    }
-    async postReply(userId: string, postReplyParams: { conversationId: string, messageId: string, workspaceId: string }, content: string) {
-        const workspaceMember = await workspaceRepository.memberExists(userId, postReplyParams.workspaceId)
-
-        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversation = await conversationRepository.conversationExists(postReplyParams.conversationId, userId)
-        if (!conversation) throw new NotFoundError("Conversation Not Found")
-        const message = await messageRepository.messageExists(postReplyParams.messageId)
-        if (!message) {
-            throw new NotFoundError("Message not found");
-        }
-
-        if (!message.conversationId) {
-            throw new BadRequestError("Message does not belong to a conversation");
-        }
-
-        if (message.conversationId !== postReplyParams.conversationId) {
-            throw new BadRequestError(
-                "Message does not belong to the specified conversation"
-            );
-        }
-
-        const messageObject: ConversationMessageDTO = {
-            conversationId: message.conversationId,
-            senderId: userId,
-            content
-        }
-
-        const reply = await messageRepository.createReply(messageObject, postReplyParams.messageId)
-        if (reply === undefined) throw new BadRequestError("Invalid ParentMsgId")
-
-        return reply
-
-
-    }
-    async postReaction(userId: string, postReactionParams: { messageId: string, conversationId: string, workspaceId: string }, emoji: string) {
-        const workspaceMember = await workspaceRepository.memberExists(userId, postReactionParams.workspaceId)
-
-        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-        const conversation = await conversationRepository.conversationExists(postReactionParams.conversationId, userId)
-        if (!conversation) throw new NotFoundError("Conversation Not Found")
-        const message = await messageRepository.messageExists(postReactionParams.messageId)
-        if (!message) {
-            throw new NotFoundError("Message not found");
-        }
-        if (message.deletedAt) throw new BadRequestError("Can't React to Deleted Message")
-
-
-        const reactionExists = await messageRepository.reactionExists(userId, postReactionParams.messageId)
-        let reaction
-        if (reactionExists) {
-            if (reactionExists.emoji === emoji) {
-
-                await messageRepository.toggleReaction(userId, postReactionParams.messageId, emoji)
-                return {
-                    action: "deleted",
-                    data: {}
-                }
-            } else {
-                console.log("New Reaction posted")
-                reaction = await messageRepository.addReaction(userId, postReactionParams.messageId, emoji)
-                return {
-                    action: "posted",
-                    data: reaction
-                }
-
-            }
-        }
-        reaction = await messageRepository.addReaction(userId, postReactionParams.messageId, emoji)
-        return {
-            action: "posted",
-            data: reaction
-        }
-    }
-
     async createGDM(gdm: { memberIds: string[], name: string, idempotencyKey: string }, userId: string, workspaceId: string) {
         const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
 
@@ -397,34 +239,6 @@ class ConversationService {
             }
             throw err
         }
-    }
-    async deleteMessage(userId: string, workspaceId: string, messageId: string, conversationId: string) {
-        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
-
-        if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
-
-        const conversation = await conversationRepository.conversationExists(conversationId, userId)
-        if (!conversation) {
-            throw new NotFoundError("conversation not found");
-        }
-        const message = await messageRepository.messageExists(messageId)
-        if (!message) {
-            throw new NotFoundError("Message not found");
-        }
-        if (message.senderId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
-        if (message.deletedAt) throw new BadRequestError("Message is already Deleted")
-
-        try {
-            await messageRepository.deleteMessage(messageId)
-
-        } catch (err) {
-            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
-                return {}
-            }
-            throw err
-        }
-
-
     }
 }
 
