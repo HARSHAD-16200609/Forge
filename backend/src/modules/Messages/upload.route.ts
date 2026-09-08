@@ -8,5 +8,5 @@ export const uploadRouter = Router()
 
 
 
-uploadRouter.route("/uploads").post(verifyJwt,upload.array("attachments",10),uploadAttachments)
+uploadRouter.route("/uploads").post(verifyJwt,upload.array("attachments",3),uploadAttachments)
 

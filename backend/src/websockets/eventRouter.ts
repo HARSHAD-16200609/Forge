@@ -4,11 +4,12 @@ import { loggers } from "../utility/logger/serviceLoggers";
 import { WsEvent } from "./types/events";
 import { WebSocketMessage } from "./types/websocketMessage";
 import { sendWs, WsResponse } from "./utility/wsResponse";
-
+import { typingHandler } from "./handlers/typingHandler";
 import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
 import { messageHandler } from "./handlers/messageHandler";
 // import { presenceHandler } from "./handlers/presenceHandler";
+
 
 type EventHandler = (
     ws: WebSocket,
@@ -53,18 +54,26 @@ class EventRouter {
             WsEvent.ChannelMessageUpdate,
             messageHandler.updateMessage
         )
-         this.handlers.set(
+        this.handlers.set(
             WsEvent.ChannelMessageDelete,
             messageHandler.deleteMessage
         );
-         this.handlers.set(
+        this.handlers.set(
             WsEvent.ConversationMessageUpdate,
             conversationHandler.updateMessage
         );
-         this.handlers.set(
+        this.handlers.set(
             WsEvent.ConversationMessageDelete,
             conversationHandler.deleteMessage
-        )
+        );
+        this.handlers.set(
+            WsEvent.TypingStart,
+            typingHandler.typingStart);
+
+        this.handlers.set(
+            WsEvent.TypingStop,
+            typingHandler.typingStop)
+
     }
 
     async dispatch(

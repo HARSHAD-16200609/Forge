@@ -1,3 +1,4 @@
+import emojiRegex from "emoji-regex";
 import { uuid, z } from "zod";
 
 export const createChannelMessageSchema = z.object({
@@ -31,39 +32,59 @@ export const subscribeChannelSchema = z.object({
 })
 
 export const updateChannelMessageSchema = z.object({
-     workspaceId: z.uuid(),
+    workspaceId: z.uuid(),
     channelId: z.uuid(),
-    messageId:z.uuid(),
+    messageId: z.uuid(),
     content: z.string().trim().max(4000, "Message is too long")
 }).refine((data) => data.content.length > 0, {
     message: "Message content is required"
-}) 
+})
 
 export const deleteChannelMessageSchema = z.object({
-     workspaceId: z.uuid(),
+    workspaceId: z.uuid(),
     channelId: z.uuid(),
-    messageId:z.uuid(),
-  
-}) 
+    messageId: z.uuid(),
+
+})
 
 
 export const updateConversationMessageSchema = z.object({
-     workspaceId: z.uuid(),
+    workspaceId: z.uuid(),
     conversationId: z.uuid(),
-    messageId:z.uuid(),
+    messageId: z.uuid(),
     content: z.string().trim().max(4000, "Message is too long")
-}) .refine((data) => data.content.length > 0, {
+}).refine((data) => data.content.length > 0, {
     message: "Message content is required"
-}) 
+})
 
 export const deleteConversationMessageSchema = z.object({
-     workspaceId: z.uuid(),
+    workspaceId: z.uuid(),
     conversationId: z.uuid(),
-    messageId:z.uuid(),
-  
-}) 
+    messageId: z.uuid(),
+
+})
 
 
+const regex = emojiRegex();
 
+export const messageReactionSchema = z.object({
+    messageId: z.uuid(),
+    reaction: z.string().refine((value) => {
+        const matches = value.match(regex);
+        return (
+            matches !== null &&
+            matches.length === 1 &&
+            matches[0] === value
+        );
+    }, "Reaction must be exactly one emoji"),
+
+})
+
+export const typingIndicatorSchema = z.object({
+    workspaceId: z.uuid(),
+    entityId: z.uuid(),
+    entityType: z.enum(["conversation", "channel"])
+
+})
 
 export type channelMessage = z.infer<typeof createChannelMessageSchema>
