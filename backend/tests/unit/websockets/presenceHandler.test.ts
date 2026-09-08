@@ -54,6 +54,7 @@ const metadataFor = (userId: string, username: string): ConnectionMetadata => ({
     username,
     sessionId: `session-${userId}`,
     connectedAt: new Date(),
+    lastSeenAt: new Date(),
 });
 
 const ALICE = metadataFor("user-1", "alice");

@@ -44,8 +44,25 @@ class ConnectionManager {
         this.connectionMetadata.delete(ws);
     }
 
+    updateActivity(ws: WebSocket): void {
+        const metadata = this.connectionMetadata.get(ws);
+        if (metadata) {
+            metadata.lastSeenAt = new Date();
+        }
+    }
+
     getConnections(userId: string): ReadonlySet<WebSocket> | undefined {
         return this.userConnections.get(userId);
+    }
+
+    getAllConnections(): Set<WebSocket> {
+        const all = new Set<WebSocket>();
+        for (const connections of this.userConnections.values()) {
+            for (const socket of connections) {
+                all.add(socket);
+            }
+        }
+        return all;
     }
 
     getMetadata(ws: WebSocket): ConnectionMetadata | undefined {

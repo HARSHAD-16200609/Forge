@@ -5,6 +5,7 @@ export interface ConnectionMetadata {
   sessionId: string;
   connectedAt: Date;
   username?: string;
+  lastSeenAt: Date;
 }
 
 

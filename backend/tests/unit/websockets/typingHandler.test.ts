@@ -58,6 +58,7 @@ const metadata: ConnectionMetadata = {
     userId: "user-1",
     sessionId: "session-1",
     connectedAt: new Date(),
+    lastSeenAt: new Date(),
 };
 
 const WORKSPACE_ID = "30a3aa89-92bc-4ecf-97d2-a642bc445c74";

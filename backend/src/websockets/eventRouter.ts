@@ -10,6 +10,7 @@ import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
 import { messageHandler } from "./handlers/messageHandler";
 import { presenceHandler } from "./presenceManager";
+import { heartbeatHandler } from "./handlers/heartbeatHandler";
 
 
 type EventHandler = (
@@ -88,6 +89,11 @@ class EventRouter {
         this.handlers.set(
             WsEvent.PresenceUpdate,
             presenceHandler.registerConnection.bind(presenceHandler)
+        );
+
+        this.handlers.set(
+            WsEvent.Ping,
+            heartbeatHandler.ping
         );
 
     }

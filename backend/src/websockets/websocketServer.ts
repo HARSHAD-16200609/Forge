@@ -22,13 +22,15 @@ const metadata = {
         userId: req.user.userId,
         username: req.user.username,
         sessionId: req.user.sessionId,
-        connectedAt: new Date()
+        connectedAt: new Date(),
+        lastSeenAt : new Date()
     }
     connectionManager.registerConnection(ws, metadata)
 
     sendWs(ws, WsResponse.ok(WsEvent.Pong, "Connected to server"))
 
     ws.on("message", (data) => {
+        connectionManager.updateActivity(ws);
 
         const wsMessage = parseEnvelope(data.toString())
 

@@ -6,6 +6,7 @@ import { UnauthorizedAccessError } from "./utility/errorHandling/customErrors";
 import { parseCookie } from "cookie"
 import { validateSession, verifyAccessToken } from "./utility/auth/jwt";
 import { AuthenticatedUpgradeRequest, AuthenticatedUser } from "./websockets/types/auth";
+import { heartbeatManager } from "./websockets/heartbeatManager";
 
 const PORT = Number(env.PORT) || 8000;
 
@@ -13,6 +14,7 @@ const server = http.createServer(app)
 
 
 server.listen(PORT, () => {
+  heartbeatManager.start();
   console.log(`🚀 Server running on port ${PORT}`);
 });
 

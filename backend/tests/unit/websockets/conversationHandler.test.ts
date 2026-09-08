@@ -60,6 +60,7 @@ const metadata: ConnectionMetadata = {
     userId: "user-1",
     sessionId: "session-1",
     connectedAt: new Date(),
+    lastSeenAt: new Date(),
 };
 
 const CONVO_ID = "8b6e0b64-2c1f-4d2a-9a3c-7f9e2d1c4b5a";

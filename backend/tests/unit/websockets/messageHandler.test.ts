@@ -60,6 +60,7 @@ const metadata: ConnectionMetadata = {
     userId: "user-1",
     sessionId: "session-1",
     connectedAt: new Date(),
+    lastSeenAt: new Date(),
 };
 
 const CHANNEL_ID = "f5f63127-9f69-446d-b5a1-82d25fc45a96";
