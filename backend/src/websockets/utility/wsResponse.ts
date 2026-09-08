@@ -14,8 +14,9 @@ export class WsResponse {
     public readonly message?: string;
     public readonly statusCode: number;
     public readonly error?: WsErrorBody;
+    public readonly data?: unknown;
 
-    constructor(statusCode: number, type: WsEvent, success: boolean, message?: string, error?: WsErrorBody) {
+    constructor(statusCode: number, type: WsEvent, success: boolean, message?: string, error?: WsErrorBody, data?: unknown) {
         this.statusCode = statusCode;
         this.type = type;
         if (error !== undefined) {
@@ -23,10 +24,13 @@ export class WsResponse {
         }
         this.message = message || (error !== undefined ? "An error occurred" : "OK");
         this.success = error !== undefined ? false : success;
+        if (data !== undefined) {
+            this.data = data;
+        }
     }
 
-    static ok(type: WsEvent, message = "OK", statusCode = StatusCodes.OK): WsResponse {
-        return new WsResponse(statusCode, type, true, message);
+    static ok(type: WsEvent, message = "OK", statusCode = StatusCodes.OK, data?: unknown): WsResponse {
+        return new WsResponse(statusCode, type, true, message, undefined, data);
     }
 
     static fail(type: WsEvent, statusCode: number, code: string, errorMessage: string): WsResponse {

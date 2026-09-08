@@ -49,6 +49,22 @@ class EventRouter {
             WsEvent.ChannelMessage,
             messageHandler.createMessage
         );
+        this.handlers.set(
+            WsEvent.ChannelMessageUpdate,
+            messageHandler.updateMessage
+        )
+         this.handlers.set(
+            WsEvent.ChannelMessageDelete,
+            messageHandler.deleteMessage
+        );
+         this.handlers.set(
+            WsEvent.ConversationMessageUpdate,
+            conversationHandler.updateMessage
+        );
+         this.handlers.set(
+            WsEvent.ConversationMessageDelete,
+            conversationHandler.deleteMessage
+        )
     }
 
     async dispatch(

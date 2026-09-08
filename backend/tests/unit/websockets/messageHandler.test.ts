@@ -28,6 +28,9 @@ vi.mock("../../../src/modules/Channel/channel.repository", () => ({
 vi.mock("../../../src/modules/Messages/message.repository", () => ({
     messageRepository: {
         postMessage: vi.fn(),
+        messageExists: vi.fn(),
+        editMessage: vi.fn(),
+        deleteMessage: vi.fn(),
     },
 }));
 
@@ -211,10 +214,10 @@ describe("messageHandler.channel.message.create", () => {
         );
         const sent = sentFrames;
         expect(sent).toHaveLength(1);
-        const response = sent[0]!.response as { type: string; success: boolean; message: string };
+        const response = sent[0]!.response as { type: string; success: boolean; data: unknown };
         expect(response.type).toBe(WsEvent.ChannelMessageCreated);
         expect(response.success).toBe(true);
-        expect(JSON.parse(response.message)).toEqual(posts);
+        expect(response.data).toEqual(posts);
     });
 
     it("forwards uploadIds and broadcasts to other subscribers but not the sender", async () => {
@@ -347,6 +350,263 @@ describe("messageHandler.channel.message.create", () => {
         vi.mocked(messageRepository.postMessage).mockRejectedValue(new Error("db down"));
 
         await expect(messageHandler.createMessage(ws, validMessage)).rejects.toThrow("db down");
+    });
+});
+
+describe("messageHandler.channel.message.update", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        sentFrames.length = 0;
+    });
+
+    const MESSAGE_ID = "11111111-1111-4111-8111-111111111111";
+
+    const channelPost = {
+        id: MESSAGE_ID,
+        senderId: "user-1",
+        channelId: CHANNEL_ID,
+        conversationId: null,
+        deletedAt: null,
+        sentAt: new Date("2024-01-01T00:00:00Z"),
+        channel: { workspaceId: WORKSPACE_ID },
+    };
+
+    const updateMessage = {
+        type: WsEvent.ChannelMessageUpdate,
+        payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID, messageId: MESSAGE_ID, content: "edited" },
+    };
+
+    it("edits the message and replies + broadcasts channel.message.updated with the post in data", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
+        vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
+        const updated = { ...channelPost, content: "edited" };
+        vi.mocked(messageRepository.editMessage).mockResolvedValue(updated as never);
+
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        subscriptionManager.subscribe(CHANNEL_ID, otherWs);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        expect(messageRepository.messageExists).toHaveBeenCalledWith(MESSAGE_ID);
+        expect(messageRepository.editMessage).toHaveBeenCalledWith("edited", MESSAGE_ID);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(2);
+        const senderFrame = sent.find((f) => f.ws === ws);
+        const otherFrame = sent.find((f) => f.ws === otherWs);
+        expect(senderFrame).toBeDefined();
+        expect(otherFrame).toBeDefined();
+        expect(sent.filter((f) => f.ws === ws)).toHaveLength(1);
+        for (const frame of sent) {
+            const response = frame.response as { type: string; success: boolean; statusCode: number; data: unknown };
+            expect(response.type).toBe(WsEvent.ChannelMessageUpdated);
+            expect(response.success).toBe(true);
+            expect(response.statusCode).toBe(StatusCodes.OK);
+            expect(response.data).toEqual(updated);
+        }
+        subscriptionManager.unsubscribe(CHANNEL_ID, otherWs);
+    });
+
+    it("rejects with FORBIDDEN when another user tries to edit and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({ ...channelPost, senderId: "user-2" } as never);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.FORBIDDEN);
+        expect(response.error?.code).toBe("FORBIDDEN");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects a conversation message as BAD_REQUEST and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({
+            ...channelPost,
+            channelId: null,
+            conversationId: "22222222-2222-4222-8222-222222222222",
+        } as never);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.error?.code).toBe("BAD_REQUEST");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects a message from another channel as FORBIDDEN and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({
+            ...channelPost,
+            channelId: "33333333-3333-4333-8333-333333333333",
+        } as never);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.FORBIDDEN);
+        expect(response.error?.code).toBe("FORBIDDEN");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects an already-deleted message as BAD_REQUEST and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({
+            ...channelPost,
+            deletedAt: new Date("2024-01-02T00:00:00Z"),
+        } as never);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.error?.code).toBe("BAD_REQUEST");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing message as NOT_FOUND and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue(null);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.NOT_FOUND);
+        expect(response.error?.code).toBe("NOT_FOUND_ERROR");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty content as VALIDATION_ERROR and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
+
+        const message = {
+            type: WsEvent.ChannelMessageUpdate,
+            payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID, messageId: MESSAGE_ID, content: "   " },
+        };
+
+        await messageHandler.updateMessage(ws, message);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.error?.code).toBe("VALIDATION_ERROR");
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects with FORBIDDEN when not a channel member and never calls editMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
+        vi.mocked(channelRepository.memberExists).mockResolvedValue(null);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
+
+        await messageHandler.updateMessage(ws, updateMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        expect(sent[0]!.response as { statusCode: number }).toMatchObject({ statusCode: StatusCodes.FORBIDDEN });
+        expect(messageRepository.editMessage).not.toHaveBeenCalled();
+    });
+});
+
+describe("messageHandler.channel.message.delete", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        sentFrames.length = 0;
+    });
+
+    const MESSAGE_ID = "44444444-4444-4444-8444-444444444444";
+
+    const channelPost = {
+        id: MESSAGE_ID,
+        senderId: "user-1",
+        channelId: CHANNEL_ID,
+        conversationId: null,
+        deletedAt: null,
+        sentAt: new Date("2024-01-01T00:00:00Z"),
+        channel: { workspaceId: WORKSPACE_ID },
+    };
+
+    const deleteMessage = {
+        type: WsEvent.ChannelMessageDelete,
+        payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID, messageId: MESSAGE_ID },
+    };
+
+    it("deletes the message and replies + broadcasts channel.message.deleted with { messageId } in data", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
+        vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
+
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        subscriptionManager.subscribe(CHANNEL_ID, otherWs);
+
+        await messageHandler.deleteMessage(ws, deleteMessage);
+
+        expect(messageRepository.messageExists).toHaveBeenCalledWith(MESSAGE_ID);
+        expect(messageRepository.deleteMessage).toHaveBeenCalledWith(MESSAGE_ID);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(2);
+        const senderFrame = sent.find((f) => f.ws === ws);
+        const otherFrame = sent.find((f) => f.ws === otherWs);
+        expect(senderFrame).toBeDefined();
+        expect(otherFrame).toBeDefined();
+        expect(sent.filter((f) => f.ws === ws)).toHaveLength(1);
+        for (const frame of sent) {
+            const response = frame.response as { type: string; success: boolean; statusCode: number; data: { messageId: string } };
+            expect(response.type).toBe(WsEvent.ChannelMessageDeleted);
+            expect(response.success).toBe(true);
+            expect(response.statusCode).toBe(StatusCodes.OK);
+            expect(response.data).toEqual({ messageId: MESSAGE_ID });
+        }
+        subscriptionManager.unsubscribe(CHANNEL_ID, otherWs);
+    });
+
+    it("rejects with FORBIDDEN when another user tries to delete and never calls deleteMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({ ...channelPost, senderId: "user-2" } as never);
+
+        await messageHandler.deleteMessage(ws, deleteMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.FORBIDDEN);
+        expect(response.error?.code).toBe("FORBIDDEN");
+        expect(messageRepository.deleteMessage).not.toHaveBeenCalled();
+    });
+
+    it("rejects a conversation message as BAD_REQUEST and never calls deleteMessage", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(messageRepository.messageExists).mockResolvedValue({
+            ...channelPost,
+            channelId: null,
+            conversationId: "55555555-5555-4555-8555-555555555555",
+        } as never);
+
+        await messageHandler.deleteMessage(ws, deleteMessage);
+
+        const sent = sentFrames;
+        expect(sent).toHaveLength(1);
+        const response = sent[0]!.response as { statusCode: number; error: { code: string } };
+        expect(response.statusCode).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.error?.code).toBe("BAD_REQUEST");
+        expect(messageRepository.deleteMessage).not.toHaveBeenCalled();
     });
 });
 

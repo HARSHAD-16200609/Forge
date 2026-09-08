@@ -30,6 +30,40 @@ export const subscribeChannelSchema = z.object({
     channelId: z.uuid(),
 })
 
+export const updateChannelMessageSchema = z.object({
+     workspaceId: z.uuid(),
+    channelId: z.uuid(),
+    messageId:z.uuid(),
+    content: z.string().trim().max(4000, "Message is too long")
+}).refine((data) => data.content.length > 0, {
+    message: "Message content is required"
+}) 
+
+export const deleteChannelMessageSchema = z.object({
+     workspaceId: z.uuid(),
+    channelId: z.uuid(),
+    messageId:z.uuid(),
+  
+}) 
+
+
+export const updateConversationMessageSchema = z.object({
+     workspaceId: z.uuid(),
+    conversationId: z.uuid(),
+    messageId:z.uuid(),
+    content: z.string().trim().max(4000, "Message is too long")
+}) .refine((data) => data.content.length > 0, {
+    message: "Message content is required"
+}) 
+
+export const deleteConversationMessageSchema = z.object({
+     workspaceId: z.uuid(),
+    conversationId: z.uuid(),
+    messageId:z.uuid(),
+  
+}) 
+
+
 
 
 export type channelMessage = z.infer<typeof createChannelMessageSchema>

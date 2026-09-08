@@ -1,7 +1,7 @@
 import { WebSocket } from "ws";
 import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
-import { createChannelMessageSchema, subscribeChannelSchema } from "../schema/message.types"
+import { createChannelMessageSchema, deleteChannelMessageSchema, subscribeChannelSchema, updateChannelMessageSchema } from "../schema/message.types"
 import { sendWs, WsResponse } from "../utility/wsResponse";
 import { StatusCodes } from "http-status-codes";
 import { channelRepository } from "../../modules/Channel/channel.repository";
@@ -11,6 +11,7 @@ import { WsEvent } from "../types/events";
 import { messageRepository } from "../../modules/Messages/message.repository";
 import { ChannelMessageDTO } from "../../types/message";
 import { formatValidationError } from "../utility/error";
+import { messageService } from "../../modules/Messages/message.service";
 
 
 
@@ -82,6 +83,49 @@ class MessageHandler {
             )
         )
     }
+    async unsubscribe(
+        ws: WebSocket,
+        message: WebSocketMessage
+    ): Promise<void> {
+        const messagePayload = createChannelMessageSchema.safeParse(message.payload)
+        const userMetadata = connectionManager.getMetadata(ws)
+        if (!userMetadata) {
+            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
+            return
+        }
+        if (!messagePayload.success) {
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    formatValidationError(messagePayload.error)
+                )
+            )
+            return
+        }
+
+        const workspaceMember = await workspaceRepository.memberExists(userMetadata.userId, messagePayload.data.workspaceId)
+        if (!workspaceMember) {
+            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the workspace"))
+            return
+        }
+
+        const channelMember = await channelRepository.memberExists(workspaceMember?.id, messagePayload.data.channelId)
+        if (!channelMember) {
+            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
+
+            return
+        }
+
+        subscriptionManager.unsubscribe(messagePayload.data.channelId, ws)
+
+
+
+        sendWs(ws, WsResponse.ok(WsEvent.ChannelUnsubscribe, "Channel Unsubscribed Successfully", StatusCodes.OK))
+
+    }
     async createMessage(
         ws: WebSocket,
         message: WebSocketMessage
@@ -129,27 +173,25 @@ class MessageHandler {
 
 
 
-        sendWs(ws, WsResponse.ok(WsEvent.ChannelMessageCreated, JSON.stringify(posts), StatusCodes.OK))
+        sendWs(ws, WsResponse.ok(WsEvent.ChannelMessageCreated, "OK", StatusCodes.OK, posts))
 
 
 
         subscribers?.forEach((subscriber) => {
             if (subscriber !== ws) {
 
-                sendWs(subscriber, WsResponse.ok(WsEvent.ChannelMessageCreated, JSON.stringify(posts), StatusCodes.OK))
+                sendWs(subscriber, WsResponse.ok(WsEvent.ChannelMessageCreated, "OK", StatusCodes.OK, posts))
             }
         })
 
     }
-
-    async unsubscribe(
-        ws: WebSocket,
+    async updateMessage(ws: WebSocket,
         message: WebSocketMessage
     ): Promise<void> {
-        const messagePayload = createChannelMessageSchema.safeParse(message.payload)
+        const messagePayload = updateChannelMessageSchema.safeParse(message.payload)
         const userMetadata = connectionManager.getMetadata(ws)
         if (!userMetadata) {
-            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
             return
         }
         if (!messagePayload.success) {
@@ -164,27 +206,140 @@ class MessageHandler {
             )
             return
         }
+        const { content, messageId } = messagePayload.data
 
+
+        const post = await messageRepository.messageExists(messageId)
+        if (!post) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.NOT_FOUND, "NOT_FOUND_ERROR", "Message does not exist"))
+            return
+        }
+        if (post.senderId !== userMetadata.userId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not allowed to perform this action"))
+            return
+        }
+        if (post.deletedAt) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message is already deleted"))
+            return
+
+        }
+        if (!post.channelId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message does not belong to a channel"))
+            return
+        }
+        if (post.channelId !== messagePayload.data.channelId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Message does not belong to this channel"))
+            return
+
+        }
         const workspaceMember = await workspaceRepository.memberExists(userMetadata.userId, messagePayload.data.workspaceId)
         if (!workspaceMember) {
-            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the workspace"))
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the workspace"))
             return
         }
 
         const channelMember = await channelRepository.memberExists(workspaceMember?.id, messagePayload.data.channelId)
         if (!channelMember) {
-            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
 
             return
         }
 
-        subscriptionManager.unsubscribe(messagePayload.data.channelId, ws)
 
+        const updatedPost = await messageRepository.editMessage(content, messageId)
 
+        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
 
-        sendWs(ws, WsResponse.ok(WsEvent.ChannelUnsubscribe, "Channel Unsubscribed Successfully", StatusCodes.OK))
+        sendWs(ws, WsResponse.ok(WsEvent.ChannelMessageUpdated, "OK", StatusCodes.OK, updatedPost))
+
+        subscribers?.forEach((subscriber) => {
+            if (subscriber !== ws) {
+
+                sendWs(subscriber, WsResponse.ok(WsEvent.ChannelMessageUpdated, "OK", StatusCodes.OK, updatedPost))
+            }
+        })
 
     }
+
+    async deleteMessage(ws: WebSocket,
+        message: WebSocketMessage): Promise<void> {
+        const messagePayload = deleteChannelMessageSchema.safeParse(message.payload)
+        const userMetadata = connectionManager.getMetadata(ws)
+        if (!userMetadata) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
+            return
+        }
+        if (!messagePayload.success) {
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    formatValidationError(messagePayload.error)
+                )
+            )
+            return
+        }
+        const { messageId } = messagePayload.data
+
+
+        const post = await messageRepository.messageExists(messageId)
+        if (!post) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.NOT_FOUND, "NOT_FOUND_ERROR", "Message does not exist"))
+            return
+        }
+        if (post.senderId !== userMetadata.userId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not allowed to perform this action"))
+            return
+        }
+        if (post.deletedAt) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message is already deleted"))
+            return
+
+        }
+        if (!post.channelId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message does not belong to a channel"))
+            return
+        }
+        if (post.channelId !== messagePayload.data.channelId) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "Message does not belong to this channel"))
+            return
+
+        }
+        const workspaceMember = await workspaceRepository.memberExists(userMetadata.userId, messagePayload.data.workspaceId)
+        if (!workspaceMember) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the workspace"))
+            return
+        }
+
+        const channelMember = await channelRepository.memberExists(workspaceMember?.id, messagePayload.data.channelId)
+        if (!channelMember) {
+            sendWs(ws, WsResponse.fail(message.type, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
+
+            return
+        }
+
+        await messageRepository.deleteMessage(messageId)
+
+        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
+
+        const response = WsResponse.ok(WsEvent.ChannelMessageDeleted, "OK", StatusCodes.OK, { messageId })
+
+        sendWs(ws, response)
+
+        subscribers?.forEach((subscriber) => {
+            if (subscriber !== ws) {
+
+                sendWs(subscriber, response)
+            }
+        })
+
+
+
+    }
+
+
 }
 
 export const messageHandler = new MessageHandler();
