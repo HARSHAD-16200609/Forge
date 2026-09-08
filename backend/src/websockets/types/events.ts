@@ -5,8 +5,9 @@ export const WsEvent = {
     ConversationMessageCreated: "conversation.message.created",
     ConversationMessageUpdate: "conversation.message.update",
     ConversationMessageUpdated: "conversation.message.updated",
-    ConversationMessageDelete: "conversation.message.delete",
+ConversationMessageDelete: "conversation.message.delete",
     ConversationMessageDeleted: "conversation.message.deleted",
+    ConversationMessageReaction: "conversation.message.reaction",
 
     ChannelSubscribe: "channel.subscribe",
     ChannelUnsubscribe: "channel.unsubscribe",
@@ -16,6 +17,7 @@ export const WsEvent = {
     ChannelMessageUpdated: "channel.message.updated",
     ChannelMessageDelete: "channel.message.delete",
     ChannelMessageDeleted: "channel.message.deleted",
+    ChannelMessageReaction: "channel.message.reaction",
 
 
 

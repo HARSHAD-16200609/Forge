@@ -68,6 +68,7 @@ export const deleteConversationMessageSchema = z.object({
 const regex = emojiRegex();
 
 export const messageReactionSchema = z.object({
+    workspaceId: z.uuid(),
     messageId: z.uuid(),
     reaction: z.string().refine((value) => {
         const matches = value.match(regex);

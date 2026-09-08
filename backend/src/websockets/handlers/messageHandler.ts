@@ -1,7 +1,7 @@
 import { WebSocket } from "ws";
 import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
-import { createChannelMessageSchema, deleteChannelMessageSchema, messageReactionSchema, subscribeChannelSchema, updateChannelMessageSchema } from "../schema/message.types"
+import { createChannelMessageSchema, deleteChannelMessageSchema, subscribeChannelSchema, updateChannelMessageSchema } from "../schema/message.types"
 import { sendWs, WsResponse } from "../utility/wsResponse";
 import { StatusCodes } from "http-status-codes";
 import { channelRepository } from "../../modules/Channel/channel.repository";
@@ -339,65 +339,6 @@ class MessageHandler {
 
     }
 
-    async react(ws: WebSocket,
-        message: WebSocketMessage): Promise<void> {
-        const messagePayload = messageReactionSchema.safeParse(message.payload)
-        const userMetadata = connectionManager.getMetadata(ws)
-        if (!userMetadata) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
-            return
-        }
-        if (!messagePayload.success) {
-            sendWs(
-                ws,
-                WsResponse.fail(
-                    message.type,
-                    StatusCodes.BAD_REQUEST,
-                    "VALIDATION_ERROR",
-                    formatValidationError(messagePayload.error)
-                )
-            )
-            return
-        }
-        const { messageId, reaction } = messagePayload.data
-
-        const post = await messageRepository.messageExists(messageId)
-
-
-        if (!post) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.NOT_FOUND, "NOT_FOUND_ERROR", "Message does not exist"))
-            return
-        }
-        if (post.deletedAt) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message is already deleted"))
-            return
-
-        }
-
-        if (!post.channelId) {
-            sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Message does not belong to a channel"))
-            return
-        }
-        const reactedPost = await messageRepository.addReaction(userMetadata.userId, messageId, reaction)
-
-
-        let subscribers = subscriptionManager.getSubscribers(post.channelId)
-
-        const response = WsResponse.ok(WsEvent.ChannelMessageDeleted, "OK", StatusCodes.OK, reactedPost)
-
-        sendWs(ws, response)
-
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, response)
-            }
-        })
-
-
-
-
-    }
 }
 
 export const messageHandler = new MessageHandler();

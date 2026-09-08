@@ -5,6 +5,7 @@ import { WsEvent } from "./types/events";
 import { WebSocketMessage } from "./types/websocketMessage";
 import { sendWs, WsResponse } from "./utility/wsResponse";
 import { typingHandler } from "./handlers/typingHandler";
+import { reactionHandler } from "./handlers/reactionHandler";
 import { conversationHandler } from "./handlers/conversationHandler";
 import { connectionManager } from "./connectionManager";
 import { messageHandler } from "./handlers/messageHandler";
@@ -73,6 +74,16 @@ class EventRouter {
         this.handlers.set(
             WsEvent.TypingStop,
             typingHandler.typingStop)
+
+        this.handlers.set(
+            WsEvent.ChannelMessageReaction,
+            reactionHandler.react
+        );
+
+        this.handlers.set(
+            WsEvent.ConversationMessageReaction,
+            reactionHandler.react
+        );
 
     }
 
