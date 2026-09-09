@@ -3,7 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
-import {env} from "./config/env"
+import { env } from "./config/env"
+import session from "express-session"
 import { globalErrorMiddleware } from "./middlewares/globalErrorHandler";
 const app = express();
 import { stream } from "./utility/logger/stream";
@@ -22,10 +23,25 @@ app.use(
 if (env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 } else {
-  app.use(morgan("combined",{stream}));
+  app.use(morgan("combined", { stream }));
 }
 
 
+app.use(
+  session({
+    secret: env.SESSION_SECRET,
+
+    resave: false,
+
+    saveUninitialized: false,
+
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+    },
+  })
+);
 
 
 app.use(
@@ -42,16 +58,16 @@ app.use(cookieParser());
 app.use(loggerMiddleware)
 
 app.get("/health", (req, res) => {
-  
+
   res.status(200).json({
     success: true,
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    
+
   });
 });
 
-app.use("/api/v1",apiRouter)
+app.use("/api/v1", apiRouter)
 
 
 app.use((_req, res) => {

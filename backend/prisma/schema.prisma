@@ -56,12 +56,17 @@ enum Status {
   REVOKED
 }
 
+enum ProviderName{
+  Google
+  Github
+}
+
 model user {
   id                       String               @id @default(uuid())
   username                 String               @unique
   name                     String
   email                    String               @unique
-  password                 String
+  password                 String?
   avatar                   String?
   timezone                 String?
   memberships              workspaceMember[]
@@ -75,6 +80,7 @@ model user {
   channelInvitesSent       channelInvite[]      @relation("channelInvitesSent")
   channelInvitesReceived   channelInvite[]      @relation("channelInvitesReceived")
   sessions                 Session[]
+  oauthAccounts            OAuthAccount[]
 }
 
 model Session {
@@ -271,6 +277,16 @@ model workspaceInvite {
   expiresAt     DateTime
 
   @@unique([receiverId, workspaceId], where: { status: "PENDING" })
+}
+
+model OAuthAccount {
+  id         String       @id @default(uuid())
+  provider   ProviderName
+  providerId String
+  userId     String
+  user       user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
 }
 
 model channelInvite {

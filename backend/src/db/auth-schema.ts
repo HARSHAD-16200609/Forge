@@ -1,7 +1,5 @@
 // schemas/user.schema.ts
 
-import { password } from "bun";
-import { userInfo } from "node:os";
 import { z } from "zod";
 
 export const registerSchema = z.object({
@@ -57,6 +55,15 @@ export const loginSchema = z.object({
     refreshToken : z.jwt()
   })
 
+  export const oAuthProfileSchema = z.object({
+    provider: z.enum(["Google", "Github"]),
+    providerId: z.string().min(1),
+    email: z.email(),
+    name: z.string().min(1).max(50),
+    picture: z.url().optional().nullable(),
+  })
+
+  export type oAuthProfileData = z.infer<typeof oAuthProfileSchema>;
   export type registerUserInput = z.infer<typeof registerSchema>;
   export type loginUserInput = z.infer<typeof loginSchema>;
 export type jwtPayloadInput = z.infer<typeof reqUserSchema>

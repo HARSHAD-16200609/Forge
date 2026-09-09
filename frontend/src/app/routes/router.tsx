@@ -6,6 +6,7 @@ import { HomePage } from "@/app/pages/HomePage";
 import { ChannelHome } from "@/app/pages/ChannelHome";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
+import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Settings from "../pages/Settings";
 
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
         children: [
             { path: "login", Component: LoginPage },
             { path: "register", Component: RegisterPage },
+            { path: "callback", Component: AuthCallbackPage },
         ],
     },
 ]);

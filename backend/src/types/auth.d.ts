@@ -13,6 +13,16 @@ export type session = {
     userAgent : string
 }
 
+export type OAuthProvider = "Google" | "Github";
+
+export type OAuthProfile = {
+    provider: OAuthProvider
+    providerId: string
+    email: string
+    name: string
+    picture?: string | null | undefined
+}
+
 export type Params = {
 
 }

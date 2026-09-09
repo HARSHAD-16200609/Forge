@@ -192,6 +192,76 @@ export class AuthRepository {
     })
 
   }
+
+
+  async getOAuthUser(provider: "Google" | "Github", providerId: string) {
+    return await prisma.oAuthAccount.findUnique({
+      where: {
+
+        provider_providerId: {
+          provider, providerId
+
+        }
+      },
+      select: {
+        id: true,
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            name: true,
+          }
+        }
+      }
+    })
+
+  }
+
+  async createOAuthUserWithAccount(data: { username: string, name: string, email: string, avatar?: string | null }, accountData: { provider: "Google" | "Github", providerId: string }) {
+    return await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          username: data.username,
+          name: data.name,
+          email: data.email,
+          password: null,
+          avatar: data.avatar ?? null,
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          name: true,
+        }
+      });
+
+      await tx.oAuthAccount.create({
+        data: {
+          provider: accountData.provider,
+          providerId: accountData.providerId,
+          userId: user.id,
+        },
+        select: {
+          id: true,
+          userId: true,
+        }
+      });
+
+      return user;
+    })
+  }
+
+  async createOAuthAccount(data: { provider: "Google" | "Github", providerId: string, userId: string }) {
+    return await prisma.oAuthAccount.create({
+      data,
+      select: {
+        id: true,
+        userId: true,
+      }
+    })
+  }
 }
 
 export const authRepository =

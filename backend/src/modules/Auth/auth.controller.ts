@@ -2,12 +2,12 @@ import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
-import { clearCookieOptions, accessCookieOptions, refreshCookieOptions } from "../../config/env";
+import { clearCookieOptions, accessCookieOptions, refreshCookieOptions, env } from "../../config/env";
 import { authService } from "./auth.service";
-import { cookieTokens, loginSchema, refreshToken, registerSchema, reqUserSchema } from "../../db/auth-schema";
+import { cookieTokens, loginSchema, oAuthProfileSchema, refreshToken, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
-import z from "zod";
-import { idSchema } from "../../db/workspace";
+import * as oidc from "openid-client"
+import { oidcConfig } from "../../config/oidc";
 
 
 
@@ -49,8 +49,8 @@ export const Login = asyncHandler(async (req, res) => {
   const sessionInfo = await authService.Login(result.data, userMetaData)
 
   loggers.auth.info("Login successful", {
-    userId: sessionInfo?.userInfo.id || "",
-    email: sessionInfo?.userInfo.email || "",
+    userId: sessionInfo?.userId || "",
+    email: sessionInfo?.email || "",
     ip: req.ip,
     userAgent: req.get("user-agent"),
   });
@@ -61,7 +61,7 @@ export const Login = asyncHandler(async (req, res) => {
 
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {
     sucess: true,
-    user: sessionInfo?.userInfo || {}
+    user: sessionInfo || {}
   }, "User Logged in Sucessfully"))
 
 
@@ -141,4 +141,123 @@ export const getUser = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(StatusCodes.OK, response ?? {}, "User Details Fetched"))
 
+})
+
+export const genState = asyncHandler(async (req, res) => {
+
+  const codeVerifier = oidc.randomPKCECodeVerifier();
+
+  const codeChallenge =
+    await oidc.calculatePKCECodeChallenge(
+      codeVerifier
+    );
+
+  const state = oidc.randomState();
+
+  req.session.state = state;
+  req.session.codeVerifier = codeVerifier
+
+  const authorizationUrl =
+    oidc.buildAuthorizationUrl(
+      oidcConfig,
+      {
+        redirect_uri:
+          env.GOOGLE_REDIRECT_URI,
+
+        scope:
+          "openid email profile",
+
+        response_type:
+          "code",
+
+        code_challenge:
+          codeChallenge,
+
+        code_challenge_method:
+          "S256",
+
+        state,
+      }
+    );
+
+  res.redirect(authorizationUrl.href)
+
+
+})
+
+export const handleGoogleCallBack = asyncHandler(async (req, res) => {
+  try {
+
+    if (!req.session.codeVerifier || !req.session.state) {
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_oauth_session`);
+    }
+
+    const tokens = await oidc.authorizationCodeGrant(
+      oidcConfig,
+      new URL(
+        `${req.protocol}://${req.get("host")}${req.originalUrl}`
+      ),
+      {
+        pkceCodeVerifier: req.session.codeVerifier,
+        expectedState: req.session.state,
+      }
+    );
+    const claims = tokens.claims();
+
+    if (!claims?.sub) {
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=missing_subject`);
+    }
+
+    const userInfo = await oidc.fetchUserInfo(
+      oidcConfig,
+      tokens.access_token,
+      claims.sub
+    );
+
+    const result = oAuthProfileSchema.safeParse({
+      provider: "Google",
+      providerId: userInfo.sub,
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture ?? null,
+    });
+
+    if (!result.success) {
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_profile`);
+    }
+
+    const userMetaData = {
+      ip: req.ip ?? "",
+      userAgent: req.get("user-agent") ?? "",
+    };
+
+    const sessionInfo = await authService.oauthLogin(result.data, userMetaData)
+
+    delete req.session.state;
+    delete req.session.codeVerifier;
+
+    if (!sessionInfo) {
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=session_creation_failed`);
+    }
+
+    res.cookie("accessToken", sessionInfo.accessToken, accessCookieOptions)
+      .cookie("refreshToken", sessionInfo.refreshToken, refreshCookieOptions)
+
+    loggers.auth.info("Google OAuth login successful", {
+      userId: sessionInfo.userId || "",
+      email: sessionInfo.email || "",
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+    })
+
+    return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=success`);
+  } catch (error) {
+    console.error("OAuth callback error:");
+    console.dir(error, { depth: null });
+
+    delete req.session.state;
+    delete req.session.codeVerifier;
+
+    return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=oauth_callback_failed`);
+  }
 })
