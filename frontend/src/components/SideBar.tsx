@@ -41,6 +41,7 @@ import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { CreateWorkspaceForm } from "@/features/Workspaces/components/CreateWorkspaceForm";
 import { useDms } from "@/features/Messages/hooks/useDms";
+import { usePresenceStore } from "@/realtime/presenceStore";
 import type { Conversation } from "@/features/Messages/types";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
@@ -465,6 +466,21 @@ function DMRow({
         </div>
     );
 }
+
+function PresenceDMRow({
+    workspaceId,
+    dm,
+    onSelect,
+}: {
+    workspaceId?: string | null;
+    dm: Conversation;
+    onSelect?: () => void;
+}) {
+    const online = usePresenceStore((state) =>
+        workspaceId && dm.receiverId ? state.isOnline(workspaceId, dm.receiverId) : false,
+    );
+    return <DMRow dm={dm} online={online} onSelect={onSelect} />;
+}
 function AvatarDot({
     avatar,
     online,
@@ -806,10 +822,10 @@ function DetailSidebar({
             case "dms":
                 if (collapsed) return null;
                 return dms?.map((d) => (
-                    <DMRow
+                    <PresenceDMRow
                         key={d.id}
                         dm={d}
-                        online={true}
+                        workspaceId={selectedWorkspaceId}
                         onSelect={() => {
                             
                             setSelectedConversation(d.id, "DM")

@@ -1,6 +1,7 @@
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
 import { cn } from "@/lib/utils";
 import { Users, X } from "lucide-react";
+import { usePresenceStore } from "@/realtime/presenceStore";
 import type { ConversationDetail } from "@/features/Messages/types";
 
 function MemberAvatar({ username, avatar }: { username: string; avatar?: string | null }) {
@@ -18,15 +19,34 @@ function MemberAvatar({ username, avatar }: { username: string; avatar?: string 
     );
 }
 
+function PresenceDot({ workspaceId, userId }: { workspaceId?: string; userId: string }) {
+    const online = usePresenceStore(
+        (state) =>
+            workspaceId !== undefined &&
+            state.roster[workspaceId]?.[userId]?.status === "online",
+    );
+
+    return (
+        <span
+            className={cn(
+                "size-2 shrink-0 rounded-full",
+                online ? "bg-emerald-500" : "bg-muted-foreground/30",
+            )}
+        />
+    );
+}
+
 export function ConvoMembers({
     detail,
     title,
     type,
+    workspaceId,
     onClose,
 }: {
     detail?: ConversationDetail;
     title: string;
     type: "DM" | "GDM";
+    workspaceId?: string;
     onClose: () => void;
 }) {
     const members = detail?.members ?? [];
@@ -67,6 +87,7 @@ export function ConvoMembers({
                         className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-sidebar-accent"
                     >
                         <MemberAvatar username={user.username} avatar={user.avatar} />
+                        <PresenceDot workspaceId={workspaceId} userId={user.id} />
                         <span className="min-w-0 flex-1 truncate text-sm text-sidebar-foreground/90">
                             {user.username}
                         </span>

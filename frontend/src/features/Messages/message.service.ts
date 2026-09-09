@@ -1,10 +1,8 @@
 import { api } from "@/lib/api";
 import type {
-    channelParams,
     ConversationDetail,
     Conversations,
     dmParams,
-    Message,
     paginatedMessages,
 } from "./types";
 
@@ -39,23 +37,6 @@ class MessageService {
         return messages.data.data;
     }
 
-    async postMessage(
-        params: channelParams,
-        content: string,
-        files: File[] = [],
-    ): Promise<Message> {
-        const formData = new FormData();
-        formData.append("content", content);
-        files.forEach((file) => formData.append("attachments", file));
-
-        const sentMessage = await api.post(
-            `/workspace/${params.workspaceId}/channel/${params.channelId}/messages`,
-            formData,
-            { headers: { "Content-Type": "multipart/form-data" } },
-        );
-
-        return sentMessage.data.data;
-    }
     async getDMs(workspaceId: string): Promise<Conversations> {
         const conversations = await api.get(`/workspaces/${workspaceId}/conversations`);
 
@@ -68,6 +49,20 @@ class MessageService {
         );
 
         return conversation.data.data;
+    }
+
+    async uploadFiles(files: File[]): Promise<string[]> {
+        if (files.length === 0) return [];
+
+        const formData = new FormData();
+        files.forEach((file) => formData.append("attachments", file));
+
+        const response = await api.post("/uploads", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        const uploads = response.data.data as { id: string }[];
+        return uploads.map((upload) => upload.id);
     }
 
     async getConversationMessages(
@@ -85,46 +80,6 @@ class MessageService {
         );
 
         return messages.data.data;
-    }
-
-    async postConversationMessage(
-        params: dmParams,
-        content: string,
-        files: File[] = [],
-    ): Promise<Message> {
-        const formData = new FormData();
-        formData.append("content", content);
-        files.forEach((file) => formData.append("attachments", file));
-
-        const sentMessage = await api.post(
-            `/workspaces/${params.workspaceId}/conversations/${params.conversationId}/messages`,
-            formData,
-            { headers: { "Content-Type": "multipart/form-data" } },
-        );
-
-        return sentMessage.data.data;
-    }
-
-    async postReply(
-        params: channelParams | dmParams,
-        messageId: string,
-        content: string,
-        files: File[] = [],
-    ): Promise<Message> {
-        const formData = new FormData();
-        formData.append("content", content);
-        files.forEach((file) => formData.append("attachments", file));
-
-        const url =
-            "channelId" in params
-                ? `/messages/${messageId}/replies`
-                : `/workspaces/${params.workspaceId}/conversations/${params.conversationId}/messages/${messageId}`;
-
-        const sentMessage = await api.post(url, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        return sentMessage.data.data;
     }
 }
 

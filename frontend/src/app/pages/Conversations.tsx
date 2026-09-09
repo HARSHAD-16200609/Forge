@@ -3,14 +3,18 @@ import { MessageBubble } from "@/features/Messages/components/MessageBubble";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
 import { ConvoMembers } from "@/features/Messages/components/ConvoMembers";
 import { EmptyConversation } from "@/features/Messages/components/EmptyConversation";
+import { TypingIndicator } from "@/features/Messages/components/TypingIndicator";
 import { useConversationMessages } from "@/features/Messages/hooks/useConversationMessages";
 import { useSendConversationMessage } from "@/features/Messages/hooks/useSendConversationMessage";
 import { useSendReply } from "@/features/Messages/hooks/useSendReply";
+import { useEditMessage } from "@/features/Messages/hooks/useEditMessage";
+import { useDeleteMessage } from "@/features/Messages/hooks/useDeleteMessage";
+import { useReact } from "@/features/Messages/hooks/useReact";
 import { useDm } from "@/features/Messages/hooks/useDms";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
-import { ArrowLeft, Bell, Search, Users } from "lucide-react";
+import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Message } from "@/features/Messages/types";
 
@@ -43,14 +47,28 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
     );
 
     const sendReply = useSendReply(
-        {
-            workspaceId: selectedWorkspaceId ?? "",
-            conversationId: selectedConversationId ?? "",
-        },
-        ["conversation-messages", selectedConversationId ?? ""],
+        selectedWorkspaceId ?? "",
+        selectedConversationId ?? "",
+        "conversation",
+    );
+    const editMessage = useEditMessage(
+        "conversation",
+        selectedWorkspaceId ?? "",
+        selectedConversationId ?? "",
+    );
+    const deleteMessage = useDeleteMessage(
+        "conversation",
+        selectedWorkspaceId ?? "",
+        selectedConversationId ?? "",
+    );
+    const react = useReact(
+        "conversation",
+        selectedWorkspaceId ?? "",
+        selectedConversationId ?? "",
     );
 
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
     const Messages = useMemo(() => {
         const all = data?.pages.flatMap((page) => page.messages) ?? [];
@@ -249,8 +267,16 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                         >
                                             <MessageBubble
                                                 message={message}
-                                                isReply
                                                 onReply={(m) => setReplyingTo(m)}
+                                                onEdit={setEditingMessage}
+                                                onDelete={(m) => {
+                                                    if (window.confirm("Delete this message?")) {
+                                                        deleteMessage.mutate({ messageId: m.id });
+                                                    }
+                                                }}
+                                                onReact={(m, emoji) =>
+                                                    react.mutate({ messageId: m.id, reaction: emoji })
+                                                }
                                             />
                                         </div>
                                     ) : (
@@ -258,6 +284,15 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                             key={message.id}
                                             message={message}
                                             onReply={(m) => setReplyingTo(m)}
+                                            onEdit={setEditingMessage}
+                                            onDelete={(m) => {
+                                                if (window.confirm("Delete this message?")) {
+                                                    deleteMessage.mutate({ messageId: m.id });
+                                                }
+                                            }}
+                                            onReact={(m, emoji) =>
+                                                react.mutate({ messageId: m.id, reaction: emoji })
+                                            }
                                         />
                                     ),
                                 )}
@@ -279,18 +314,29 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                         detail={detail}
                         title={headerName}
                         type={selectedConversationType ?? "DM"}
+                        workspaceId={selectedWorkspaceId ?? ""}
                         onClose={() => setShowMembers(false)}
                     />
                 )}
             </div>
 
             <div className="shrink-0 px-4 pb-4">
+                <TypingIndicator entityId={selectedConversationId ?? ""} />
                 <MessageComposer
                     key={selectedConversationId}
                     channelId={selectedConversationId ?? ""}
                     channelName={headerName}
                     placeholder={`Message ${headerName}`}
                     disabled={sendMessage.isPending || sendReply.isPending}
+                    typingTarget={
+                        selectedWorkspaceId
+                            ? {
+                                  workspaceId: selectedWorkspaceId,
+                                  entityId: selectedConversationId ?? "",
+                                  entityType: "conversation",
+                              }
+                            : undefined
+                    }
                     replyTo={
                         replyingTo
                             ? { id: replyingTo.id, sender: replyingTo.sender.username }
@@ -308,6 +354,39 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                     }}
                 />
             </div>
+
+            {editingMessage && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+                    <div className="w-full max-w-2xl rounded-lg border border-border bg-background p-4 shadow-lg">
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm font-semibold">Edit message</span>
+                            <button
+                                type="button"
+                                aria-label="Close edit"
+                                onClick={() => setEditingMessage(null)}
+                                className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+                        <MessageComposer
+                            key={`edit-${editingMessage.id}`}
+                            channelId={editingMessage.id}
+                            channelName="edit-message"
+                            initialContent={editingMessage.content}
+                            disabled={editMessage.isPending}
+                            onSend={(content) =>
+                                editMessage
+                                    .mutateAsync({
+                                        messageId: editingMessage.id,
+                                        content,
+                                    })
+                                    .then(() => setEditingMessage(null))
+                            }
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

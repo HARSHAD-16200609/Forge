@@ -39,6 +39,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useComposerStore } from "@/stores/composerStore";
 import { Component as EmojiPicker } from "@/components/ui/emoji-picker";
+import { realtimeActions } from "@/realtime/realtimeActions";
+import type { WsMessageEntityType } from "@/features/Messages/types";
 import type { BlockToolConstructable, OutputData } from "@editorjs/editorjs";
 
 function parseStoredBlocks(contentJson: string): OutputData | undefined {
@@ -58,6 +60,12 @@ type MessageComposerProps = {
     channelId?: string;
     channelName?: string;
     placeholder?: string;
+    initialContent?: string;
+    typingTarget?: {
+        workspaceId: string;
+        entityId: string;
+        entityType: WsMessageEntityType;
+    };
     onChange?: (contentJson: string) => void;
     onSend?: (
         contentJson: string,
@@ -135,6 +143,8 @@ export function MessageComposer({
     channelId,
     channelName,
     placeholder,
+    initialContent,
+    typingTarget,
     onChange,
     onSend,
     disabled,
@@ -154,10 +164,37 @@ export function MessageComposer({
     const onChangeRef = useRef(onChange);
     const placeholderRef = useRef(placeholder ?? `Message #${channelName ?? "new-channel"}`);
     const handleSendRef = useRef<() => void>(() => {});
+    const typingTargetRef = useRef(typingTarget);
+    const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastTypingRef = useRef(0);
 
     useEffect(() => {
         onChangeRef.current = onChange;
     }, [onChange]);
+
+    useEffect(() => {
+        typingTargetRef.current = typingTarget;
+    }, [typingTarget]);
+
+    const sendTyping = useCallback((start: boolean) => {
+        const target = typingTargetRef.current;
+        if (!target) return;
+        if (start) {
+            realtimeActions.typingStart(target.entityType, target.workspaceId, target.entityId);
+        } else {
+            realtimeActions.typingStop(target.entityType, target.workspaceId, target.entityId);
+        }
+    }, []);
+
+    const handleTypingActivity = useCallback(() => {
+        const now = Date.now();
+        if (now - lastTypingRef.current > 1500) {
+            lastTypingRef.current = now;
+            sendTyping(true);
+        }
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => sendTyping(false), 3000);
+    }, [sendTyping]);
 
     const readActiveStyles = useCallback(() => {
         const editor = editorRef.current;
@@ -222,7 +259,8 @@ export function MessageComposer({
             /* ignore save errors while typing */
         }
         readActiveStyles();
-    }, [readActiveStyles, channelId]);
+        handleTypingActivity();
+    }, [readActiveStyles, channelId, handleTypingActivity]);
 
     useEffect(() => {
         if (!editorHostRef.current) return;
@@ -231,7 +269,11 @@ export function MessageComposer({
             holder: editorHostRef.current,
             placeholder: placeholderRef.current,
             autofocus: true,
-            data: parseStoredBlocks(useComposerStore.getState().getDraft(channelId ?? "")),
+            data: parseStoredBlocks(
+                useComposerStore.getState().getDraft(channelId ?? "") ||
+                    initialContent ||
+                    "",
+            ),
             tools: {
                 paragraph: {
                     class: Paragraph as unknown as BlockToolConstructable,
@@ -274,6 +316,8 @@ export function MessageComposer({
             disposed = true;
             document.removeEventListener("selectionchange", readActiveStyles);
             editorRef.current = null;
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+            sendTyping(false);
             void editor.isReady.then(() => {
                 const editable =
                     editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]");
@@ -284,7 +328,7 @@ export function MessageComposer({
                 editor.destroy();
             });
         };
-    }, [readActiveStyles, propagate, channelId]);
+    }, [readActiveStyles, propagate, channelId, sendTyping]);
 
     useEffect(() => {
         const editor = editorRef.current;
@@ -412,6 +456,8 @@ export function MessageComposer({
             setFiles([]);
             useComposerStore.getState().clearDraft(channelId ?? "");
             onChangeRef.current?.(JSON.stringify([]));
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+            sendTyping(false);
         } catch {
             /* keep editor content so the user can retry on failure */
         }

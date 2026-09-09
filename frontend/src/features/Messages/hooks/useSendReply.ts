@@ -1,12 +1,15 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { messageService } from "../message.service";
-import type { channelParams, dmParams } from "../types";
+import { realtimeActions } from "@/realtime/realtimeActions";
+import type { WsMessageEntityType } from "../types";
 
-export function useSendReply(params: channelParams | dmParams, queryKey: string[]) {
-    const queryClient = useQueryClient();
-
+export function useSendReply(
+    workspaceId: string,
+    entityId: string,
+    entityType: WsMessageEntityType,
+) {
     return useMutation({
-        mutationFn: ({
+        mutationFn: async ({
             messageId,
             content,
             files,
@@ -14,9 +17,16 @@ export function useSendReply(params: channelParams | dmParams, queryKey: string[
             messageId: string;
             content: string;
             files: File[];
-        }) => messageService.postReply(params, messageId, content, files),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey });
+        }) => {
+            const uploadIds = await messageService.uploadFiles(files);
+            realtimeActions.sendReply(
+                workspaceId,
+                messageId,
+                entityId,
+                entityType,
+                content,
+                uploadIds,
+            );
         },
     });
 }

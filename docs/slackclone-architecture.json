@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SlackClone — Full-Stack Architecture",
+    "output": "slackclone-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1340, 610],
+    "views": [
+      { "id": "ws-message-path", "label": "WS message create path", "focus": ["browser", "gateway", "wsrv", "handlers", "prisma", "pg"], "note": "Follow the WebSocket message.create flow from client to database broadcast." },
+      { "id": "rest-and-auth", "label": "REST and auth", "focus": ["browser", "gateway", "auth", "rest"], "note": "All /api/v1 routes behind verifyJwt with JWT httpOnly cookie sessions." },
+      { "id": "realtime-state", "label": "Real-time state", "focus": ["browser", "gateway", "wsrv", "handlers", "submgr"], "note": "Connection lifecycle, presence, typing, and subscription management." }
+    ]
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "React SPA", "sublabel": "Vite 8 · React", "tag": "axios + ws client", "pos": [40, 215], "size": [150, 96] },
+    { "id": "auth", "type": "security", "label": "verifyJwt", "sublabel": "JWT · httpOnly cookie", "tag": "session rows", "pos": [300, 60], "size": [150, 74] },
+    { "id": "gateway", "type": "backend", "label": "HTTP Gateway", "sublabel": "Express 5 · ws upgrade", "pos": [300, 215], "size": [150, 96] },
+    { "id": "wsrv", "type": "backend", "label": "WebSocket Layer", "sublabel": "EventRouter · ws :8000", "pos": [610, 215], "size": [180, 96] },
+    { "id": "prisma", "type": "backend", "label": "Prisma Client", "sublabel": "adapter-pg · generated", "pos": [940, 215], "size": [150, 96] },
+    { "id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "WorkSphere", "pos": [1185, 215], "size": [140, 96] },
+    { "id": "rest", "type": "backend", "label": "REST Modules", "sublabel": "feature controllers", "pos": [300, 410], "size": [150, 84] },
+    { "id": "submgr", "type": "backend", "label": "SubscriptionMgr", "sublabel": "entity → socket set", "pos": [480, 410], "size": [150, 84] },
+    { "id": "handlers", "type": "messagebus", "label": "WS Handlers", "sublabel": "message · typing", "pos": [680, 410], "size": [170, 84] },
+    { "id": "cld", "type": "cloud", "label": "Cloudinary", "sublabel": "media CDN", "pos": [700, 540], "size": [140, 60] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "SlackClone Backend", "wraps": ["auth", "gateway", "rest", "wsrv", "submgr", "handlers", "prisma"] }
+  ],
+  "connections": [
+    { "id": "browser-rest", "from": "browser", "to": "gateway", "label": "REST · /api/v1", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "browser-ws", "from": "browser", "to": "gateway", "label": "WS upgrade · ws://", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelDy": 32 },
+    { "id": "gw-auth", "from": "gateway", "to": "auth", "label": "verify JWT + session", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "gw-rest", "from": "gateway", "to": "rest", "label": "mount routes", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "gw-wsrv", "from": "gateway", "to": "wsrv", "label": "upgrade · EventRouter", "fromSide": "right", "toSide": "left" },
+    { "id": "wsrv-handlers", "from": "wsrv", "to": "handlers", "label": "dispatch events", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "wsrv-submgr", "from": "wsrv", "to": "submgr", "label": "subscribe / unsubscribe", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "handlers-prisma", "from": "handlers", "to": "prisma", "label": "tx message + uploads", "variant": "emphasis", "fromSide": "right", "toSide": "bottom", "labelAt": [915, 500] },
+    { "id": "rest-prisma", "from": "rest", "to": "prisma", "label": "SQL", "fromSide": "bottom", "toSide": "bottom" },
+    { "id": "prisma-pg", "from": "prisma", "to": "pg", "label": "SQL", "fromSide": "right", "toSide": "left" },
+    { "id": "rest-cld", "from": "rest", "to": "cld", "label": "upload / delete media", "fromSide": "bottom", "toSide": "top", "labelDy": 40 },
+    { "id": "wsrv-broadcast", "from": "wsrv", "to": "browser", "label": "broadcast message.created", "variant": "dashed", "fromSide": "top", "toSide": "top", "via": [[700, 44], [115, 44]], "labelAt": [182, 46] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Real-time WebSocket layer", "items": ["EventRouter dispatches to typed handlers (message, typing, reaction, reply, presence, heartbeat)", "ConnectionManager tracks userId → socket set for multi-device", "SubscriptionManager maps entity → sockets for scoped broadcast", "HeartbeatManager sweeps dead sockets every 30s; client pings every 25s"] },
+    { "dot": "emerald", "title": "REST API", "items": ["/api/v1 feature modules behind verifyJwt", "Multer stages uploads to Cloudinary before the message exists", "JWT httpOnly cookie sessions with refresh rotation", "node-cron sweeps stale invites and sessions"] },
+    { "dot": "rose", "title": "Persistence", "items": ["PostgreSQL reached only through the Prisma adapter-pg client", "Upload rows staged pending (messageId null) then bound", "Realtime state lives in-process — single-node scaling today"] }
+  ]
+}

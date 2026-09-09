@@ -217,7 +217,7 @@ class AuthService {
         }
     }
     async getUser(userId : string){
-        const user = await authRepository.getById(userId)
+        const user = await authRepository.getUser(userId)
         return user
     }
 
