@@ -4,7 +4,7 @@ import { deleteFromCloudinary } from "../config/cloudinary"
 import { getResourceType } from "../db/message.schema"
 import { loggers } from "../utility/logger/serviceLoggers"
 import upload from "../middlewares/multer.midleware"
-import { messageRepository } from "../modules/Messages/message.repositoty"
+import { messageRepository } from "../modules/Messages/message.repository"
 import { uploadRepository } from "../modules/Messages/upload.repository"
 
 

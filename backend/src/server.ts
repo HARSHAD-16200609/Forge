@@ -1,13 +1,16 @@
-import app from "./app";
-import {env} from "./config/env"
-
+import { env } from "./config/env"
+import { createRealtimeServer } from "./createRealtimeServer";
+import { heartbeatManager } from "./websockets/heartbeatManager";
 
 const PORT = Number(env.PORT) || 8000;
 
-const server = app.listen(PORT, () => {
+const server = createRealtimeServer();
+
+
+server.listen(PORT, () => {
+  heartbeatManager.start();
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
 
 const shutdown = (signal: string) => {
   console.log(`${signal} received. Shutting down gracefully...`);

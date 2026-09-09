@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Forge — Slack Clone Architecture",
+    "output": "forge-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1390, 780],
+    "views": [
+      { "id": "message-path", "label": "Message create path", "focus": ["browser", "wsrv", "prisma", "pg", "cld"], "note": "Follow the WebSocket message.create flow from the client to a transactional message + ownership-scoped upload bind." },
+      { "id": "rest-and-auth", "label": "REST and auth", "focus": ["browser", "gateway", "auth", "rest"], "note": "All /api/v1 routes sit behind verifyJwt with JWT httpOnly cookie sessions." },
+      { "id": "cleanup", "label": "Cleanup jobs", "focus": ["cron", "prisma", "cld"], "note": "node-cron sweeps expired invites and sessions; stale media cleanup is staged for upload rows." }
+    ]
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "React SPA", "sublabel": "Vite 8 · React 19", "tag": "axios + WS client (planned)", "pos": [20, 230], "size": [150, 96] },
+    { "id": "auth", "type": "security", "label": "verifyJwt", "sublabel": "JWT · httpOnly cookie", "tag": "session rows", "pos": [290, 90], "size": [150, 74] },
+    { "id": "gateway", "type": "backend", "label": "Forge Gateway", "sublabel": "Express 5 · ws :3000", "pos": [290, 230], "size": [150, 96] },
+    { "id": "wsrv", "type": "backend", "label": "WebSocket Layer", "sublabel": "EventRouter · handlers", "pos": [600, 230], "size": [170, 96] },
+    { "id": "prisma", "type": "backend", "label": "Prisma Client", "sublabel": "adapter-pg · generated", "pos": [920, 230], "size": [150, 96] },
+    { "id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "Forge", "pos": [1200, 230], "size": [140, 96] },
+    { "id": "rest", "type": "backend", "label": "REST Modules", "sublabel": "Workspace · Channel · Messages", "pos": [290, 560], "size": [180, 84] },
+    { "id": "cld", "type": "cloud", "label": "Cloudinary", "sublabel": "media CDN", "pos": [600, 560], "size": [160, 84] },
+    { "id": "cron", "type": "backend", "label": "node-cron Jobs", "sublabel": "invite · session cleanup", "pos": [920, 560], "size": [160, 84] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Forge Backend", "wraps": ["auth", "gateway", "rest", "wsrv", "prisma", "cron"] }
+  ],
+  "connections": [
+    { "id": "browser-rest", "from": "browser", "to": "gateway", "label": "REST · /api/v1", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [215, 253] },
+    { "id": "browser-ws", "from": "browser", "to": "gateway", "label": "WS upgrade · ws://", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [215, 340] },
+    { "id": "gw-auth", "from": "gateway", "to": "auth", "label": "verify JWT + session", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "gw-rest", "from": "gateway", "to": "rest", "label": "mount routes", "fromSide": "bottom", "toSide": "top", "labelAt": [365, 340] },
+    { "id": "gw-wsrv", "from": "gateway", "to": "wsrv", "label": "upgrade · EventRouter", "fromSide": "right", "toSide": "left" },
+    { "id": "rest-prisma", "from": "rest", "to": "prisma", "label": "SQL", "fromSide": "top", "toSide": "bottom" },
+    { "id": "wsrv-prisma", "from": "wsrv", "to": "prisma", "label": "tx message + uploads", "fromSide": "right", "toSide": "left" },
+    { "id": "prisma-pg", "from": "prisma", "to": "pg", "label": "SQL", "fromSide": "right", "toSide": "left" },
+    { "id": "rest-cld", "from": "rest", "to": "cld", "label": "upload / delete media", "fromSide": "right", "toSide": "left" },
+    { "id": "cron-prisma", "from": "cron", "to": "prisma", "label": "cleanup queries", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "cron-cld", "from": "cron", "to": "cld", "label": "delete stale media", "variant": "dashed", "fromSide": "left", "toSide": "right" },
+    { "id": "wsrv-broadcast", "from": "wsrv", "to": "browser", "label": "broadcast message.created", "variant": "dashed", "fromSide": "top", "toSide": "top", "via": [[685, 44], [95, 44]], "labelAt": [390, 38] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Realtime messaging", "items": ["WebSocket EventRouter contract: message.create in, message.created out", "Ownership-scoped upload bind via uploaderId before broadcast", "Reply to sender plus fan-out to channel subscribers"] },
+    { "dot": "emerald", "title": "REST API", "items": ["/api/v1 feature modules behind verifyJwt", "Multer stages uploads to Cloudinary before the message exists", "JWT httpOnly cookie sessions with refresh rotation"] },
+    { "dot": "rose", "title": "Persistence", "items": ["PostgreSQL reached only through the Prisma adapter-pg client", "Upload rows are staged pending (messageId null) then bound", "Realtime state lives in-process — single-node scaling today"] }
+  ]
+}

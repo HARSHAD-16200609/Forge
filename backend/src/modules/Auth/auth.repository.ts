@@ -102,8 +102,11 @@ export class AuthRepository {
   }
 
   async createSession(session: session) {
-    await prisma.session.create({
-      data: session
+    return await prisma.session.create({
+      data: session,
+      select: {
+        id: true
+      }
     })
   }
   async findSession(refreshTokenHash: string, expiry?: Date) {
@@ -116,12 +119,23 @@ export class AuthRepository {
           },
         }),
       }, select: {
+        id: true,
         userId: true
       }
     })
     return refreshToken
   }
-
+  async getSessionById(sessionId: string) {
+    return await prisma.session.findUnique({
+      where: {
+        id: sessionId
+      },
+      select: {
+        id: true,
+        userId: true
+      }
+    })
+  }
   async deleteSession(refreshTokenHash: string) {
     await prisma.session.delete({
       where: {
@@ -152,20 +166,31 @@ export class AuthRepository {
       where: {
         id
       }, select: {
+        id: true,
         username: true
       }
     })
   }
+  async validateSession(sessionId: string) {
 
-  async getUser(userId: string) {
-    return await prisma.user.findUnique({
+    return await prisma.session.findUnique({
       where: {
-        id: userId
+        id: sessionId
       },
-      omit:{
-        password:true,
+      select: {
+        id: true,
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            username: true
+          }
+
+        }
+
       }
     })
+
   }
 }
 

@@ -1,0 +1,160 @@
+import { WebSocket } from "ws";
+import { StatusCodes } from "http-status-codes";
+import { loggers } from "../utility/logger/serviceLoggers";
+import { WsEvent } from "./types/events";
+import { WebSocketMessage } from "./types/websocketMessage";
+import { sendWs, WsResponse } from "./utility/wsResponse";
+import { typingHandler } from "./handlers/typingHandler";
+import { reactionHandler } from "./handlers/reactionHandler";
+import { replyHandler } from "./handlers/replyHandler";
+import { conversationHandler } from "./handlers/conversationHandler";
+import { connectionManager } from "./connectionManager";
+import { messageHandler } from "./handlers/messageHandler";
+import { presenceHandler } from "./presenceManager";
+import { heartbeatHandler } from "./handlers/heartbeatHandler";
+
+
+type EventHandler = (
+    ws: WebSocket,
+    message: WebSocketMessage
+) => Promise<void>;
+
+class EventRouter {
+
+    private readonly handlers = new Map<WsEvent, EventHandler>();
+
+    constructor() {
+        this.handlers.set(
+            WsEvent.ConversationSubscribe,
+            conversationHandler.subscribe
+        );
+
+        this.handlers.set(
+            WsEvent.ConversationUnsubscribe,
+            conversationHandler.unsubscribe
+        );
+        this.handlers.set(
+            WsEvent.ConversationMessage,
+            conversationHandler.createMessage
+        );
+
+
+        this.handlers.set(
+            WsEvent.ChannelSubscribe,
+            messageHandler.subscribe
+        );
+
+        this.handlers.set(
+            WsEvent.ChannelUnsubscribe,
+            messageHandler.unsubscribe
+        );
+
+        this.handlers.set(
+            WsEvent.ChannelMessage,
+            messageHandler.createMessage
+        );
+        this.handlers.set(
+            WsEvent.ChannelMessageUpdate,
+            messageHandler.updateMessage
+        )
+        this.handlers.set(
+            WsEvent.ChannelMessageDelete,
+            messageHandler.deleteMessage
+        );
+        this.handlers.set(
+            WsEvent.ConversationMessageUpdate,
+            conversationHandler.updateMessage
+        );
+        this.handlers.set(
+            WsEvent.ConversationMessageDelete,
+            conversationHandler.deleteMessage
+        );
+        this.handlers.set(
+            WsEvent.TypingStart,
+            typingHandler.typingStart);
+
+        this.handlers.set(
+            WsEvent.TypingStop,
+            typingHandler.typingStop)
+
+        this.handlers.set(
+            WsEvent.ChannelMessageReaction,
+            reactionHandler.react
+        );
+
+        this.handlers.set(
+            WsEvent.ConversationMessageReaction,
+            reactionHandler.react
+        );
+
+        this.handlers.set(
+            WsEvent.ChannelMessageReply,
+            replyHandler.reply
+        );
+
+        this.handlers.set(
+            WsEvent.ConversationMessageReply,
+            replyHandler.reply
+        );
+
+        this.handlers.set(
+            WsEvent.PresenceUpdate,
+            presenceHandler.registerConnection.bind(presenceHandler)
+        );
+
+        this.handlers.set(
+            WsEvent.Ping,
+            heartbeatHandler.ping
+        );
+
+    }
+
+    async dispatch(
+        ws: WebSocket,
+        message: WebSocketMessage
+    ): Promise<void> {
+        const handler = this.handlers.get(message.type);
+
+
+        if (!handler) {
+            loggers.audit.warn("UNKNOWN_WS_EVENT", {
+                eventType: message.type,
+                userId: connectionManager.getMetadata(ws)?.userId,
+            });
+
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.BAD_REQUEST,
+                    "UNKNOWN_EVENT",
+                    `Unknown event: ${message.type}`
+                )
+            );
+            return;
+        }
+
+        try {
+            await handler(ws, message);
+        } catch (error) {
+            loggers.audit.error("WS_EVENT_PROCESSING_FAILED", {
+                eventType: message.type,
+                userId: connectionManager.getMetadata(ws)?.userId,
+                payload: message.payload,
+                error: error instanceof Error ? error.stack : String(error),
+            });
+
+            sendWs(
+                ws,
+                WsResponse.fail(
+                    message.type,
+                    StatusCodes.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to process WebSocket event"
+                )
+            );
+        }
+    }
+}
+
+export const eventRouter = new EventRouter();

@@ -102,6 +102,17 @@ class ChannelRepository {
         return channel
     }
 
+    async getWorkspaceId(channelId: string) {
+        const channel = await prisma.channel.findUnique({
+            where: {
+                id: channelId,
+            }, select: {
+                workspaceId: true
+            }
+        });
+        return channel
+    }
+
     async getVisibleChannel(
         channelId: string,
         workspaceMemberId: string
