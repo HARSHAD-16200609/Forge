@@ -179,20 +179,20 @@ class ConversationHandler {
             senderId: userMetadata.userId
 
         }
-        const posts = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
+        const createdMessage = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
 
         let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
 
 
 
-        sendWs(ws, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, posts))
+        sendWs(ws, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, createdMessage))
 
 
 
         subscribers?.forEach((subscriber) => {
             if (subscriber !== ws) {
 
-                sendWs(subscriber, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, posts))
+                sendWs(subscriber, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, createdMessage))
             }
         })
     }
@@ -331,11 +331,11 @@ class ConversationHandler {
 
             return
         }
-        await messageRepository.deleteMessage(messageId)
+        const deletedMessage = await messageRepository.deleteMessage(messageId)
 
         let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
 
-        const response = WsResponse.ok(WsEvent.ConversationMessageDeleted, "OK", StatusCodes.OK, { messageId })
+        const response = WsResponse.ok(WsEvent.ConversationMessageDeleted, "OK", StatusCodes.OK, deletedMessage)
 
         sendWs(ws, response)
 

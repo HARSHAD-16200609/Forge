@@ -1,26 +1,17 @@
 import { prisma } from "../../config/prisma";
 import { MessageDTO } from "../../types/message";
 import { BadRequestError } from "../../utility/errorHandling/customErrors";
+import { messageDetailsInclude, toWsMessageDTO, WsMessageDTO } from "../../websockets/types/wsMessageDTO";
 
 class MessageRepository {
 
-    async postMessage(messageObj: MessageDTO, uploadIds: string[], uploaderId: string) {
+    async postMessage(messageObj: MessageDTO, uploadIds: string[], uploaderId: string): Promise<WsMessageDTO> {
         return await prisma.$transaction(async (tx) => {
 
             const message = await tx.message.create({
                 data: messageObj,
                 select: {
                     id: true,
-                    content: true,
-                    sentAt: true,
-                    editedAt: true,
-                    sender: {
-                        select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                        },
-                    },
                 },
             });
 
@@ -40,27 +31,22 @@ class MessageRepository {
             })
             if (attachments.count !== uploadIds.length) throw new BadRequestError("Some uipload Id's are invlaid or already attached")
 
-            const uploads = await tx.upload.findMany({
-                where: {
-                    id: {
-                        in: uploadIds
-                    }
-                }, select: {
-                    id: true, url: true, filename: true, mimeType: true, fileSize: true, fileType: true , uploaderId :true
-                }
+            const created = await tx.message.findUnique({
+                where: { id: message.id },
+                include: messageDetailsInclude,
             })
-            return { message,uploads }
+
+            return toWsMessageDTO(created!)
 
         })
 
 
     }
 
-    async getMessages(channelId: string, pagination: { cursor?: string | undefined, limit: number }) {
+    async getMessages(channelId: string, pagination: { cursor?: string | undefined, limit: number }): Promise<WsMessageDTO[]> {
         const messages = await prisma.message.findMany({
             where: {
                 channelId,
-                deletedAt: null
             }, take: pagination.limit + 1, ...(pagination.cursor && {
                 cursor: {
                     id: pagination.cursor,
@@ -68,72 +54,27 @@ class MessageRepository {
             }),
             orderBy: {
                 sentAt: "desc"
-            }, include: {
-                sender: {
-                    select: {
-                        username: true,
-                        avatar: true,
-                    },
-                },
-            }, omit: {
-                deletedAt: true,
-                channelId: true,
-                conversationId: true
-            }
+            }, include: messageDetailsInclude
         })
-        return messages
+        return messages.map(toWsMessageDTO)
 
     }
-    async getById(messageId: string) {
+    async getById(messageId: string): Promise<WsMessageDTO | null> {
         const message = await prisma.message.findUnique({
             where: {
                 id: messageId,
             },
-            include: {
-                sender: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatar: true,
-                    },
-                },
-                channel: {
-                    select: {
-                        id: true,
-                        workspaceId: true,
-                    },
-                },
-                replies: {
-                    select: {
-                        content: true,
-                        sender: {
-                            select: {
-                                username: true,
-                                avatar: true
-                            }
-                        }
-                    }
-                }, reactions: {
-                    select: {
-                        emoji: true
-                    }
-                },
-                uploads: {
-                    select: {
-                        filename: true,
-                        fileType: true,
-                        url: true
-                    }
-                }
-            }, omit: {
-                conversationId: true
-            }
+            include: messageDetailsInclude,
+            omit: {
+                conversationId: false,
+            },
         });
-        return message
+
+        return message ? toWsMessageDTO(message) : null
     }
 
-    async editMessage(content: string, messageId: string) {
-        const editedMessage = await prisma.message.update({
+    async editMessage(content: string, messageId: string): Promise<WsMessageDTO> {
+        await prisma.message.update({
             where: {
                 id: messageId
             }, data: {
@@ -141,10 +82,15 @@ class MessageRepository {
                 editedAt: new Date()
             }
         })
-        return editedMessage
+        const edited = await prisma.message.findUnique({
+            where: { id: messageId },
+            include: messageDetailsInclude,
+        })
+        return toWsMessageDTO(edited!)
     }
-    async deleteMessage(messageId: string) {
-        const deletedMessage = await prisma.message.update({
+
+    async deleteMessage(messageId: string): Promise<WsMessageDTO> {
+        await prisma.message.update({
             where: {
                 id: messageId
             }, data: {
@@ -153,18 +99,27 @@ class MessageRepository {
             }
         })
 
+        const tombstone = await prisma.message.findUnique({
+            where: { id: messageId },
+            include: messageDetailsInclude,
+        })
+        return toWsMessageDTO(tombstone!)
     }
 
-    async createReply(message: MessageDTO, parentMessageId: string) {
+    async createReply(message: MessageDTO, parentMessageId: string): Promise<WsMessageDTO> {
         const reply = await prisma.message.create({
             data: {
                 ...message,
                 parentMsgId: parentMessageId
-            }
-
+            },
+            select: { id: true }
         })
-        return reply
 
+        const created = await prisma.message.findUnique({
+            where: { id: reply.id },
+            include: messageDetailsInclude,
+        })
+        return toWsMessageDTO(created!)
     }
     async addReaction(userId: string, messageId: string, emoji: string) {
         const reaction = await prisma.reaction.create({
@@ -269,11 +224,10 @@ class MessageRepository {
         });
         return deletedMsgs
     }
-    async getConversationMessages(conversationId: string, pagination: { cursor?: string | undefined, limit: number }) {
+    async getConversationMessages(conversationId: string, pagination: { cursor?: string | undefined, limit: number }): Promise<WsMessageDTO[]> {
         const messages = await prisma.message.findMany({
             where: {
                 conversationId,
-                deletedAt: null
             }, take: pagination.limit + 1, ...(pagination.cursor && {
                 cursor: {
                     id: pagination.cursor,
@@ -281,42 +235,9 @@ class MessageRepository {
             }),
             orderBy: {
                 sentAt: "desc"
-            }, include: {
-                uploads: {
-                    select: {
-                        url: true
-                    }
-                }, reactions: {
-                    select: {
-                        emoji: true,
-                        reactedBy: {
-                            select: {
-                                username: true,
-                                avatar: true
-                            }
-                        }
-
-                    }
-                }, replies: {
-                    select: {
-                        content: true
-                    },
-                }, sender: {
-                    select: {
-                        username: true,
-                        avatar: true
-                    }
-                }
-            },
-            omit: {
-                senderId: true,
-                deletedAt: true,
-                channelId: true,
-                conversationId: true
-            }
+            }, include: messageDetailsInclude
         })
-        return messages
-
+        return messages.map(toWsMessageDTO)
     }
     async messageExists(messageId: string) {
         return await prisma.message.findUnique({
@@ -342,7 +263,3 @@ class MessageRepository {
 }
 
 export const messageRepository = new MessageRepository()
-
-
-
-

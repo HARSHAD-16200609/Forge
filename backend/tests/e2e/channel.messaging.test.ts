@@ -59,8 +59,8 @@ describe("channel messaging over websockets", () => {
     for (const ws of [ownerWs, memberWs]) {
       const created = await waitForType(ws, WsEvent.ChannelMessageCreated);
       expect(created.success).toBe(true);
-      expect((created.data!.message as { content: string }).content).toBe("hello from member");
-      const messageId = (created.data!.message as { id: string }).id;
+      expect((created.data as { content: string }).content).toBe("hello from member");
+      const messageId = (created.data as { id: string }).id;
 
       const row = await prisma.message.findUnique({ where: { id: messageId } });
       expect(row).toMatchObject({
@@ -85,7 +85,7 @@ describe("channel messaging over websockets", () => {
     });
     const created = await waitForType(ownerWs, WsEvent.ChannelMessageCreated);
     await waitForType(memberWs, WsEvent.ChannelMessageCreated);
-    const messageId = (created.data!.message as { id: string }).id;
+    const messageId = (created.data as { id: string }).id;
 
     send(ownerWs, WsEvent.ChannelMessageUpdate, {
       workspaceId: scene.workspace.id,
@@ -117,7 +117,7 @@ describe("channel messaging over websockets", () => {
     });
     const created = await waitForType(ownerWs, WsEvent.ChannelMessageCreated);
     await waitForType(memberWs, WsEvent.ChannelMessageCreated);
-    const messageId = (created.data!.message as { id: string }).id;
+    const messageId = (created.data as { id: string }).id;
 
     send(ownerWs, WsEvent.ChannelMessageDelete, {
       workspaceId: scene.workspace.id,
@@ -127,7 +127,9 @@ describe("channel messaging over websockets", () => {
 
     for (const ws of [ownerWs, memberWs]) {
       const deleted = await waitForType(ws, WsEvent.ChannelMessageDeleted);
-      expect((deleted.data as { messageId: string }).messageId).toBe(messageId);
+      expect((deleted.data as { id: string }).id).toBe(messageId);
+      expect((deleted.data as { content: string }).content).toBe("");
+      expect((deleted.data as { deletedAt: string | null }).deletedAt).not.toBeNull();
     }
 
     const row = await prisma.message.findUnique({ where: { id: messageId } });
@@ -147,7 +149,7 @@ describe("channel messaging over websockets", () => {
     });
     const created = await waitForType(ownerWs, WsEvent.ChannelMessageCreated);
     await waitForType(memberWs, WsEvent.ChannelMessageCreated);
-    const messageId = (created.data!.message as { id: string }).id;
+    const messageId = (created.data as { id: string }).id;
 
     const react = (ws: WebSocket) =>
       send(ws, WsEvent.ChannelMessageReaction, {
@@ -164,6 +166,8 @@ describe("channel messaging over websockets", () => {
       expect((added.data as { action: string }).action).toBe("added");
       expect((added.data as { reaction: string }).reaction).toBe("👍");
       expect((added.data as { messageId: string }).messageId).toBe(messageId);
+      expect((added.data as { userId: string }).userId).toBe(scene.member.user.id);
+      expect((added.data as { username: string }).username).toBe(scene.member.user.username);
     }
     expect(
       await prisma.reaction.findFirst({
@@ -195,7 +199,7 @@ describe("channel messaging over websockets", () => {
     });
     const created = await waitForType(ownerWs, WsEvent.ChannelMessageCreated);
     await waitForType(memberWs, WsEvent.ChannelMessageCreated);
-    const parentId = (created.data!.message as { id: string }).id;
+    const parentId = (created.data as { id: string }).id;
 
     send(memberWs, WsEvent.ChannelMessageReply, {
       workspaceId: scene.workspace.id,

@@ -547,11 +547,23 @@ describe("messageHandler.channel.message.delete", () => {
         payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID, messageId: MESSAGE_ID },
     };
 
-    it("deletes the message and replies + broadcasts channel.message.deleted with { messageId } in data", async () => {
+    it("deletes the message and replies + broadcasts channel.message.deleted with the tombstone in data", async () => {
         vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
         vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
         vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
         vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
+        const deletedMessage = {
+            id: MESSAGE_ID,
+            content: "",
+            editedAt: null,
+            deletedAt: new Date("2024-01-02T00:00:00Z"),
+            parentMsgId: null,
+            senderId: "user-1",
+            channelId: CHANNEL_ID,
+            conversationId: null,
+            sentAt: new Date("2024-01-01T00:00:00Z"),
+        };
+        vi.mocked(messageRepository.deleteMessage).mockResolvedValue(deletedMessage as never);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
@@ -569,11 +581,11 @@ describe("messageHandler.channel.message.delete", () => {
         expect(otherFrame).toBeDefined();
         expect(sent.filter((f) => f.ws === ws)).toHaveLength(1);
         for (const frame of sent) {
-            const response = frame.response as { type: string; success: boolean; statusCode: number; data: { messageId: string } };
+            const response = frame.response as { type: string; success: boolean; statusCode: number; data: Record<string, unknown> };
             expect(response.type).toBe(WsEvent.ChannelMessageDeleted);
             expect(response.success).toBe(true);
             expect(response.statusCode).toBe(StatusCodes.OK);
-            expect(response.data).toEqual({ messageId: MESSAGE_ID });
+            expect(response.data).toEqual(deletedMessage);
         }
         subscriptionManager.unsubscribe(CHANNEL_ID, otherWs);
     });

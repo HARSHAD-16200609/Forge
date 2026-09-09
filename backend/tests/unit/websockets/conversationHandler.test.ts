@@ -481,6 +481,18 @@ describe("conversationHandler.deleteMessage", () => {
     it("deletes the message and sends exactly one frame to the sender plus one broadcast", async () => {
         authMocks();
         vi.mocked(messageRepository.messageExists).mockResolvedValue(convoPost as never);
+        const deletedMessage = {
+            id: MESSAGE_ID,
+            content: "",
+            editedAt: null,
+            deletedAt: new Date("2024-01-02T00:00:00Z"),
+            parentMsgId: null,
+            senderId: "user-1",
+            channelId: null,
+            conversationId: CONVO_ID,
+            sentAt: new Date("2024-01-01T00:00:00Z"),
+        };
+        vi.mocked(messageRepository.deleteMessage).mockResolvedValue(deletedMessage as never);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
         subscriptionManager.subscribe(CONVO_ID, otherWs);
@@ -497,11 +509,11 @@ describe("conversationHandler.deleteMessage", () => {
         expect(senderFrames).toHaveLength(1);
         expect(otherFrame).toBeDefined();
         for (const frame of sent) {
-            const response = frame.response as { type: string; success: boolean; statusCode: number; data: { messageId: string } };
+            const response = frame.response as { type: string; success: boolean; statusCode: number; data: Record<string, unknown> };
             expect(response.type).toBe(WsEvent.ConversationMessageDeleted);
             expect(response.success).toBe(true);
             expect(response.statusCode).toBe(StatusCodes.OK);
-            expect(response.data).toEqual({ messageId: MESSAGE_ID });
+            expect(response.data).toEqual(deletedMessage);
         }
         subscriptionManager.unsubscribe(CONVO_ID, otherWs);
     });

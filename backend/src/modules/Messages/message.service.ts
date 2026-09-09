@@ -38,18 +38,20 @@ class MessageService {
             throw new NotFoundError("Message not found");
         }
 
-        if (!message.channelId) {
+        if (message.entity.type !== "channel") {
             throw new BadRequestError("Message does not belong to a channel");
         }
-        const workspaceMember = await workspaceRepository.memberExists(userId, message.channel!.workspaceId)
+        const channel = await channelRepository.getWorkspaceId(message.entity.id)
+        if (!channel) throw new NotFoundError("Channel not found")
+
+        const workspaceMember = await workspaceRepository.memberExists(userId, channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
-        const channelMember = await channelRepository.memberExists(workspaceMember.id, message.channelId)
+        const channelMember = await channelRepository.memberExists(workspaceMember.id, message.entity.id)
         if (!channelMember) throw new ForbiddenError("You are not an member of this channel")
 
-        const { channel, ...messagewithoutChannelInfo } = message
         return {
-            message: messagewithoutChannelInfo
+            message
         }
 
     }

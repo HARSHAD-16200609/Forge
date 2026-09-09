@@ -60,8 +60,8 @@ describe("conversation messaging over websockets", () => {
 
     for (const ws of [aliceWs, bobWs]) {
       const created = await waitForType(ws, WsEvent.ConversationMessageCreated);
-      expect((created.data!.message as { content: string }).content).toBe("private dm");
-      const messageId = (created.data!.message as { id: string }).id;
+      expect((created.data as { content: string }).content).toBe("private dm");
+      const messageId = (created.data as { id: string }).id;
 
       const row = await prisma.message.findUnique({ where: { id: messageId } });
       expect(row).toMatchObject({
@@ -89,7 +89,7 @@ describe("conversation messaging over websockets", () => {
     });
     const created = await waitForType(aliceWs, WsEvent.ConversationMessageCreated);
     await waitForType(bobWs, WsEvent.ConversationMessageCreated);
-    const messageId = (created.data!.message as { id: string }).id;
+    const messageId = (created.data as { id: string }).id;
 
     send(aliceWs, WsEvent.ConversationMessageUpdate, {
       workspaceId: scene.workspace.id,
@@ -115,7 +115,9 @@ describe("conversation messaging over websockets", () => {
 
     for (const ws of [aliceWs, bobWs]) {
       const deleted = await waitForType(ws, WsEvent.ConversationMessageDeleted);
-      expect((deleted.data as { messageId: string }).messageId).toBe(messageId);
+      expect((deleted.data as { id: string }).id).toBe(messageId);
+      expect((deleted.data as { content: string }).content).toBe("");
+      expect((deleted.data as { deletedAt: string | null }).deletedAt).not.toBeNull();
     }
     const row = await prisma.message.findUnique({ where: { id: messageId } });
     expect(row?.deletedAt).not.toBeNull();
@@ -135,7 +137,7 @@ describe("conversation messaging over websockets", () => {
     });
     const created = await waitForType(aliceWs, WsEvent.ConversationMessageCreated);
     await waitForType(bobWs, WsEvent.ConversationMessageCreated);
-    const parentId = (created.data!.message as { id: string }).id;
+    const parentId = (created.data as { id: string }).id;
 
     send(bobWs, WsEvent.ConversationMessageReply, {
       workspaceId: scene.workspace.id,
@@ -174,7 +176,7 @@ describe("conversation messaging over websockets", () => {
     });
     const created = await waitForType(aliceWs, WsEvent.ConversationMessageCreated);
     await waitForType(bobWs, WsEvent.ConversationMessageCreated);
-    const messageId = (created.data!.message as { id: string }).id;
+    const messageId = (created.data as { id: string }).id;
 
     send(bobWs, WsEvent.ConversationMessageReaction, {
       workspaceId: scene.workspace.id,
@@ -188,6 +190,8 @@ describe("conversation messaging over websockets", () => {
       const reacted = await waitForType(ws, WsEvent.ConversationMessageReaction);
       expect((reacted.data as { action: string }).action).toBe("added");
       expect((reacted.data as { messageId: string }).messageId).toBe(messageId);
+      expect((reacted.data as { userId: string }).userId).toBe(scene.bob.user.id);
+      expect((reacted.data as { username: string }).username).toBe(scene.bob.user.username);
     }
     expect(
       await prisma.reaction.findFirst({
@@ -223,7 +227,7 @@ describe("conversation messaging over websockets", () => {
 
     for (const ws of [aliceWs, bobWs, carolWs]) {
       const created = await waitForType(ws, WsEvent.ConversationMessageCreated);
-      expect((created.data!.message as { content: string }).content).toBe("group hello");
+      expect((created.data as { content: string }).content).toBe("group hello");
     }
   });
 });

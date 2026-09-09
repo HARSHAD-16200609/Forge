@@ -93,6 +93,7 @@ async function react(
 
     const data = {
         userId: userMetadata.userId,
+        username: userMetadata.username,
         messageId,
         reaction,
         action,
