@@ -115,12 +115,21 @@ interface profileProps {
 }
 
 const Profile = ({ avatarUrl, username }: profileProps) => {
+  const initial = (username ?? "")
+    .trim()
+    .charAt(0)
+    .toUpperCase() || "G"
   return (
     <Avatar className='ring-offset-background ring-2 ring-green-600 ring-offset-2 dark:ring-green-400'>
-      <AvatarImage src={avatarUrl || "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-5.png"} alt={username || "Hallie Richards"} />
-      <AvatarFallback>HR</AvatarFallback>
+      {avatarUrl ? (
+        <AvatarImage src={avatarUrl} alt={username ?? "User"} />
+      ) : (
+        <AvatarFallback className='bg-muted text-xs font-semibold text-muted-foreground'>
+          {initial}
+        </AvatarFallback>
+      )}
       <AvatarBadge className='-right-1.5 -bottom-1.5 bg-green-600 ring-0 group-data-[size=default]/avatar:size-4 dark:bg-green-400 group-data-[size=default]/avatar:[&>svg]:size-3'>
-       
+        
       </AvatarBadge>
     </Avatar>
   )
