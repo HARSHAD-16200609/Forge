@@ -66,6 +66,7 @@ export type Conversation = {
     updatedAt: string;
     displayName: string;
     avatar: string;
+    receiverId?: string;
 };
 
 export type dmParams = {
