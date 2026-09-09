@@ -29,7 +29,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
     const currentUser = useAuth().user;
     const [showActions, setShowActions] = useState(false);
-
+   
     const isMine = currentUser?.id === message.sender.id;
     const isDeleted = message.deletedAt !== null;
     const isEdited = message.editedAt !== null && !isDeleted;
