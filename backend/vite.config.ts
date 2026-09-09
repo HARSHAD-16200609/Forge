@@ -10,6 +10,8 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
 
     // Global setup before tests (we'll create this next)
+    globalSetup: ["./tests/setup/global-setup.ts"],
+
     setupFiles: ["./tests/setup/setup.ts"],
 
     // Automatically expose describe, it, expect, etc.
