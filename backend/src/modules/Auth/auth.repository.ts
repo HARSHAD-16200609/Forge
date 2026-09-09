@@ -192,6 +192,19 @@ export class AuthRepository {
     })
 
   }
+
+  async getUser(userId: string) {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        username: true,
+        avatar: true,
+        email: true
+      }
+    })
+
+  }
 }
 
 export const authRepository =
