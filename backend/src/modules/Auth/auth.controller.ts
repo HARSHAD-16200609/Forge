@@ -8,6 +8,7 @@ import { cookieTokens, loginSchema, oAuthProfileSchema, refreshToken, registerSc
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import * as oidc from "openid-client"
 import { oidcConfig } from "../../config/oidc";
+import axios from "axios"
 
 
 
@@ -143,7 +144,7 @@ export const getUser = asyncHandler(async (req, res) => {
 
 })
 
-export const genState = asyncHandler(async (req, res) => {
+export const handleGoogleLogin = asyncHandler(async (req, res) => {
 
   const codeVerifier = oidc.randomPKCECodeVerifier();
 
@@ -261,3 +262,158 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
     return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=oauth_callback_failed`);
   }
 })
+
+export const handleGithubLogin = asyncHandler(async (req, res) => {
+
+  const state = oidc.randomState()
+  req.session.state = state;
+
+  const githubUrl = new URL(
+    "https://github.com/login/oauth/authorize"
+  );
+  githubUrl.searchParams.set(
+    "client_id",
+    env.GITHUB_CLIENT_ID
+  );
+
+  githubUrl.searchParams.set(
+    "redirect_uri",
+    env.GITHUB_REDIRECT_URI
+  );
+
+  githubUrl.searchParams.set(
+    "scope",
+    "read:user user:email"
+  );
+
+  githubUrl.searchParams.set(
+    "state",
+    state
+  );
+
+  res.redirect(githubUrl.toString())
+})
+
+
+
+export const handleGithubCallback = asyncHandler(
+  async (req, res) => {
+    const { code, state } = req.query;
+
+    if (
+      typeof code !== "string" ||
+      typeof state !== "string"
+    ) {
+      return res.status(400).json({
+        message: "Invalid GitHub OAuth callback",
+      });
+    }
+
+    if (
+      !req.session.state ||
+      state !== req.session.state
+    ) {
+      return res.status(400).json({
+        message: "Invalid OAuth state",
+      });
+    }
+
+    try {
+      const tokenResponse = await axios.post(
+        "https://github.com/login/oauth/access_token",
+        {
+          client_id: env.GITHUB_CLIENT_ID,
+          client_secret: env.GITHUB_CLIENT_SECRET,
+          code,
+          redirect_uri: env.GITHUB_REDIRECT_URI,
+        },
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const tokenData = tokenResponse.data;
+
+      if (!tokenData.access_token) {
+        return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=token_exchange_failed`);
+      }
+
+      const userResponse = await axios.get(
+        "https://api.github.com/user",
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+            Accept: "application/vnd.github+json",
+          },
+        }
+      );
+
+      const githubUser = userResponse.data;
+
+      const { id, avatar_url, name, login } = githubUser
+      let email = githubUser.email
+
+      if (!email) {
+        const emailsResponse = await axios.get(
+          "https://api.github.com/user/emails",
+          {
+            headers: {
+              Authorization: `Bearer ${tokenData.access_token}`,
+              Accept: "application/vnd.github+json",
+            },
+          }
+        );
+
+        email = emailsResponse.data.find(
+          (entry: { primary?: boolean; email?: string }) => entry.primary
+        )?.email ?? null;
+      }
+
+      const result = oAuthProfileSchema.safeParse({
+        provider: "Github",
+        providerId: String(id),
+        email: email ?? "",
+        name: name ?? login ?? "",
+        picture: avatar_url ?? null,
+      });
+
+      if (!result.success) {
+        return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_profile`);
+      }
+
+      const userMetaData = {
+        ip: req.ip ?? "",
+        userAgent: req.get("user-agent") ?? "",
+      };
+
+      const sessionInfo = await authService.oauthLogin(result.data, userMetaData)
+
+      delete req.session.state;
+
+      if (!sessionInfo) {
+        return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=session_creation_failed`);
+      }
+
+      res.cookie("accessToken", sessionInfo.accessToken, accessCookieOptions)
+        .cookie("refreshToken", sessionInfo.refreshToken, refreshCookieOptions)
+
+      loggers.auth.info("GitHub OAuth login successful", {
+        userId: sessionInfo.userId || "",
+        email: sessionInfo.email || "",
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+      })
+
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=success`);
+    } catch (error) {
+      console.error("GitHub OAuth callback error:");
+      console.dir(error, { depth: null });
+
+      delete req.session.state;
+
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=oauth_callback_failed`);
+    }
+  }
+);

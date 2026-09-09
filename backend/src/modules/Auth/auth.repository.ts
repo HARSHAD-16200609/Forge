@@ -165,9 +165,10 @@ export class AuthRepository {
     return await prisma.user.findUnique({
       where: {
         id
-      }, select: {
-        id: true,
-        username: true
+      },omit :{
+         timezone:true,
+         password:true,
+         
       }
     })
   }

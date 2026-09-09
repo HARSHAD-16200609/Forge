@@ -120,7 +120,7 @@ class AuthService {
             let user = await authRepository.findUserByEmail(email);
 
             if (!user) {
-                const generatedUsername = await this.generateUniqueUsername(email);
+                const generatedUsername = await this.generateUniqueUsername(name);
                 user = await authRepository.createOAuthUserWithAccount({
                     username: generatedUsername,
                     name,
@@ -132,7 +132,7 @@ class AuthService {
                     await authRepository.createOAuthAccount({ provider, providerId, userId: user.id });
                 } catch (err) {
                     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-                        // Concurrent duplicate link — account already linked by another request.
+                        throw new BadRequestError("Account already linked with another acoount")
                     } else {
                         throw err;
                     }
