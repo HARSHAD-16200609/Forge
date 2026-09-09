@@ -5,7 +5,8 @@ import type { dmParams } from "../types";
 
 export function useDms(workspaceId: string) {
     return useQuery({
-        queryKey: [workspaceId],
+        queryKey: ["dms", workspaceId],
+        enabled: !!workspaceId,
         queryFn: async () => {
             try {
                 return await messageService.getDMs(workspaceId);

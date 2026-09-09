@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes"
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { clearCookieOptions, accessCookieOptions, refreshCookieOptions, env } from "../../config/env";
 import { authService } from "./auth.service";
+import { authRepository } from "./auth.repository";
 import { cookieTokens, loginSchema, oAuthProfileSchema, refreshToken, registerSchema, reqUserSchema } from "../../db/auth-schema";
 import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import * as oidc from "openid-client"
@@ -59,10 +60,13 @@ export const Login = asyncHandler(async (req, res) => {
   res.cookie("accessToken", sessionInfo?.accessToken, accessCookieOptions)
     .cookie("refreshToken", sessionInfo?.refreshToken, refreshCookieOptions)
 
+  const profile = sessionInfo?.userId
+    ? await authRepository.getUser(sessionInfo.userId)
+    : null;
 
   res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, {
     sucess: true,
-    user: sessionInfo || {}
+    user: profile ?? sessionInfo ?? {}
   }, "User Logged in Sucessfully"))
 
 

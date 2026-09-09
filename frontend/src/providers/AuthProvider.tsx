@@ -15,8 +15,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     const fetchUser = async () => {
         try {
             let response = await api.get("auth/user");
-      
-            setUser(response.data.data);
+                setUser(response.data.data);
         } catch (e) {
             if (e instanceof AxiosError && Number(e.response?.status) === 401) {
                 try {

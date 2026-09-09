@@ -1,8 +1,9 @@
 
 import { AxiosError } from "axios";
-import type { WorkspaceObject } from "../types";
+import type { Workspace, WorkspaceObject } from "../types";
 import { workspaceService } from "../workpsace.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWorkspaceStore } from "../store/workspaceStore";
 
 export function useWorkspaces() {
     return useQuery({
@@ -41,7 +42,11 @@ export function useCreateWorkspace() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: WorkspaceObject) => workspaceService.createWorkpace(data),
-        onSuccess: () => {
+        onSuccess: (created: Workspace) => {
+            if (created?.workspace?.id) {
+                useWorkspaceStore.getState().setSelectedWorkspaceId(created.workspace.id);
+            }
+            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
             queryClient.invalidateQueries({ queryKey: ["workspace"] });
         },
     });

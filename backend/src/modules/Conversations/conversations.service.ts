@@ -15,7 +15,7 @@ class ConversationService {
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         if (senderId === receiverId) throw new BadRequestError("You can't create an Dm with self")
-        const receiver = await authRepository.getById(receiverId)
+        const receiver = await authRepository.getUser(receiverId)
         if (!receiver) throw new NotFoundError("No such User Exist's")
         const existingDM = await conversationRepository.findDMBetweenUsers(senderId, receiverId)
 

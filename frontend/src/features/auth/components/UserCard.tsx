@@ -38,7 +38,7 @@ export function UserCard({ user }: UserCardProps) {
         <Card className="w-full max-w-sm">
             <CardHeader className="items-center text-center">
                 <img
-                    src={user.avatar}
+                    src={user.avatar ?? undefined}
                     alt={`${user.avatar}'s avatar`}
                     className="size-20 self-center rounded-full object-cover ring-1 ring-foreground/10"
                 />

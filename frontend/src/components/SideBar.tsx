@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from "react";
 import {
     Search as SearchIcon,
     Settings as SettingsIcon,
@@ -92,7 +93,7 @@ function WorkspaceSwitcher() {
         );
     }
 
-    if (isError || !Workspaces?.data?.length) {
+    if (isError) {
         return (
             <div className="flex w-full shrink-0 items-center gap-2 rounded-lg px-2 py-1.5">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#3F0E40] text-[13px] font-bold text-white">
@@ -123,7 +124,7 @@ function WorkspaceSwitcher() {
                     </span>
                     <span className="min-w-0 flex-1">
                         <span className="block truncate font-['Lexend:SemiBold',_sans-serif] text-[15px] leading-[20px] text-sidebar-foreground">
-                            {active?.workspaceName}
+                            {active?.workspaceName ?? "No workspace"}
                         </span>
                         <span className="block truncate text-[11px] leading-[14px] text-sidebar-foreground/50">
                             Workspace
@@ -752,20 +753,34 @@ function DetailSidebar({
     onResize: (w: number) => void;
     activeSection: string;
 }) {
-    const { selectedWorkspaceId } = useWorkspaceStore();
-    const WorkspaceDetails = useWorkspace(selectedWorkspaceId ?? "");
-    const chats = useDms(selectedWorkspaceId ?? "");
+    const {
+        selectedWorkspaceId,
+        setSelectedWorkspaceId,
+        showCreateWorkspaceForm,
+        setShowCreateWorkspaceForm,
+    } = useWorkspaceStore();
+    const Workspaces = useWorkspaces();
+
+    const activeWorkspaceId = useMemo(() => {
+        const listed = Workspaces?.data?.some((w) => w.workspace.id === selectedWorkspaceId);
+        if (selectedWorkspaceId && listed !== false) return selectedWorkspaceId;
+        return Workspaces?.data?.[0]?.workspace?.id ?? null;
+    }, [Workspaces?.data, selectedWorkspaceId]);
+
+    useEffect(() => {
+        if (activeWorkspaceId && selectedWorkspaceId !== activeWorkspaceId) {
+            setSelectedWorkspaceId(activeWorkspaceId);
+        }
+    }, [activeWorkspaceId, selectedWorkspaceId, setSelectedWorkspaceId]);
+
+    const WorkspaceDetails = useWorkspace(activeWorkspaceId ?? "");
+    const chats = useDms(activeWorkspaceId ?? "");
     const collapsedSections = useUIStore((s) => s.collapsedSections);
     const toggleSection = useUIStore((s) => s.toggleSection);
     const setSelectedConversation = useUIStore((s) => s.setSelectedConversation);
-    const dms = chats.data?.conversations.filter((convo) => convo.type === "DM");
-    const gdms = chats.data?.conversations.filter((convo) => convo.type === "GDM");
-    if (chats.isError) {
-        return <h1>Error Loading Dms</h1>;
-    }
-    if (chats.isLoading) {
-        return <h1>Loading Dms</h1>;
-    }
+    const conversations = chats.data?.conversations ?? [];
+    const dms = conversations.filter((convo) => convo.type === "DM");
+    const gdms = conversations.filter((convo) => convo.type === "GDM");
 
     const startResize = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -816,7 +831,7 @@ function DetailSidebar({
         switch (section.kind) {
             case "channels":
                 if (collapsed) return null;
-                return WorkspaceDetails.data?.channels.map((c) => (
+                return (WorkspaceDetails.data?.channels ?? []).map((c) => (
                     <ChannelRow key={c.id} name={c.channelName} unread={2} channelId={c.id} />
                 ));
             case "dms":
@@ -825,7 +840,7 @@ function DetailSidebar({
                     <PresenceDMRow
                         key={d.id}
                         dm={d}
-                        workspaceId={selectedWorkspaceId}
+                        workspaceId={activeWorkspaceId}
                         onSelect={() => {
                             
                             setSelectedConversation(d.id, "DM")
@@ -852,6 +867,9 @@ function DetailSidebar({
         }
     };
 
+    const hasNoWorkspaces =
+        !Workspaces.isLoading && Workspaces.isSuccess && !(Workspaces?.data?.length ?? 0);
+
     return (
         <div className="relative flex h-full min-w-0">
             <div
@@ -861,33 +879,83 @@ function DetailSidebar({
                 <WorkspaceSwitcher />
                 <SearchContainer />
 
-                <div className="flex flex-col gap-4 w-full min-h-0 flex-1 overflow-y-auto pb-2">
-                    {sections.map((section, index) => {
-                        const isCollapsible = true;
-                        const collapsed = isCollapsible && !!collapsedSections[section.title];
-                        return (
-                            <div
-                                key={`${activeSection}-${index}`}
-                                className="flex flex-col gap-0.5 w-full"
-                            >
-                                <SectionHeader
-                                    title={section.title}
-                                    icon={section.icon}
-                                    collapseIcon={isCollapsible}
-                                    collapsed={collapsed}
-                                    onToggle={
-                                        isCollapsible
-                                            ? () => toggleSection(section.title)
-                                            : undefined
-                                    }
-                                />
-                                {renderKindSection(section, collapsed)}
-                            </div>
-                        );
-                    })}
-                </div>
+                {Workspaces.isError ? (
+                    <div className="flex flex-1 w-full flex-col items-center justify-center gap-4">
+                        <div className="space-y-1 text-center">
+                            <p className="text-[15px] font-semibold text-sidebar-foreground">
+                                Couldn't load your workspaces
+                            </p>
+                            <p className="text-[13px] leading-5 text-sidebar-foreground/50">
+                                Check your connection and try again.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => void Workspaces.refetch()}
+                            size="lg"
+                            variant="outline"
+                            className="h-10 w-full"
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                ) : hasNoWorkspaces ? (
+                    <div className="flex flex-1 w-full flex-col items-center justify-center gap-4">
+                        <span className="flex size-12 items-center justify-center rounded-xl bg-[#3F0E40] text-white">
+                            <Building2 className="size-6" />
+                        </span>
+                        <div className="space-y-1 text-center">
+                            <p className="text-[15px] font-semibold text-sidebar-foreground">
+                                You're not in any workspace yet
+                            </p>
+                            <p className="text-[13px] leading-5 text-sidebar-foreground/50">
+                                Create a workspace to start collaborating with your team.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => setShowCreateWorkspaceForm(true)}
+                            size="lg"
+                            className="h-11 w-full"
+                        >
+                            <Plus className="size-4" />
+                            Create your first workspace
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-4 w-full min-h-0 flex-1 overflow-y-auto pb-2">
+                        {sections.map((section, index) => {
+                            const isCollapsible = true;
+                            const collapsed = isCollapsible && !!collapsedSections[section.title];
+                            return (
+                                <div
+                                    key={`${activeSection}-${index}`}
+                                    className="flex flex-col gap-0.5 w-full"
+                                >
+                                    <SectionHeader
+                                        title={section.title}
+                                        icon={section.icon}
+                                        collapseIcon={isCollapsible}
+                                        collapsed={collapsed}
+                                        onToggle={
+                                            isCollapsible
+                                                ? () => toggleSection(section.title)
+                                                : undefined
+                                        }
+                                    />
+                                    {renderKindSection(section, collapsed)}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 <UserFooter />
+
+                {showCreateWorkspaceForm && (
+                    <CreateWorkspaceForm
+                        onDone={() => setShowCreateWorkspaceForm(false)}
+                        onClose={() => setShowCreateWorkspaceForm(false)}
+                    />
+                )}
             </div>
 
             {/* Resize handle */}

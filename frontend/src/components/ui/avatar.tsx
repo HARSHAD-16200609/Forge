@@ -110,7 +110,7 @@ export {
 }
 
 interface profileProps {
-  avatarUrl: string | undefined;
+  avatarUrl: string | null | undefined;
   username: string | undefined;
 }
 

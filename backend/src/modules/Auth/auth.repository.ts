@@ -161,12 +161,11 @@ export class AuthRepository {
     })
     return id
   }
-  async getById(id: string) {
+  async getUser(id: string) {
     return await prisma.user.findUnique({
       where: {
         id
       },omit :{
-         timezone:true,
          password:true,
          
       }
