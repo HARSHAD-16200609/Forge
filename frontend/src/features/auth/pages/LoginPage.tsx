@@ -5,7 +5,7 @@ import { LoginForm } from "../components/LoginForm";
 
 export function LoginPage() {
     return (
-        <AuthShell footer={<>© {new Date().getFullYear()} WorkSphere Labs. All rights reserved.</>}>
+        <AuthShell footer={<>© {new Date().getFullYear()} Forge Labs. All rights reserved.</>}>
             <div className="flex flex-col gap-1.5 text-center">
                 <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
                 <p className="text-muted-foreground text-sm">

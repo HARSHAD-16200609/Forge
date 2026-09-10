@@ -242,6 +242,53 @@
     padding: 0.35em 0;
 }
 
+/* ── App loading skeletons: shimmer sweep (transform-only) ─────────────── */
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: oklch(0.93 0 0);
+}
+
+.dark .skeleton {
+    background-color: oklch(0.24 0 0);
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(1 0 0 / 0.45),
+        transparent
+    );
+    animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton::after {
+    background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(1 0 0 / 0.08),
+        transparent
+    );
+}
+
+@keyframes skeleton-sweep {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+        display: none;
+    }
+}
+
 /* ── Landing page: capability marquee ─────────────────────────────────── */
 
 @keyframes marquee {

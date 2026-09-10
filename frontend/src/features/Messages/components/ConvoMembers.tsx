@@ -1,40 +1,10 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
+import { PresenceAvatar } from "@/components/ui/presence-avatar";
 import { cn } from "@/lib/utils";
 import { Users, X } from "lucide-react";
-import { usePresenceStore } from "@/realtime/presenceStore";
+import { APP_EASE } from "@/components/ui/app-motion";
 import type { ConversationDetail } from "@/features/Messages/types";
-
-function MemberAvatar({ username, avatar }: { username: string; avatar?: string | null }) {
-    const initial = username.charAt(0).toUpperCase();
-    return (
-        <span className="relative flex size-8 shrink-0 items-center justify-center overflow-visible rounded-full">
-            {avatar ? (
-                <img src={avatar} alt={username} className="size-8 rounded-full object-cover" />
-            ) : (
-                <span className="flex size-8 items-center justify-center rounded-full bg-violet-500/20 text-xs font-semibold text-violet-600">
-                    {initial || <Users className="size-3.5" />}
-                </span>
-            )}
-        </span>
-    );
-}
-
-function PresenceDot({ workspaceId, userId }: { workspaceId?: string; userId: string }) {
-    const online = usePresenceStore(
-        (state) =>
-            workspaceId !== undefined &&
-            state.roster[workspaceId]?.[userId]?.status === "online",
-    );
-
-    return (
-        <span
-            className={cn(
-                "size-2 shrink-0 rounded-full",
-                online ? "bg-emerald-500" : "bg-muted-foreground/30",
-            )}
-        />
-    );
-}
 
 export function ConvoMembers({
     detail,
@@ -50,9 +20,16 @@ export function ConvoMembers({
     onClose: () => void;
 }) {
     const members = detail?.members ?? [];
+    const reduce = useReducedMotion();
 
     return (
-        <div className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-background">
+        <motion.div
+            initial={reduce ? false : { opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reduce ? undefined : { opacity: 0, x: 20 }}
+            transition={{ duration: 0.18, ease: APP_EASE }}
+            className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-background"
+        >
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
                 <div className="flex items-center gap-2">
                     <Users className="size-4 text-muted-foreground" />
@@ -72,7 +49,7 @@ export function ConvoMembers({
 
             <div className="flex-1 overflow-y-auto px-2 py-3">
                 <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {type === "GDM" ? title : title} · {members.length}
+                    {title} · {members.length}
                 </div>
 
                 {!detail && (
@@ -86,8 +63,13 @@ export function ConvoMembers({
                         key={user.id}
                         className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-sidebar-accent"
                     >
-                        <MemberAvatar username={user.username} avatar={user.avatar} />
-                        <PresenceDot workspaceId={workspaceId} userId={user.id} />
+                        <PresenceAvatar
+                            name={user.username}
+                            avatarUrl={user.avatar}
+                            size="md"
+                            workspaceId={workspaceId}
+                            userId={user.id}
+                        />
                         <span className="min-w-0 flex-1 truncate text-sm text-sidebar-foreground/90">
                             {user.username}
                         </span>
@@ -106,6 +88,6 @@ export function ConvoMembers({
                     </div>
                 ))}
             </div>
-        </div>
+        </motion.div>
     );
 }

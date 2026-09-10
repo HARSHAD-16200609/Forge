@@ -1,20 +1,17 @@
-import { ArrowRight, Lock, Globe, Crown, Users } from "lucide-react";
+import { ArrowRight, Lock, Globe, Crown, Users, Trash2 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Workspace, WorkspaceListProps } from "../types";
-import { Button } from "@/components/ui/button";
 import { useDeleteWorkspace } from "../hooks/useWorkspaces";
-import { Trash2 } from "lucide-react";
-// import { useworkspaceStore } from "../store/workspaceStore";
-
+import { APP_EASE } from "@/components/ui/app-motion";
 
 export function WorkspaceList({
     workspaces,
     onWorkspaceClick,
 }: WorkspaceListProps) {
-    // const {selectedWorkspaceId,setSelectedWorkspaceId,clearSelectedWorkpsaceId} = useworkspaceStore()
+    const reduce = useReducedMotion();
     return (
         <div className="w-full">
-            {/* Header */}
             <div className="mb-8">
                 <h2 className="text-2xl font-semibold tracking-tight">
                     Your Workspaces
@@ -25,21 +22,32 @@ export function WorkspaceList({
                 </p>
             </div>
 
-            {/* Workspace Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {workspaces?.length ? (
-                    workspaces.map(({ role, workspace }) => (
-                        <WorkspaceCard
+                    workspaces.map(({ role, workspace }, i) => (
+                        <motion.div
                             key={workspace.id}
-                            workspace={workspace}
-                            role={role}
-                            onClick={() => onWorkspaceClick?.(workspace)}
-                        />
+                            initial={reduce ? false : { opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.3,
+                                ease: APP_EASE,
+                                delay: i * 0.05,
+                            }}
+                            className="h-full"
+                        >
+                            <WorkspaceCard
+                                workspace={workspace}
+                                role={role}
+                                onClick={() => onWorkspaceClick?.(workspace)}
+                            />
+                        </motion.div>
                     ))
                 ) : (
-                    <div className="flex min-h-[300px] ">
-                        <p className="text-muted-foreground">
-                            No workspaces found.
+                    <div className="col-span-full flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 text-center">
+                        <p className="text-muted-foreground">No workspaces found.</p>
+                        <p className="mt-1 text-sm text-muted-foreground/70">
+                            Create or join a workspace to get started.
                         </p>
                     </div>
                 )}
@@ -54,13 +62,16 @@ interface WorkspaceCardProps {
     onClick?: () => void;
 }
 
-function WorkspaceCard({
-    workspace,
-    role,
-    onClick,
-}: WorkspaceCardProps) {
+function WorkspaceCard({ workspace, role, onClick }: WorkspaceCardProps) {
+    const handleDelete = useDeleteWorkspace();
+    const reduce = useReducedMotion();
 
-    const handleDelete = useDeleteWorkspace()
+    function confirmDelete() {
+        if (window.confirm(`Delete "${workspace.workspaceName}"? This cannot be undone.`)) {
+            void handleDelete.mutateAsync(workspace.id);
+        }
+    }
+
     return (
         <div
             onClick={onClick}
@@ -70,45 +81,38 @@ function WorkspaceCard({
                 "p-5",
                 "transition-all duration-300",
                 "hover:-translate-y-1 hover:border-border",
-                "hover:shadow-xl hover:shadow-black/5"
+                "hover:shadow-xl hover:shadow-black/5",
+                reduce && "motion-reduce:transform-none",
             )}
         >
-            {/* Top */}
             <div className="flex items-start justify-between gap-4">
-                {/* Workspace Icon */}
                 <div
                     className={cn(
                         "flex size-12 shrink-0 items-center justify-center",
                         "rounded-xl text-lg font-semibold",
                         role === "OWNER"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                            ? "bg-brand/10 text-brand"
+                            : "bg-muted text-muted-foreground",
                     )}
                 >
                     {workspace.workspaceName.charAt(0).toUpperCase()}
                 </div>
 
-                {/* Role */}
                 <span
                     className={cn(
                         "inline-flex items-center gap-1.5 rounded-full",
                         "px-2.5 py-1 text-xs font-medium",
                         role === "OWNER"
                             ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400",
                     )}
                 >
-                    {role === "OWNER" ? (
-                        <Crown className="size-3" />
-                    ) : (
-                        <Users className="size-3" />
-                    )}
+                    {role === "OWNER" ? <Crown className="size-3" /> : <Users className="size-3" />}
 
                     {role === "OWNER" ? "Owner" : "Member"}
                 </span>
             </div>
 
-            {/* Content */}
             <div className="mt-5">
                 <h3 className="truncate text-lg font-semibold">
                     {workspace.workspaceName}
@@ -119,9 +123,7 @@ function WorkspaceCard({
                 </p>
             </div>
 
-            {/* Bottom */}
             <div className="mt-5 flex items-center justify-between">
-                {/* Visibility */}
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {workspace.visibility === "PUBLIC" ? (
                         <>
@@ -136,17 +138,38 @@ function WorkspaceCard({
                     )}
                 </div>
 
-                {/* Open */}
-                <Button  onClick={async () => { await handleDelete.mutateAsync(workspace.id) }}><Trash2 className="size-4"></Trash2></Button>
-                <div
-                    className={cn(
-                        "flex size-8 items-center justify-center rounded-full gap-24",
-                        "bg-muted transition-all duration-300",
-                        "group-hover:bg-primary group-hover:text-primary-foreground",
-                        "group-hover:translate-x-0.5"
-                    )}
-                >
-                    <ArrowRight className="size-4" />
+                <div className="flex items-center gap-1">
+                    <button
+                        type="button"
+                        aria-label={`Delete ${workspace.workspaceName}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            confirmDelete();
+                        }}
+                        className={cn(
+                            "flex size-8 items-center justify-center rounded-full text-xs font-medium",
+                            "text-muted-foreground/0 transition-all duration-200",
+                            "focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:outline-none",
+                            "group-hover:text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
+                        )}
+                    >
+                        <Trash2 className="size-4" />
+                    </button>
+
+                    <button
+                        type="button"
+                        aria-label={`Open ${workspace.workspaceName}`}
+                        onClick={onClick}
+                        className={cn(
+                            "flex size-8 items-center justify-center rounded-full",
+                            "bg-muted transition-all duration-300",
+                            "group-hover:bg-brand group-hover:text-brand-foreground",
+                            "group-hover:translate-x-0.5",
+                            "focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:outline-none",
+                        )}
+                    >
+                        <ArrowRight className="size-4" />
+                    </button>
                 </div>
             </div>
         </div>

@@ -15,7 +15,9 @@ import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
 import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
@@ -98,6 +100,25 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
 
     const prevOldestIdRef = useRef<string | null>(null);
     const didAutoScrollRef = useRef(false);
+    const reduce = useReducedMotion();
+    const [animateGate, setAnimateGate] = useState<{ id: string | null; fresh: boolean }>({
+        id: selectedConversationId ?? null,
+        fresh: false,
+    });
+
+    if ((selectedConversationId ?? null) !== animateGate.id) {
+        setAnimateGate({ id: selectedConversationId ?? null, fresh: false });
+    }
+
+    if (
+        animateGate.id === (selectedConversationId ?? null) &&
+        !animateGate.fresh &&
+        Messages.length > 0
+    ) {
+        setAnimateGate({ id: animateGate.id, fresh: true });
+    }
+
+    const isFresh = animateGate.id === (selectedConversationId ?? null) && animateGate.fresh;
 
     useEffect(() => {
         const el = scrollRef.current;
@@ -167,7 +188,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                     type="button"
                                     aria-label="Back to home"
                                     onClick={clearSelectedConversation}
-                                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                                 >
                                     <ArrowLeft className="size-4" />
                                 </button>
@@ -184,7 +205,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                     className="size-6 rounded-full object-cover"
                                 />
                             ) : (
-                                <span className="flex size-6 items-center justify-center rounded-full bg-violet-500/20 text-xs font-semibold text-violet-600">
+                                <span className="flex size-6 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
                                     {headerName.charAt(0).toUpperCase()}
                                 </span>
                             )}
@@ -204,20 +225,20 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
 
                 <div className="flex shrink-0 items-center gap-1">
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Members"
                         onClick={() => setShowMembers((prev) => !prev)}
                     >
                         <Users className="size-[18px]" />
                     </button>
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Search"
                     >
                         <Search className="size-[18px]" />
                     </button>
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Bell"
                     >
                         <Bell className="size-[18px]" />
@@ -258,70 +279,117 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                 <div className="h-px flex-1 bg-border" />
                             </div>
 
-                            <div className="space-y-6">
-                                {flattened.map((message) =>
-                                    message.parentMsgId ? (
-                                        <div
-                                            key={message.id}
-                                            className="ml-12 border-l-2 border-border pl-3"
-                                        >
-                                            <MessageBubble
-                                                message={message}
-                                                onReply={(m) => setReplyingTo(m)}
-                                                onEdit={setEditingMessage}
-                                                onDelete={(m) => {
-                                                    if (window.confirm("Delete this message?")) {
-                                                        deleteMessage.mutate({ messageId: m.id });
-                                                    }
-                                                }}
-                                                onReact={(m, emoji) =>
-                                                    react.mutate({ messageId: m.id, reaction: emoji })
-                                                }
-                                            />
-                                        </div>
-                                    ) : (
-                                        <MessageBubble
-                                            key={message.id}
-                                            message={message}
-                                            onReply={(m) => setReplyingTo(m)}
-                                            onEdit={setEditingMessage}
-                                            onDelete={(m) => {
-                                                if (window.confirm("Delete this message?")) {
-                                                    deleteMessage.mutate({ messageId: m.id });
-                                                }
-                                            }}
-                                            onReact={(m, emoji) =>
-                                                react.mutate({ messageId: m.id, reaction: emoji })
-                                            }
-                                        />
-                                    ),
-                                )}
+                            <AnimatePresence mode="wait" initial={false}>
+                                <motion.div
+                                    key={selectedConversationId}
+                                    initial={reduce ? false : { opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={reduce ? undefined : { opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.16, ease: APP_EASE }}
+                                >
+                                    <div className="space-y-6">
+                                        {flattened.map((message) =>
+                                            message.parentMsgId ? (
+                                                <div
+                                                    key={message.id}
+                                                    className="ml-12 border-l-2 border-border pl-3"
+                                                >
+                                                    <FadeIn
+                                                        active={isFresh && !isFetchingNextPage}
+                                                        y={0}
+                                                        duration={0.12}
+                                                    >
+                                                        <MessageBubble
+                                                            message={message}
+                                                            onReply={(m) => setReplyingTo(m)}
+                                                            onEdit={setEditingMessage}
+                                                            onDelete={(m) => {
+                                                                if (
+                                                                    window.confirm(
+                                                                        "Delete this message?",
+                                                                    )
+                                                                ) {
+                                                                    deleteMessage.mutate({
+                                                                        messageId: m.id,
+                                                                    });
+                                                                }
+                                                            }}
+                                                            onReact={(m, emoji) =>
+                                                                react.mutate({
+                                                                    messageId: m.id,
+                                                                    reaction: emoji,
+                                                                })
+                                                            }
+                                                        />
+                                                    </FadeIn>
+                                                </div>
+                                            ) : (
+                                                <FadeIn
+                                                    key={message.id}
+                                                    active={isFresh && !isFetchingNextPage}
+                                                    y={0}
+                                                    duration={0.12}
+                                                >
+                                                    <MessageBubble
+                                                        message={message}
+                                                        onReply={(m) => setReplyingTo(m)}
+                                                        onEdit={setEditingMessage}
+                                                        onDelete={(m) => {
+                                                            if (
+                                                                window.confirm(
+                                                                    "Delete this message?",
+                                                                )
+                                                            ) {
+                                                                deleteMessage.mutate({
+                                                                    messageId: m.id,
+                                                                });
+                                                            }
+                                                        }}
+                                                        onReact={(m, emoji) =>
+                                                            react.mutate({
+                                                                messageId: m.id,
+                                                                reaction: emoji,
+                                                            })
+                                                        }
+                                                    />
+                                                </FadeIn>
+                                            ),
+                                        )}
 
-                                {isFetchingNextPage && <MessageSkeleton rows={2} />}
+                                        {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
-                                {!hasNextPage && Messages && Messages.length > 0 && (
-                                    <div className="py-4 text-center text-xs text-muted-foreground">
-                                        You&apos;re all caught up
+                                        {!hasNextPage &&
+                                            Messages &&
+                                            Messages.length > 0 && (
+                                                <div className="py-4 text-center text-xs text-muted-foreground">
+                                                    You&apos;re all caught up
+                                                </div>
+                                            )}
                                     </div>
-                                )}
-                            </div>
+                                </motion.div>
+                            </AnimatePresence>
                         </>
                     )}
                 </div>
 
-                {showMembers && (
-                    <ConvoMembers
-                        detail={detail}
-                        title={headerName}
-                        type={selectedConversationType ?? "DM"}
-                        workspaceId={selectedWorkspaceId ?? ""}
-                        onClose={() => setShowMembers(false)}
-                    />
-                )}
+                <AnimatePresence initial={false}>
+                    {showMembers && (
+                        <ConvoMembers
+                            detail={detail}
+                            title={headerName}
+                            type={selectedConversationType ?? "DM"}
+                            workspaceId={selectedWorkspaceId ?? ""}
+                            onClose={() => setShowMembers(false)}
+                        />
+                    )}
+                </AnimatePresence>
             </div>
 
             <div className="shrink-0 px-4 pb-4">
-                <TypingIndicator entityId={selectedConversationId ?? ""} />
+                <TypingIndicator
+                    entityId={selectedConversationId ?? ""}
+                    workspaceId={selectedWorkspaceId}
+                />
                 <MessageComposer
                     key={selectedConversationId}
                     channelId={selectedConversationId ?? ""}
@@ -356,7 +424,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
             </div>
 
             {editingMessage && (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
                     <div className="w-full max-w-2xl rounded-lg border border-border bg-background p-4 shadow-lg">
                         <div className="mb-2 flex items-center justify-between">
                             <span className="text-sm font-semibold">Edit message</span>

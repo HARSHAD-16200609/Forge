@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { MessageAttachments } from "./MessageAttachments";
 import { BlocksRenderer } from "./BlocksRenderer";
 import { formatMessageTime } from "../utils/format";
 import useAuth from "@/features/auth/hooks/useAuth";
+import { APP_EASE } from "@/components/ui/app-motion";
 import type { Message, MessageSender } from "../types";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "✅"];
@@ -29,6 +31,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
     const currentUser = useAuth().user;
     const [showActions, setShowActions] = useState(false);
+    const reduce = useReducedMotion();
    
     const isMine = currentUser?.id === message.sender.id;
     const isDeleted = message.deletedAt !== null;
@@ -104,8 +107,15 @@ export function MessageBubble({
                         )}
                     </div>
 
+                    <AnimatePresence>
                     {showActions && (
-                        <span className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-background px-1.5 py-0.5 shadow-sm ring-1 ring-border">
+                        <motion.span
+                            initial={reduce ? false : { opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={reduce ? undefined : { opacity: 0, y: 3 }}
+                            transition={{ duration: 0.12, ease: APP_EASE }}
+                            className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-background px-1.5 py-0.5 shadow-sm ring-1 ring-border"
+                        >
                             {onReact &&
                                 QUICK_REACTIONS.map((emoji) => (
                                     <button
@@ -145,8 +155,9 @@ export function MessageBubble({
                                     Reply
                                 </button>
                             )}
-                        </span>
+                        </motion.span>
                     )}
+                </AnimatePresence>
                 </div>
 
                 <BlocksRenderer blocksJson={message.content} />

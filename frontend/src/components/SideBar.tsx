@@ -1,11 +1,6 @@
 import { useEffect, useMemo } from "react";
-import {
-    Search as SearchIcon,
-    Settings as SettingsIcon,
-    AddLarge,
-    Moon,
-    Sun,
-} from "@carbon/icons-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Search as SearchIcon, Settings as SettingsIcon, AddLarge } from "@carbon/icons-react";
 import { useUIStore } from "@/stores/uiStore";
 import {
     Archive,
@@ -23,10 +18,6 @@ import {
     Plus,
     Users,
 } from "lucide-react";
-import Profile from "./ui/avatar";
-import useAuth from "@/features/auth/hooks/useAuth";
-import { UserMenu } from "@/features/auth/components/UserMenu";
-import { useTheme } from "@/providers/ThemeProvider";
 import { Button } from "./ui/button";
 import {
     DropdownMenu,
@@ -45,17 +36,17 @@ import { useDms } from "@/features/Messages/hooks/useDms";
 import { usePresenceStore } from "@/realtime/presenceStore";
 import type { Conversation } from "@/features/Messages/types";
 
-const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 /* ----------------------------- Workspace Switcher ------------------------ */
 
 const tileColors = [
-    "bg-[#3F0E40]",
-    "bg-[#1264a3]",
-    "bg-[#2bac76]",
-    "bg-[#e01e5a]",
-    "bg-[#7c3aed]",
-    "bg-[#c4320f]",
+    "bg-brand",
+    "bg-[oklch(0.52_0.13_185)]",
+    "bg-[oklch(0.52_0.16_293)]",
+    "bg-[oklch(0.55_0.12_35)]",
+    "bg-[oklch(0.49_0.13_320)]",
+    "bg-[oklch(0.45_0.04_262)]",
 ];
 
 function getInitials(name: string) {
@@ -96,7 +87,7 @@ function WorkspaceSwitcher() {
     if (isError) {
         return (
             <div className="flex w-full shrink-0 items-center gap-2 rounded-lg px-2 py-1.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#3F0E40] text-[13px] font-bold text-white">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand text-[13px] font-bold text-brand-foreground">
                     {getInitials(active?.workspaceName ?? "Workspace")}
                 </span>
                 <span className="truncate text-[15px] text-sidebar-foreground">Error</span>
@@ -123,7 +114,7 @@ function WorkspaceSwitcher() {
                         {active ? getInitials(active.workspaceName) : ""}
                     </span>
                     <span className="min-w-0 flex-1">
-                        <span className="block truncate font-['Lexend:SemiBold',_sans-serif] text-[15px] leading-[20px] text-sidebar-foreground">
+                        <span className="block truncate text-[15px] leading-[20px] text-sidebar-foreground">
                             {active?.workspaceName ?? "No workspace"}
                         </span>
                         <span className="block truncate text-[11px] leading-[14px] text-sidebar-foreground/50">
@@ -161,7 +152,7 @@ function WorkspaceSwitcher() {
                             <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
                                 {w.workspace.workspaceName}
                             </span>
-                            {isActive && <Check className="size-4 shrink-0 text-[#1D1C1D]" />}
+                            {isActive && <Check className="size-4 shrink-0 text-brand" />}
                         </DropdownMenuItem>
                     );
                 })}
@@ -259,15 +250,21 @@ function IconNavButton({
             type="button"
             aria-label={ariaLabel}
             className={cn(
-                "flex items-center justify-center rounded-lg size-10 min-w-10 transition-colors duration-500",
+                "relative flex size-10 min-w-10 items-center justify-center rounded-lg transition-colors duration-200",
                 isActive
-                    ? "bg-sidebar-accent text-sidebar-foreground"
-                    : "hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground/70",
+                    ? "bg-brand/10 text-brand"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/70",
             )}
-            style={{ transitionTimingFunction: softSpringEasing }}
             onClick={onClick}
         >
-            {children}
+            <span className="relative">{children}</span>
+            {isActive && (
+                <motion.span
+                    layoutId="nav-tick"
+                    className="bg-brand absolute inset-y-2 left-0 w-0.5 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
+                />
+            )}
         </button>
     );
 }
@@ -279,8 +276,6 @@ function IconNavigation({
     activeSection: string;
     onSectionChange: (section: string) => void;
 }) {
-    const { theme, toggleTheme } = useTheme();
-
     return (
         <div className="bg-sidebar flex flex-col gap-2 items-center p-4 w-16 h-full border-r border-sidebar-border rounded-l-2xl">
             <div className="mb-2 size-10 flex items-center justify-center">
@@ -303,18 +298,6 @@ function IconNavigation({
             </div>
 
             <div className="flex-1" />
-
-            <div className="flex flex-col gap-1 w-full items-center justify-center">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleTheme}
-                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                >
-                    {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-                </Button>
-            </div>
         </div>
     );
 }
@@ -346,10 +329,10 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
                 <div className="flex-1 relative overflow-hidden">
                     <input
                         type="text"
-                        placeholder="Search WorkSphere"
+                        placeholder="Search Forge"
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
-                        className="w-full bg-transparent border-none outline-none font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground placeholder:text-sidebar-foreground/50 leading-[20px]"
+                        className="w-full bg-transparent border-none outline-none text-[14px] text-sidebar-foreground placeholder:text-sidebar-foreground/50 leading-[20px]"
                         tabIndex={0}
                     />
                 </div>
@@ -416,31 +399,45 @@ function SectionHeader({
 
 function ChannelRow({
     name,
-    unread,
     channelId,
 }: {
     name: string;
-    unread: number;
     channelId: string;
 }) {
-    const { setSelectedChannelId } = useUIStore();
+    const { setSelectedChannelId, selectedChannelId } = useUIStore();
+    const isActive = selectedChannelId === channelId;
     return (
         <div
-            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+            className={cn(
+                "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
+                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+            )}
             onClick={() => {
                 setSelectedChannelId(channelId);
             }}
         >
-            <span className="flex items-center justify-center shrink-0 size-5 text-sidebar-foreground/50 [&>svg]:size-4">
+            <span
+                className={cn(
+                    "flex items-center justify-center shrink-0 size-5 [&>svg]:size-4 transition-colors",
+                    isActive ? "text-brand" : "text-sidebar-foreground/50",
+                )}
+            >
                 <Hash />
             </span>
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2 flex-1">
+            <span
+                className={cn(
+                    "text-[14px] truncate ml-2 flex-1 transition-colors",
+                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                )}
+            >
                 {name}
             </span>
-            {unread > 0 && (
-                <span className="flex items-center justify-center h-4 min-w-4 px-1.5 rounded-full bg-[#E01E5A] text-white text-[11px] font-semibold ml-1">
-                    {unread}
-                </span>
+            {isActive && (
+                <motion.span
+                    layoutId="channel-tick"
+                    className="bg-brand absolute inset-y-1.5 right-0 w-0.5 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                />
             )}
         </div>
     );
@@ -455,13 +452,23 @@ function DMRow({
     online: boolean;
     onSelect?: () => void;
 }) {
+    const selectedConversationId = useUIStore((s) => s.selectedConversationId);
+    const isActive = selectedConversationId === dm.id;
     return (
         <div
             onClick={onSelect}
-            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+            className={cn(
+                "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
+                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+            )}
         >
             <AvatarDot avatar={dm.avatar} online={online} name={dm.displayName} type="dm" />
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2">
+            <span
+                className={cn(
+                    "text-[14px] truncate ml-2 transition-colors",
+                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                )}
+            >
                 {dm.displayName}
             </span>
         </div>
@@ -535,7 +542,7 @@ function QuickLink({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
         <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors">
             <span className="shrink-0 text-sidebar-foreground/60 [&>svg]:size-4">{icon}</span>
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate">
+            <span className="text-[14px] text-sidebar-foreground/80 truncate">
                 {label}
             </span>
         </div>
@@ -543,13 +550,23 @@ function QuickLink({ icon, label }: { icon: React.ReactNode; label: string }) {
 }
 
 function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => void }) {
+    const selectedConversationId = useUIStore((s) => s.selectedConversationId);
+    const isActive = selectedConversationId === gdm.id;
     return (
         <div
             onClick={onSelect}
-            className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group"
+            className={cn(
+                "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
+                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+            )}
         >
             <AvatarDot avatar={gdm.avatar} online={true} name={gdm.groupName} type="gdm" />
-            <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2">
+            <span
+                className={cn(
+                    "text-[14px] truncate ml-2 transition-colors",
+                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                )}
+            >
                 {gdm.groupName}
             </span>
         </div>
@@ -589,10 +606,10 @@ function ActivityRow({ name, meta, icon }: { name: string; meta: string; icon: R
                 {icon}
             </span>
             <div className="min-w-0">
-                <div className="font-['Lexend:Regular',_sans-serif] text-[13px] text-sidebar-foreground/85 leading-[18px]">
+                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px]">
                     {name}
                 </div>
-                <div className="font-['Lexend:Regular',_sans-serif] text-[11px] text-sidebar-foreground/40 leading-[15px]">
+                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">
                     {meta}
                 </div>
             </div>
@@ -607,10 +624,10 @@ function SavedRow({ name, meta }: { name: string; meta: string }) {
                 <Bookmark size={16} />
             </span>
             <div className="min-w-0">
-                <div className="font-['Lexend:Regular',_sans-serif] text-[13px] text-sidebar-foreground/85 leading-[18px] truncate">
+                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px] truncate">
                     {name}
                 </div>
-                <div className="font-['Lexend:Regular',_sans-serif] text-[11px] text-sidebar-foreground/40 leading-[15px]">
+                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">
                     {meta}
                 </div>
             </div>
@@ -672,7 +689,7 @@ const sectionContent: Record<string, Section[]> = {
         {
             title: "Invite",
             kind: "quick",
-            rows: [{ label: "Invite people to WorkSphere", icon: <Users size={16} /> }],
+            rows: [{ label: "Invite people to Forge", icon: <Users size={16} /> }],
         },
     ],
     settings: [
@@ -688,60 +705,6 @@ const sectionContent: Record<string, Section[]> = {
     ],
 };
 
-/* ------------------------------ User Footer ------------------------------- */
-
-function UserFooter() {
-    const { user } = useAuth();
-
-    return (
-        <div className="w-full mt-auto pt-2 border-t border-sidebar-border shrink-0">
-            {user ? (
-                <UserMenu user={user}>
-                    <button
-                        type="button"
-                        className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left"
-                    >
-                        <span className="size-8 shrink-0 rounded-full">
-                            <Profile avatarUrl={user?.avatar} username={user?.username} />
-                        </span>
-                        <span className="ml-2 min-w-0">
-                            <span className="block font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground leading-[20px] truncate">
-                                {user?.name || user?.username || "Guest"}
-                            </span>
-                            <span className="block font-['Lexend:Regular',_sans-serif] text-[12px] text-sidebar-foreground/50 leading-[16px] truncate">
-                                {user?.email || "Not signed in"}
-                            </span>
-                        </span>
-                        <svg
-                            className="ml-auto size-4 text-sidebar-foreground"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                        >
-                            <circle cx="4" cy="8" r="1" fill="currentColor" />
-                            <circle cx="8" cy="8" r="1" fill="currentColor" />
-                            <circle cx="12" cy="8" r="1" fill="currentColor" />
-                        </svg>
-                    </button>
-                </UserMenu>
-            ) : (
-                <div className="flex items-center gap-2 px-2 py-2 rounded-md">
-                    <span className="size-8 shrink-0 rounded-full">
-                        <Profile avatarUrl={undefined} username={undefined} />
-                    </span>
-                    <span className="ml-2 min-w-0">
-                        <span className="block font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground leading-[20px]">
-                            Guest
-                        </span>
-                        <span className="block font-['Lexend:Regular',_sans-serif] text-[12px] text-sidebar-foreground/50 leading-[16px]">
-                            Not signed in
-                        </span>
-                    </span>
-                </div>
-            )}
-        </div>
-    );
-}
-
 /* ------------------------------ Detail Panel ------------------------------ */
 
 function DetailSidebar({
@@ -753,6 +716,7 @@ function DetailSidebar({
     onResize: (w: number) => void;
     activeSection: string;
 }) {
+    const reduce = useReducedMotion();
     const {
         selectedWorkspaceId,
         setSelectedWorkspaceId,
@@ -832,7 +796,7 @@ function DetailSidebar({
             case "channels":
                 if (collapsed) return null;
                 return (WorkspaceDetails.data?.channels ?? []).map((c) => (
-                    <ChannelRow key={c.id} name={c.channelName} unread={2} channelId={c.id} />
+                    <ChannelRow key={c.id} name={c.channelName} channelId={c.id} />
                 ));
             case "dms":
                 if (collapsed) return null;
@@ -859,8 +823,14 @@ function DetailSidebar({
                 ));
             case "members":
                 if (collapsed) return null;
-                // return allMembers.map((m) => <MemberRow key={m.name} {...m} />);
-                return;
+                return (
+                    <div className="flex flex-col items-center gap-2 rounded-lg bg-sidebar-accent/60 px-3 py-4 text-center">
+                        <Users className="size-4 text-sidebar-foreground/40" />
+                        <p className="text-[12px] leading-[16px] text-sidebar-foreground/55">
+                            Members show up here once your workspace has people.
+                        </p>
+                    </div>
+                );
             default:
                 if (collapsed) return null;
                 return (section.rows || []).map((row) => renderRow(row, section.kind));
@@ -900,7 +870,7 @@ function DetailSidebar({
                     </div>
                 ) : hasNoWorkspaces ? (
                     <div className="flex flex-1 w-full flex-col items-center justify-center gap-4">
-                        <span className="flex size-12 items-center justify-center rounded-xl bg-[#3F0E40] text-white">
+                        <span className="flex size-12 items-center justify-center rounded-xl bg-brand text-brand-foreground">
                             <Building2 className="size-6" />
                         </span>
                         <div className="space-y-1 text-center">
@@ -941,14 +911,24 @@ function DetailSidebar({
                                                 : undefined
                                         }
                                     />
-                                    {renderKindSection(section, collapsed)}
+                                    <AnimatePresence initial={false}>
+                                        {!collapsed && (
+                                            <motion.div
+                                                initial={reduce ? false : { opacity: 0, y: -4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={reduce ? undefined : { opacity: 0, y: -4 }}
+                                                transition={{ duration: 0.18, ease: EASE_OUT }}
+                                                className="flex flex-col gap-0.5"
+                                            >
+                                                {renderKindSection(section, collapsed)}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             );
                         })}
                     </div>
                 )}
-
-                <UserFooter />
 
                 {showCreateWorkspaceForm && (
                     <CreateWorkspaceForm

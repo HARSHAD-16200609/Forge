@@ -6,6 +6,7 @@ import {
     type ComponentProps,
     type ReactNode,
 } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import EditorJS from "@editorjs/editorjs";
 import List from "@editorjs/list";
 import Quote from "@editorjs/quote";
@@ -38,6 +39,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useComposerStore } from "@/stores/composerStore";
+import { APP_EASE } from "@/components/ui/app-motion";
 import { Component as EmojiPicker } from "@/components/ui/emoji-picker";
 import { realtimeActions } from "@/realtime/realtimeActions";
 import type { WsMessageEntityType } from "@/features/Messages/types";
@@ -156,7 +158,9 @@ export function MessageComposer({
     const editorRef = useRef<EditorJS | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [files, setFiles] = useState<File[]>([]);
+    const [hasContent, setHasContent] = useState(!!initialContent);
     const [showEmojiDrawer, setShowEmojiDrawer] = useState(false);
+    const reduce = useReducedMotion();
     const [inlineState, setInlineState] = useState<ActiveInline>(emptyActiveInline);
     const [blockState, setBlockState] = useState<string | null>(null);
     const [listStyle, setListStyle] = useState<"ordered" | "unordered" | null>(null);
@@ -253,6 +257,7 @@ export function MessageComposer({
         try {
             const saved = await editorRef.current?.save();
             const contentJson = JSON.stringify(saved?.blocks ?? []);
+            setHasContent((saved?.blocks.length ?? 0) > 0 || files.length > 0);
             onChangeRef.current?.(contentJson);
             useComposerStore.getState().saveDraft(channelId ?? "", contentJson);
         } catch {
@@ -260,13 +265,21 @@ export function MessageComposer({
         }
         readActiveStyles();
         handleTypingActivity();
-    }, [readActiveStyles, channelId, handleTypingActivity]);
+    }, [readActiveStyles, channelId, handleTypingActivity, files.length]);
+
+    function handleKeyDown(event: KeyboardEvent) {
+        if (event.key !== "Enter") return;
+        if (event.shiftKey) return;
+        event.preventDefault();
+        handleSendRef.current();
+    }
 
     useEffect(() => {
-        if (!editorHostRef.current) return;
+        const editorHost = editorHostRef.current;
+        if (!editorHost) return;
 
         const editor = new EditorJS({
-            holder: editorHostRef.current,
+            holder: editorHost,
             placeholder: placeholderRef.current,
             autofocus: true,
             data: parseStoredBlocks(
@@ -308,7 +321,7 @@ export function MessageComposer({
         void editor.isReady.then(() => readActiveStyles());
         void editor.isReady.then(() => {
             const editable =
-                editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]");
+                editorHost.querySelector<HTMLElement>("[contenteditable=true]");
             editable?.addEventListener("keydown", handleKeyDown);
         });
 
@@ -320,7 +333,7 @@ export function MessageComposer({
             sendTyping(false);
             void editor.isReady.then(() => {
                 const editable =
-                    editorHostRef.current?.querySelector<HTMLElement>("[contenteditable=true]");
+                    editorHost.querySelector<HTMLElement>("[contenteditable=true]");
                 editable?.removeEventListener("keydown", handleKeyDown);
                 if (destroyed) return;
                 destroyed = true;
@@ -328,7 +341,7 @@ export function MessageComposer({
                 editor.destroy();
             });
         };
-    }, [readActiveStyles, propagate, channelId, sendTyping]);
+    }, [readActiveStyles, propagate, channelId, sendTyping, initialContent]);
 
     useEffect(() => {
         const editor = editorRef.current;
@@ -438,11 +451,19 @@ export function MessageComposer({
 
     function handleAddFiles(list: FileList | null) {
         if (!list) return;
-        setFiles((prev) => [...prev, ...Array.from(list)]);
+        setFiles((prev) => {
+            const next = [...prev, ...Array.from(list)];
+            setHasContent(next.length > 0);
+            return next;
+        });
     }
 
     function removeFile(index: number) {
-        setFiles((prev) => prev.filter((_, i) => i !== index));
+        setFiles((prev) => {
+            const next = prev.filter((_, i) => i !== index);
+            setHasContent(next.length > 0 || hasContent);
+            return next;
+        });
     }
 
     async function handleSend() {
@@ -454,6 +475,7 @@ export function MessageComposer({
             await onSend?.(contentJson, files, replyToId);
             await editorRef.current?.clear();
             setFiles([]);
+            setHasContent(false);
             useComposerStore.getState().clearDraft(channelId ?? "");
             onChangeRef.current?.(JSON.stringify([]));
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
@@ -462,14 +484,10 @@ export function MessageComposer({
             /* keep editor content so the user can retry on failure */
         }
     }
-    handleSendRef.current = handleSend;
 
-    function handleKeyDown(event: KeyboardEvent) {
-        if (event.key !== "Enter") return;
-        if (event.shiftKey) return;
-        event.preventDefault();
-        handleSendRef.current();
-    }
+    useEffect(() => {
+        handleSendRef.current = handleSend;
+    });
 
     function handleEmojiSelect(emoji: { native: string }) {
         focusEditable();
@@ -481,7 +499,8 @@ export function MessageComposer({
     return (
         <div
             className={cn(
-                "relative w-full rounded-lg border border-border bg-background",
+                "relative w-full rounded-lg border border-border bg-background transition-shadow duration-200",
+                "focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/20",
                 className,
             )}
         >
@@ -561,24 +580,34 @@ export function MessageComposer({
                 </ToolbarButton>
             </div>
 
-            {replyTo && (
-                <div className="flex items-center gap-2 border-b border-border/60 bg-accent/40 px-3 py-1.5 text-xs">
-                    <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
-                        <CornerUpLeft className="size-3.5" />
-                        Replying to{" "}
-                        <span className="font-semibold text-foreground">@{replyTo.sender}</span>
-                    </span>
-                    <button
-                        type="button"
-                        aria-label="Cancel reply"
-                        title="Cancel reply"
-                        onClick={onCancelReply}
-                        className="ml-auto flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                    >
-                        <X className="size-3.5" />
-                    </button>
-                </div>
-            )}
+            <AnimatePresence initial={false}>
+                    {replyTo && (
+                        <motion.div
+                            initial={reduce ? false : { opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={reduce ? undefined : { opacity: 0, y: -4 }}
+                            transition={{ duration: 0.14, ease: APP_EASE }}
+                            className="flex items-center gap-2 border-b border-border/60 bg-accent/40 px-3 py-1.5 text-xs"
+                        >
+                            <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+                                <CornerUpLeft className="size-3.5 text-brand" />
+                                Replying to{" "}
+                                <span className="font-semibold text-foreground">
+                                    @{replyTo.sender}
+                                </span>
+                            </span>
+                            <button
+                                type="button"
+                                aria-label="Cancel reply"
+                                title="Cancel reply"
+                                onClick={onCancelReply}
+                                className="ml-auto flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                            >
+                                <X className="size-3.5" />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
             {/* Main editor area */}
             <div>
@@ -658,20 +687,25 @@ export function MessageComposer({
                 </ToolbarButton>
 
                 <div className="ml-auto flex items-center gap-0.5">
-                    <button
-                        type="button"
-                        aria-label="Send message"
-                        title="Send message"
-                        onClick={handleSend}
-                        disabled={disabled}
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-                    >
-                        {disabled ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <Send className="size-4" />
-                        )}
-                    </button>
+                        <button
+                            type="button"
+                            aria-label="Send message"
+                            title="Send message"
+                            onClick={handleSend}
+                            disabled={disabled}
+                            className={cn(
+                                "flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
+                                hasContent
+                                    ? "bg-brand text-brand-foreground hover:bg-brand/90"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                        >
+                            {disabled ? (
+                                <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                                <Send className="size-4" />
+                            )}
+                        </button>
                     <button
                         type="button"
                         aria-label="Send options"
@@ -683,16 +717,24 @@ export function MessageComposer({
                 </div>
             </div>
 
-            {showEmojiDrawer && (
-                <div className="absolute inset-x-0 bottom-full z-30 w-80">
-                    <EmojiPicker
-                        isOpen={showEmojiDrawer}
-                        onClose={() => setShowEmojiDrawer(false)}
-                        onEmojiSelect={handleEmojiSelect}
-                        variant="drawer"
-                    />
-                </div>
-            )}
+            <AnimatePresence>
+                {showEmojiDrawer && (
+                    <motion.div
+                        initial={reduce ? false : { opacity: 0, y: 8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={reduce ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: APP_EASE }}
+                        className="absolute inset-x-0 bottom-full z-30 w-80"
+                    >
+                        <EmojiPicker
+                            isOpen={showEmojiDrawer}
+                            onClose={() => setShowEmojiDrawer(false)}
+                            onEmojiSelect={handleEmojiSelect}
+                            variant="drawer"
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

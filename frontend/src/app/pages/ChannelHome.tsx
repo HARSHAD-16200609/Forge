@@ -14,9 +14,11 @@ import { cn } from "@/lib/utils";
 import { useComposerStore } from "@/stores/composerStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
-import { Bell, Hash, Info, Search, Star, Users, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Bell, Hash, Info, Search, Star, Users, X } from "lucide-react";
 import { Conversations } from "./Conversations";
+import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
 
 export function ChannelHome() {
@@ -36,6 +38,7 @@ export function ChannelHome() {
 
 function ChannelHomeInner() {
     const [isFavourite, setFavourite] = useState(false);
+    const reduce = useReducedMotion();
     const clearDraft = useComposerStore((state) => state.clearDraft);
     const { selectedWorkspaceId } = useWorkspaceStore();
     const { selectedChannelId, setSelectedChannelId } = useUIStore();
@@ -114,6 +117,25 @@ function ChannelHomeInner() {
         if (el) el.scrollTop = el.scrollHeight;
     }, [selectedChannelId]);
 
+    const [animateGate, setAnimateGate] = useState<{ id: string | null; fresh: boolean }>({
+        id: selectedChannelId ?? null,
+        fresh: false,
+    });
+
+    if ((selectedChannelId ?? null) !== animateGate.id) {
+        setAnimateGate({ id: selectedChannelId ?? null, fresh: false });
+    }
+
+    if (
+        animateGate.id === (selectedChannelId ?? null) &&
+        !animateGate.fresh &&
+        flattened.length > 0
+    ) {
+        setAnimateGate({ id: animateGate.id, fresh: true });
+    }
+
+    const isFresh = animateGate.id === (selectedChannelId ?? null) && animateGate.fresh;
+
     useEffect(() => {
         const el = scrollRef.current;
         if (el && hasNextPage && !isFetchingNextPage && el.scrollHeight <= el.clientHeight + 120) {
@@ -176,15 +198,16 @@ function ChannelHomeInner() {
             <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
                 <div className="flex min-w-0 items-center gap-2">
                     <div className="min-w-0">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                             <button
                                 type="button"
-                                className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-amber-500 "
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-500 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                                 onClick={() => setFavourite((prev) => !prev)}
+                                aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
                             >
                                 <Star
                                     className={cn(
-                                        "size-5 transition-colors",
+                                        "size-[18px] transition-colors",
                                         isFavourite ? "text-amber-500" : "text-muted-foreground",
                                     )}
                                     fill={isFavourite ? "currentColor" : "none"}
@@ -192,10 +215,11 @@ function ChannelHomeInner() {
                                 />
                             </button>
 
-                            <div className="flex min-w-0 items-center gap-1">
-                                <Hash className="size-5 shrink-0 text-muted-foreground " />
-
-                                <span className="truncate text-[15px] font-bold leading-tight ">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                                <span className="bg-brand/10 flex size-6 shrink-0 items-center justify-center rounded-md text-brand">
+                                    <Hash className="size-3.5" />
+                                </span>
+                                <span className="truncate text-[15px] font-bold leading-tight">
                                     {activeChannel && activeChannel.channelName}
                                 </span>
                             </div>
@@ -203,27 +227,27 @@ function ChannelHomeInner() {
                     </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Members"
                     >
                         <Users className="size-[18px]" />
                     </button>
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Search"
                     >
                         <Search className="size-[18px]" />
                     </button>
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        aria-label="Bell"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        aria-label="Notifications"
                     >
                         <Bell className="size-[18px]" />
                     </button>
                     <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Details"
                     >
                         <Info className="size-[18px]" />
@@ -240,72 +264,102 @@ function ChannelHomeInner() {
                 {/* Channel intro banner */}
                 <div className="mb-6"></div>
 
-                {/* Date divider */}
-                <div className="mb-4 flex items-center gap-3">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Today
-                    </span>
-                    <div className="h-px flex-1 bg-border" />
-                </div>
-
-                {flattened.length === 0 && (
-                    <div className="py-10 text-center text-sm text-muted-foreground">
-                        No messages in #{activeChannel?.channelName ?? "channel"} yet.
-                        Start the conversation!
-                    </div>
-                )}
-
-                {/* Messages */}
-                <div className="space-y-6">
-                    {flattened.map((message) =>
-                        message.parentMsgId ? (
-                            <div key={message.id} className="ml-12 border-l-2 border-border pl-3">
-                                <MessageBubble
-                                    message={message}
-                                    onReply={(m) => setReplyingTo(m)}
-                                    onEdit={setEditingMessage}
-                                    onDelete={(m) => {
-                                        if (window.confirm("Delete this message?")) {
-                                            deleteMessage.mutate({ messageId: m.id });
-                                        }
-                                    }}
-                                    onReact={(m, emoji) =>
-                                        react.mutate({ messageId: m.id, reaction: emoji })
-                                    }
-                                />
-                            </div>
-                        ) : (
-                            <MessageBubble
-                                key={message.id}
-                                message={message}
-                                onReply={(m) => setReplyingTo(m)}
-                                onEdit={setEditingMessage}
-                                onDelete={(m) => {
-                                    if (window.confirm("Delete this message?")) {
-                                        deleteMessage.mutate({ messageId: m.id });
-                                    }
-                                }}
-                                onReact={(m, emoji) =>
-                                    react.mutate({ messageId: m.id, reaction: emoji })
-                                }
-                            />
-                        ),
-                    )}
-
-                    {isFetchingNextPage && <MessageSkeleton rows={2} />}
-
-                    {!hasNextPage && Messages && Messages.length > 0 && (
-                        <div className="py-4 text-center text-xs text-muted-foreground">
-                            You&apos;re all caught up
+                <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                        key={selectedChannelId}
+                        initial={reduce ? false : { opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduce ? undefined : { opacity: 0, y: -6 }}
+                        transition={{ duration: 0.16, ease: APP_EASE }}
+                    >
+                        {/* Date divider */}
+                        <div className="mb-4 flex items-center gap-3">
+                            <div className="h-px flex-1 bg-border" />
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Today
+                            </span>
+                            <div className="h-px flex-1 bg-border" />
                         </div>
-                    )}
-                </div>
+
+                        {flattened.length === 0 && (
+                            <div className="py-10 text-center text-sm text-muted-foreground">
+                                No messages in #{activeChannel?.channelName ?? "channel"} yet.
+                                Start the conversation!
+                            </div>
+                        )}
+
+                        {/* Messages */}
+                        <div className="space-y-6">
+                            {flattened.map((message) =>
+                                message.parentMsgId ? (
+                                    <div
+                                        key={message.id}
+                                        className="ml-12 border-l-2 border-border pl-3"
+                                    >
+                                        <FadeIn
+                                            active={isFresh && !isFetchingNextPage}
+                                            y={0}
+                                            duration={0.12}
+                                        >
+                                            <MessageBubble
+                                                message={message}
+                                                onReply={(m) => setReplyingTo(m)}
+                                                onEdit={setEditingMessage}
+                                                onDelete={(m) => {
+                                                    if (
+                                                        window.confirm("Delete this message?")
+                                                    ) {
+                                                        deleteMessage.mutate({ messageId: m.id });
+                                                    }
+                                                }}
+                                                onReact={(m, emoji) =>
+                                                    react.mutate({
+                                                        messageId: m.id,
+                                                        reaction: emoji,
+                                                    })
+                                                }
+                                            />
+                                        </FadeIn>
+                                    </div>
+                                ) : (
+                                    <FadeIn
+                                        key={message.id}
+                                        active={isFresh && !isFetchingNextPage}
+                                        y={0}
+                                        duration={0.12}
+                                    >
+                                        <MessageBubble
+                                            message={message}
+                                            onReply={(m) => setReplyingTo(m)}
+                                            onEdit={setEditingMessage}
+                                            onDelete={(m) => {
+                                                if (window.confirm("Delete this message?")) {
+                                                    deleteMessage.mutate({ messageId: m.id });
+                                                }
+                                            }}
+                                            onReact={(m, emoji) =>
+                                                react.mutate({ messageId: m.id, reaction: emoji })
+                                            }
+                                        />
+                                    </FadeIn>
+                                ),
+                            )}
+
+                            {isFetchingNextPage && <MessageSkeleton rows={2} />}
+
+                            {!hasNextPage && Messages && Messages.length > 0 && (
+                                <div className="py-4 text-center text-xs text-muted-foreground">
+                                    You&apos;re all caught up
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
             {/* Composer */}
             <div className="shrink-0 px-4 pb-4">
-                <TypingIndicator entityId={selectedChannelId} />
+                <TypingIndicator entityId={selectedChannelId} workspaceId={selectedWorkspaceId} />
                 <MessageComposer
                     key={selectedChannelId}
                     channelId={selectedChannelId}
@@ -339,7 +393,7 @@ function ChannelHomeInner() {
             </div>
 
             {editingMessage && (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center">
                     <div className="w-full max-w-2xl rounded-lg border border-border bg-background p-4 shadow-lg">
                         <div className="mb-2 flex items-center justify-between">
                             <span className="text-sm font-semibold">Edit message</span>

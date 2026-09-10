@@ -21,10 +21,7 @@ export function EmptyConversation({
         <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <div
                 className={cn(
-                    "mb-6 flex size-20 items-center justify-center rounded-full",
-                    type === "GDM"
-                        ? "bg-emerald-500/15 text-emerald-500"
-                        : "bg-violet-500/15 text-violet-600",
+                    "mb-6 flex size-20 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-brand",
                 )}
             >
                 {type === "GDM" ? (
@@ -39,6 +36,11 @@ export function EmptyConversation({
                     <span className="text-3xl font-bold">{peerName.charAt(0).toUpperCase()}</span>
                 )}
             </div>
+
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+                {type === "GDM" ? <Users className="size-3.5" /> : <span className="size-1.5 rounded-full bg-brand" />}
+                {type === "GDM" ? "Group chat" : "Direct message"}
+            </span>
 
             <h2 className="text-xl font-bold text-foreground">{peerName}</h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
