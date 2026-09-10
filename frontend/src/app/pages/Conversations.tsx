@@ -16,10 +16,12 @@ import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
 import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
+import { MessageDateDivider } from "@/features/Messages/components/MessageDateDivider";
+import { getDayKey, getMessageDayLabel } from "@/features/Messages/utils/format";
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
     const navigate = useNavigate();
@@ -274,14 +276,6 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
 
                     {Messages && Messages.length > 0 && (
                         <>
-                            <div className="mb-4 flex items-center gap-3">
-                                <div className="h-px flex-1 bg-border" />
-                                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Today
-                                </span>
-                                <div className="h-px flex-1 bg-border" />
-                            </div>
-
                             <AnimatePresence mode="wait" initial={false}>
                                 <motion.div
                                     key={selectedConversationId}
@@ -291,73 +285,87 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                     transition={{ duration: 0.16, ease: APP_EASE }}
                                 >
                                     <div className="space-y-6">
-                                        {flattened.map((message) =>
-                                            message.parentMsgId ? (
-                                                <div
-                                                    key={message.id}
-                                                    className="ml-12 border-l-2 border-border pl-3"
-                                                >
-                                                    <FadeIn
-                                                        active={isFresh && !isFetchingNextPage}
-                                                        y={0}
-                                                        duration={0.12}
-                                                    >
-                                                        <MessageBubble
-                                                            message={message}
-                                                            onReply={(m) => setReplyingTo(m)}
-                                                            onEdit={setEditingMessage}
-                                                            onDelete={(m) => {
-                                                                if (
-                                                                    window.confirm(
-                                                                        "Delete this message?",
-                                                                    )
-                                                                ) {
-                                                                    deleteMessage.mutate({
-                                                                        messageId: m.id,
-                                                                    });
-                                                                }
-                                                            }}
-                                                            onReact={(m, emoji) =>
-                                                                react.mutate({
-                                                                    messageId: m.id,
-                                                                    reaction: emoji,
-                                                                })
-                                                            }
+                                        {flattened.map((message, index) => {
+                                            const prev = flattened[index - 1];
+                                            const divider =
+                                                index === 0 ||
+                                                getDayKey(prev.sentAt) !== getDayKey(message.sentAt);
+
+                                            return (
+                                                <Fragment key={message.id}>
+                                                    {divider && (
+                                                        <MessageDateDivider
+                                                            label={getMessageDayLabel(
+                                                                message.sentAt,
+                                                            )}
                                                         />
-                                                    </FadeIn>
-                                                </div>
-                                            ) : (
-                                                <FadeIn
-                                                    key={message.id}
-                                                    active={isFresh && !isFetchingNextPage}
-                                                    y={0}
-                                                    duration={0.12}
-                                                >
-                                                    <MessageBubble
-                                                        message={message}
-                                                        onReply={(m) => setReplyingTo(m)}
-                                                        onEdit={setEditingMessage}
-                                                        onDelete={(m) => {
-                                                            if (
-                                                                window.confirm(
-                                                                    "Delete this message?",
-                                                                )
-                                                            ) {
-                                                                deleteMessage.mutate({
-                                                                    messageId: m.id,
-                                                                });
+                                                    )}
+                                                    {message.parentMsgId ? (
+                                                        <div className="ml-12 border-l-2 border-border pl-3">
+                                                            <FadeIn
+                                                                active={isFresh && !isFetchingNextPage}
+                                                                y={0}
+                                                                duration={0.12}
+                                                            >
+                                                                <MessageBubble
+                                                                    message={message}
+                                                                    onReply={(m) => setReplyingTo(m)}
+                                                                    onEdit={setEditingMessage}
+                                                                    onDelete={(m) => {
+                                                                        if (
+                                                                            window.confirm(
+                                                                                "Delete this message?",
+                                                                            )
+                                                                        ) {
+                                                                            deleteMessage.mutate({
+                                                                                messageId: m.id,
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    onReact={(m, emoji) =>
+                                                                        react.mutate({
+                                                                            messageId: m.id,
+                                                                            reaction: emoji,
+                                                                        })
+                                                                    }
+                                                                />
+                                                            </FadeIn>
+                                                        </div>
+                                                    ) : (
+                                                        <FadeIn
+                                                            active={
+                                                                isFresh && !isFetchingNextPage
                                                             }
-                                                        }}
-                                                        onReact={(m, emoji) =>
-                                                            react.mutate({
-                                                                messageId: m.id,
-                                                                reaction: emoji,
-                                                            })
-                                                        }
-                                                    />
-                                                </FadeIn>
-                                            ),
-                                        )}
+                                                            y={0}
+                                                            duration={0.12}
+                                                        >
+                                                            <MessageBubble
+                                                                message={message}
+                                                                onReply={(m) => setReplyingTo(m)}
+                                                                onEdit={setEditingMessage}
+                                                                onDelete={(m) => {
+                                                                    if (
+                                                                        window.confirm(
+                                                                            "Delete this message?",
+                                                                        )
+                                                                    ) {
+                                                                        deleteMessage.mutate({
+                                                                            messageId: m.id,
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                onReact={(m, emoji) =>
+                                                                    react.mutate({
+                                                                        messageId: m.id,
+                                                                        reaction: emoji,
+                                                                    })
+                                                                }
+                                                            />
+                                                        </FadeIn>
+                                                    )}
+                                                </Fragment>
+                                            );
+                                        })}
 
                                         {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
