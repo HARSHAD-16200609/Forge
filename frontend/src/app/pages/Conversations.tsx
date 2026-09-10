@@ -288,8 +288,10 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                         {flattened.map((message, index) => {
                                             const prev = flattened[index - 1];
                                             const divider =
-                                                index === 0 ||
-                                                getDayKey(prev.sentAt) !== getDayKey(message.sentAt);
+                                                !message.parentMsgId &&
+                                                (index === 0 ||
+                                                    getDayKey(prev.sentAt) !==
+                                                        getDayKey(message.sentAt));
 
                                             return (
                                                 <Fragment key={message.id}>

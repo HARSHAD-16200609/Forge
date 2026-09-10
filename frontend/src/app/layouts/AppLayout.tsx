@@ -32,7 +32,7 @@ export function AppLayout() {
 
     return (
         <div className="flex h-svh flex-col">
-            <header className="border-border flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <header className="aurora-header flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
                 <div className="flex min-w-0 items-center gap-2.5">
                     <img
                         src={logoUrl}
@@ -105,7 +105,7 @@ export function AppLayout() {
                     <Frame760 />
                 </aside>
 
-                <main className="min-h-0 flex-1">
+                <main className="force-light min-h-0 flex-1">
                     <Outlet />
                 </main>
             </div>

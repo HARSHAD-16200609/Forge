@@ -220,9 +220,9 @@ function ChannelHomeInner() {
                             </button>
 
                             <div className="flex min-w-0 items-center gap-1.5">
-                                <span className="bg-brand/10 flex size-6 shrink-0 items-center justify-center rounded-md text-brand">
+                               
+                             
                                     <Hash className="size-3.5" />
-                                </span>
                                 <span className="truncate text-[15px] font-bold leading-tight">
                                     {activeChannel && activeChannel.channelName}
                                 </span>
@@ -288,7 +288,10 @@ function ChannelHomeInner() {
                         <div className="space-y-6">
                             {flattened.map((message, index) => {
                                 const prev = flattened[index - 1];
-                                const divider = index === 0 || getDayKey(prev.sentAt) !== getDayKey(message.sentAt);
+                                const divider =
+                                    !message.parentMsgId &&
+                                    (index === 0 ||
+                                        getDayKey(prev.sentAt) !== getDayKey(message.sentAt));
 
                                 return (
                                     <Fragment key={message.id}>

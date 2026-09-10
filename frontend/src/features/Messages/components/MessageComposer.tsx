@@ -613,7 +613,7 @@ export function MessageComposer({
             <div>
                 <div
                     ref={editorHostRef}
-                    className="message-composer-editor min-h-24 max-h-60 overflow-y-auto px-2 py-2"
+                    className="message-composer-editor min-h-24 max-h-60 overflow-y-auto px-2 py-2 text-black"
                 />
             </div>
 

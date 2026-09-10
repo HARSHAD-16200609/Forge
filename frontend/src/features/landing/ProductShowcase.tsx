@@ -12,7 +12,7 @@ export function ProductShowcase() {
         <section id="product" className="relative overflow-hidden border-y bg-muted/30">
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute left-[-15%] top-1/2 -z-10 size-[36rem] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand),transparent_86%),transparent)] opacity-50"
+                className="aurora-showcase pointer-events-none absolute left-[-15%] top-1/2 -z-10 size-[36rem] -translate-y-1/2 rounded-full"
             />
             <div className="mx-auto max-w-7xl px-6 py-28">
                 <Reveal className="max-w-2xl">

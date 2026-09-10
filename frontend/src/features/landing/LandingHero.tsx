@@ -37,7 +37,7 @@ export function LandingHero() {
             />
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute right-[-20%] top-[-20%] -z-10 size-[42rem] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand),transparent_82%),transparent)] opacity-60"
+                className="aurora-hero pointer-events-none absolute right-[-20%] top-[-20%] -z-10 size-[42rem] rounded-full"
             />
 
             <div className="mx-auto grid min-h-svh max-w-7xl items-center gap-12 px-6 pb-20 pt-32 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28 lg:pt-36">
