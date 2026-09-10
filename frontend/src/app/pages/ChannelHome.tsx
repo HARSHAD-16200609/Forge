@@ -15,6 +15,7 @@ import { useComposerStore } from "@/stores/composerStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Bell, Hash, Info, Search, Star, Users, X } from "lucide-react";
 import { Conversations } from "./Conversations";
@@ -37,6 +38,7 @@ export function ChannelHome() {
 }
 
 function ChannelHomeInner() {
+    const navigate = useNavigate();
     const [isFavourite, setFavourite] = useState(false);
     const reduce = useReducedMotion();
     const clearDraft = useComposerStore((state) => state.clearDraft);
@@ -243,6 +245,7 @@ function ChannelHomeInner() {
                     <button
                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Notifications"
+                        onClick={() => navigate("/app/notifications")}
                     >
                         <Bell className="size-[18px]" />
                     </button>

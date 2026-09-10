@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Search as SearchIcon, Settings as SettingsIcon, AddLarge } from "@carbon/icons-react";
 import { useUIStore } from "@/stores/uiStore";
 import {
@@ -193,7 +194,8 @@ type NavItem = {
 const navItems: NavItem[] = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
     { id: "dms", label: "Direct Messages", icon: <MessageSquare size={18} /> },
-    { id: "activity", label: "Activity", icon: <Bell size={18} /> },
+    { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
+    { id: "activity", label: "Activity", icon: <Archive size={18} /> },
     { id: "saved", label: "Saved Items", icon: <Bookmark size={18} /> },
     { id: "members", label: "Members", icon: <Users size={18} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
@@ -404,7 +406,8 @@ function ChannelRow({
     name: string;
     channelId: string;
 }) {
-    const { setSelectedChannelId, selectedChannelId } = useUIStore();
+    const { setSelectedChannelId, selectedChannelId, setActiveSection } = useUIStore();
+    const navigate = useNavigate();
     const isActive = selectedChannelId === channelId;
     return (
         <div
@@ -414,6 +417,8 @@ function ChannelRow({
             )}
             onClick={() => {
                 setSelectedChannelId(channelId);
+                setActiveSection("home");
+                navigate("/app");
             }}
         >
             <span
@@ -538,9 +543,20 @@ function AvatarDot({
     );
 }
 
-function QuickLink({ icon, label }: { icon: React.ReactNode; label: string }) {
+function QuickLink({
+    icon,
+    label,
+    onClick,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    onClick?: () => void;
+}) {
     return (
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors">
+        <div
+            className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors"
+            onClick={onClick}
+        >
             <span className="shrink-0 text-sidebar-foreground/60 [&>svg]:size-4">{icon}</span>
             <span className="text-[14px] text-sidebar-foreground/80 truncate">
                 {label}
@@ -639,7 +655,7 @@ type Section = {
     title: string;
     icon?: React.ReactNode;
     kind: "channels" | "dms" | "groups" | "members" | "activity" | "saved" | "quick";
-    rows?: { label: string; meta?: string; icon?: React.ReactNode }[];
+    rows?: { label: string; meta?: string; icon?: React.ReactNode; to?: string }[];
 };
 
 const sectionContent: Record<string, Section[]> = {
@@ -689,7 +705,7 @@ const sectionContent: Record<string, Section[]> = {
         {
             title: "Invite",
             kind: "quick",
-            rows: [{ label: "Invite people to Forge", icon: <Users size={16} /> }],
+            rows: [{ label: "Invite people to Forge", icon: <Users size={16} />, to: "/app/invites" }],
         },
     ],
     settings: [
@@ -717,6 +733,7 @@ function DetailSidebar({
     activeSection: string;
 }) {
     const reduce = useReducedMotion();
+    const navigate = useNavigate();
     const {
         selectedWorkspaceId,
         setSelectedWorkspaceId,
@@ -741,6 +758,7 @@ function DetailSidebar({
     const chats = useDms(activeWorkspaceId ?? "");
     const collapsedSections = useUIStore((s) => s.collapsedSections);
     const toggleSection = useUIStore((s) => s.toggleSection);
+    const setActiveSection = useUIStore((s) => s.setActiveSection);
     const setSelectedConversation = useUIStore((s) => s.setSelectedConversation);
     const conversations = chats.data?.conversations ?? [];
     const dms = conversations.filter((convo) => convo.type === "DM");
@@ -769,12 +787,19 @@ function DetailSidebar({
     const sections = sectionContent[activeSection] || sectionContent.home;
 
     const renderRow = (
-        row: { label: string; meta?: string; icon?: React.ReactNode },
+        row: { label: string; meta?: string; icon?: React.ReactNode; to?: string },
         kind: Section["kind"],
     ) => {
         switch (kind) {
             case "quick":
-                return <QuickLink key={row.label} icon={row.icon} label={row.label} />;
+                return (
+                    <QuickLink
+                        key={row.label}
+                        icon={row.icon}
+                        label={row.label}
+                        onClick={row.to ? () => navigate(row.to!) : undefined}
+                    />
+                );
             case "activity":
                 return (
                     <ActivityRow
@@ -806,9 +831,9 @@ function DetailSidebar({
                         dm={d}
                         workspaceId={activeWorkspaceId}
                         onSelect={() => {
-                            
-                            setSelectedConversation(d.id, "DM")
-
+                            setSelectedConversation(d.id, "DM");
+                            setActiveSection("dms");
+                            navigate("/app");
                         }}
                     />
                 ));
@@ -818,7 +843,11 @@ function DetailSidebar({
                     <GroupDMRow
                         key={g.id}
                         gdm={g}
-                        onSelect={() => setSelectedConversation(g.id, "GDM")}
+                        onSelect={() => {
+                            setSelectedConversation(g.id, "GDM");
+                            setActiveSection("dms");
+                            navigate("/app");
+                        }}
                     />
                 ));
             case "members":
@@ -953,15 +982,56 @@ function DetailSidebar({
 
 /* ------------------------------- Root Frame ------------------------------ */
 
+const sectionRouteMap: Record<string, string> = {
+    home: "/app",
+    dms: "/app",
+    notifications: "/app/notifications",
+    activity: "/app/activity",
+    saved: "/app/saved",
+    members: "/app/members",
+    invites: "/app/invites",
+    settings: "/app/settings",
+};
+
+const routeSectionMap: Record<string, string> = {
+    "/app/notifications": "notifications",
+    "/app/activity": "activity",
+    "/app/saved": "saved",
+    "/app/members": "members",
+    "/app/invites": "invites",
+    "/app/settings": "settings",
+};
+
 export function Frame760() {
+    const navigate = useNavigate();
+    const location = useLocation();
     const activeSection = useUIStore((s) => s.activeSection);
     const setActiveSection = useUIStore((s) => s.setActiveSection);
+    const clearSelectedConversation = useUIStore((s) => s.clearSelectedConversation);
     const sidebarWidth = useUIStore((s) => s.sidebarWidth);
     const setSidebarWidth = useUIStore((s) => s.setSidebarWidth);
 
+    useEffect(() => {
+        const section = routeSectionMap[location.pathname];
+        if (section && section !== activeSection) {
+            setActiveSection(section);
+        }
+    }, [location.pathname, activeSection, setActiveSection]);
+
+    const handleSectionChange = useCallback(
+        (section: string) => {
+            setActiveSection(section);
+            if (section === "home" || section === "dms") {
+                clearSelectedConversation();
+            }
+            navigate(sectionRouteMap[section] ?? "/app");
+        },
+        [navigate, setActiveSection, clearSelectedConversation],
+    );
+
     return (
         <div className="bg-sidebar flex h-full">
-            <IconNavigation activeSection={activeSection} onSectionChange={setActiveSection} />
+            <IconNavigation activeSection={activeSection} onSectionChange={handleSectionChange} />
             <DetailSidebar
                 width={sidebarWidth}
                 onResize={setSidebarWidth}

@@ -17,9 +17,8 @@ export function Members() {
     const activeWorkspaceId =
         selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
 
-    const { data: details, isPending, isError } = useWorkspace(activeWorkspaceId ?? "");
-
-    const members = details?.members ?? [];
+    const details = useWorkspace(activeWorkspaceId ?? "");
+    const members = useMemo(() => details.data?.members ?? [], [details.data]);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -27,12 +26,7 @@ export function Members() {
         return members.filter((m) => m.user.username.toLowerCase().includes(q));
     }, [members, query]);
 
-    const onlineCount = useMemo(
-        () => members.filter((m) => m.user.username).length,
-        [members],
-    );
-
-    if (isPending) {
+    if (details.isPending) {
         return (
             <div className="flex h-full items-center justify-center">
                 <Swirling className="size-10 text-brand" />
@@ -40,7 +34,7 @@ export function Members() {
         );
     }
 
-    if (isError || !activeWorkspaceId) {
+    if (details.isError || !activeWorkspaceId) {
         return (
             <div className="flex h-full items-center justify-center px-6">
                 <div className="text-sm text-destructive">Failed to load members.</div>
@@ -52,7 +46,7 @@ export function Members() {
         <div className="h-full overflow-y-auto p-6">
             <PageHeader
                 title="Members"
-                description={`Everyone in ${details?.workspaceName ?? "your workspace"} · ${members.length} ${members.length === 1 ? "member" : "members"}`}
+                description={`Everyone in ${details.data?.workspaceName ?? "your workspace"} · ${members.length} ${members.length === 1 ? "member" : "members"}`}
                 action={
                     <Link
                         to="/app/invites"
@@ -114,7 +108,7 @@ export function Members() {
                                     {user.username}
                                 </p>
                                 <p className="truncate text-xs text-muted-foreground">
-                                    {user.avatar ? "Member" : "Member"}
+                                    {user.timezone ?? "Timezone not set"}
                                 </p>
                             </div>
                             <span

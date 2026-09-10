@@ -17,10 +17,12 @@ import type { AxiosError } from "axios";
 import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
+    const navigate = useNavigate();
     const selectedConversationId = useUIStore((s) => s.selectedConversationId);
     const selectedConversationType = useUIStore((s) => s.selectedConversationType);
     const clearSelectedConversation = useUIStore((s) => s.clearSelectedConversation);
@@ -240,6 +242,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                     <button
                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Bell"
+                        onClick={() => navigate("/app/notifications")}
                     >
                         <Bell className="size-[18px]" />
                     </button>

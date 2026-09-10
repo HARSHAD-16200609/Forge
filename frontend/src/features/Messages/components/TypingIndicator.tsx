@@ -24,11 +24,11 @@ const dotVariants = {
     }),
 };
 
-function TypingDots({ reduce }: { reduce: boolean }) {
+function TypingDots({ reduce }: { reduce: boolean | null }) {
     return (
         <span
             aria-hidden="true"
-            className="pointer-events-none flex h-[18px] w-8 items-center justify-center gap-0.5 rounded-md border border-border bg-background text-brand shadow-sm"
+            className=" pointer-events-none flex h-[18px] w-8 items-center justify-center gap-0.5 rounded-md border border-border bg-background text-brand shadow-sm"
         >
             {[0, 1, 2].map((i) =>
                 reduce ? (
@@ -65,13 +65,12 @@ export function TypingIndicator({
     if (names.length === 0) return null;
 
     const firstTyper = workspace.data?.members?.find((m) => m.user.id === typerIds[0])?.user;
-    const label =
-        names.length === 1 ? `${names[0]} is typing` : `${names.length} people are typing`;
+    
 
     return (
         <div className="flex items-center gap-2 px-4 pb-1.5 text-xs text-muted-foreground">
             {names.length === 1 ? (
-                <span className="relative flex shrink-0 items-center">
+                <span className="flex shrink-0 items-center gap-1.5">
                     {firstTyper?.avatar ? (
                         <img
                             src={firstTyper.avatar}
@@ -83,14 +82,11 @@ export function TypingIndicator({
                             {names[0].charAt(0).toUpperCase()}
                         </span>
                     )}
-                    <span className="absolute -right-1.5 -bottom-1">
-                        <TypingDots reduce={reduce} />
-                    </span>
+                    <TypingDots reduce={reduce} />
                 </span>
             ) : (
                 <TypingDots reduce={reduce} />
             )}
-            <span>{label}…</span>
         </div>
     );
 }

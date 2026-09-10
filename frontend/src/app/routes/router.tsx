@@ -4,6 +4,11 @@ import { AppLayout } from "@/app/layouts/AppLayout";
 import { Workspaces } from "@/app/pages/Workspaces";
 import { HomePage } from "@/app/pages/HomePage";
 import { ChannelHome } from "@/app/pages/ChannelHome";
+import { Members } from "@/app/pages/Members";
+import { Invites } from "@/app/pages/Invites";
+import { Notifications } from "@/app/pages/Notifications";
+import { Activity } from "@/app/pages/Activity";
+import { Saved } from "@/app/pages/Saved";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
@@ -29,6 +34,26 @@ export const router = createBrowserRouter([
                     {
                         path: "workspaces",
                         Component: Workspaces,
+                    },
+                    {
+                        path: "members",
+                        Component: Members,
+                    },
+                    {
+                        path: "invites",
+                        Component: Invites,
+                    },
+                    {
+                        path: "notifications",
+                        Component: Notifications,
+                    },
+                    {
+                        path: "activity",
+                        Component: Activity,
+                    },
+                    {
+                        path: "saved",
+                        Component: Saved,
                     },
                     {
                         path: "settings",

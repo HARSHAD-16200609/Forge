@@ -4,7 +4,7 @@ import {
     Search,
     Sun,
 } from "lucide-react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 
 import logoUrl from "@/assets/forge.png";
 import Frame760 from "@/components/SideBar";
@@ -19,6 +19,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useUIStore } from "@/stores/uiStore";
 
 export function AppLayout() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const Workspaces = useWorkspaces();
@@ -57,6 +58,7 @@ export function AppLayout() {
                     <button
                         type="button"
                         aria-label="Notifications"
+                        onClick={() => navigate("/app/notifications")}
                         className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
                     >
                         <Bell className="size-4" />
