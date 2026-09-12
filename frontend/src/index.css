@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *):not(:is(.force-light *)));
 
 :root {
     --radius: 0.625rem;
@@ -70,14 +70,55 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
+    --sidebar: oklch(0.178 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent: oklch(0.218 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Content pinned to light regardless of theme. Places this class on a subtree
+   to force its design tokens (and all `dark:*` utilities) back to light. */
+.force-light {
+    color-scheme: light;
+    color: var(--foreground);
+    --background: oklch(1 0 0);
+    --brand: oklch(0.52 0.2 262);
+    --brand-foreground: oklch(0.985 0 0);
+    --brand-soft: oklch(0.95 0.035 262);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -295,6 +336,174 @@
     to {
         transform: translateX(-50%);
     }
+}
+
+/* ── Landing page: ambient aurora glows ─────────────────────────────────
+   Light mode matches the original single brand radial. Dark mode swaps to
+   layered, desaturated, multi-origin orbs: calm ambient depth instead of a
+   bright neon halo. */
+
+.aurora-hero {
+    opacity: 0.6;
+    background-image: radial-gradient(
+        closest-side,
+        color-mix(in oklch, var(--brand), transparent 82%),
+        transparent
+    );
+}
+
+.aurora-showcase {
+    opacity: 0.5;
+    background-image: radial-gradient(
+        closest-side,
+        color-mix(in oklch, var(--brand), transparent 86%),
+        transparent
+    );
+}
+
+.aurora-cta {
+    background-image: radial-gradient(
+        60% 60% at 50% 0%,
+        color-mix(in oklch, var(--brand), transparent 88%),
+        transparent
+    );
+}
+
+.dark .aurora-hero {
+    opacity: 0.35;
+    background-image: radial-gradient(
+            closest-side,
+            color-mix(in oklch, oklch(0.55 0.09 262), transparent 88%),
+            transparent 70%
+        ),
+        radial-gradient(
+            45% 45% at 78% 82%,
+            color-mix(in oklch, oklch(0.5 0.07 285), transparent 90%),
+            transparent 70%
+        ),
+        radial-gradient(
+            40% 40% at 20% 60%,
+            color-mix(in oklch, oklch(0.52 0.06 215), transparent 92%),
+            transparent 70%
+        );
+}
+
+.dark .aurora-showcase {
+    opacity: 0.4;
+    background-image: radial-gradient(
+            closest-side,
+            color-mix(in oklch, oklch(0.54 0.09 262), transparent 90%),
+            transparent 70%
+        ),
+        radial-gradient(
+            50% 50% at 30% 25%,
+            color-mix(in oklch, oklch(0.5 0.07 285), transparent 92%),
+            transparent 70%
+        );
+}
+
+.dark .aurora-cta {
+    background-image: radial-gradient(
+            60% 60% at 50% 0%,
+            color-mix(in oklch, oklch(0.55 0.09 262), transparent 90%),
+            transparent
+        ),
+        radial-gradient(
+            35% 40% at 24% 8%,
+            color-mix(in oklch, oklch(0.5 0.07 285), transparent 93%),
+            transparent
+        ),
+        radial-gradient(
+            35% 40% at 76% 8%,
+            color-mix(in oklch, oklch(0.52 0.06 215), transparent 93%),
+            transparent
+        );
+}
+
+/* ── Sidebar: always lavender, darker in dark mode ──────────────────────
+   The sidebar is plum→lavender in BOTH themes (`image copy 4` reference);
+   dark mode deepens it. Pinning the `--sidebar-*` tokens here keeps nav
+   text/hover readable regardless of the active theme. The icon rail is a
+   shade darker, and deepens too. */
+
+.aurora-sidebar {
+    --sidebar: oklch(34% 0.099 326);
+    --sidebar-foreground: oklch(98.5% 0 0);
+    --sidebar-primary: oklch(48.8% 0.243 264.376);
+    --sidebar-primary-foreground: oklch(98.5% 0 0);
+    --sidebar-accent: oklch(42% 0.085 326);
+    --sidebar-accent-foreground: oklch(98.5% 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(55.6% 0 0);
+    --sidebar-selected: oklch(96.1% 0.027 314.7);
+    --sidebar-selected-foreground: oklch(30% 0.07 326);
+    background-color: oklch(34% 0.099 326);
+    background-image: radial-gradient(
+            closest-side at 0% 0%,
+            color-mix(in oklch, oklch(0.55 0.09 262), transparent 88%),
+            transparent 65%
+        ),
+        radial-gradient(
+            closest-side at 120% 110%,
+            color-mix(in oklch, oklch(0.5 0.07 285), transparent 90%),
+            transparent 65%
+        ),
+        radial-gradient(
+            55% 45% at 58% 95%,
+            color-mix(in oklch, oklch(0.52 0.06 215), transparent 92%),
+            transparent 70%
+        ),
+        linear-gradient(180deg, oklch(37.1% 0.1 326), oklch(34% 0.099 326));
+}
+
+.dark .aurora-sidebar {
+    --sidebar-accent: oklch(22% 0 0);
+    background-color: oklch(20% 0 0);
+    background-image: linear-gradient(180deg, oklch(23% 0 0), oklch(18% 0 0));
+}
+
+.aurora-sidebar-rail {
+    background-color: oklch(27.6% 0.106 327);
+    background-image: linear-gradient(
+        180deg,
+        oklch(29% 0.107 327),
+        oklch(26.5% 0.106 327)
+    );
+}
+
+.dark .aurora-sidebar-rail {
+    background-color: oklch(13% 0 0);
+    background-image: linear-gradient(180deg, oklch(14.5% 0 0), oklch(11.5% 0 0));
+}
+
+.bg-sidebar-selected {
+    background-color: var(--sidebar-selected);
+}
+
+.text-sidebar-selected {
+    color: var(--sidebar-selected-foreground);
+}
+
+/* ── Header: always lavender, darker in dark mode ──────────────────────
+   The header carries the same lavender gradient as the sidebar (reference
+   image). Light mode uses a paler lavender; dark mode deepens it. Text and
+   icons inherit the sidebar foreground tokens for contrast on lavender. */
+
+.aurora-header {
+    color: oklch(30% 0.07 326);
+    background-color: oklch(57% 0.08 326);
+    background-image: linear-gradient(
+        90deg,
+        oklch(55% 0.085 327),
+        oklch(57% 0.08 326),
+        oklch(59% 0.078 323)
+    );
+}
+
+.dark .aurora-header {
+    color: oklch(98.5% 0 0);
+    background-color: oklch(15% 0 0);
+    background-image: linear-gradient(90deg, oklch(17% 0 0), oklch(14% 0 0), oklch(16% 0 0));
 }
 
 @media (prefers-reduced-motion: reduce) {

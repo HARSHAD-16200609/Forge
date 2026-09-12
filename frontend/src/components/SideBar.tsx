@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search as SearchIcon, Settings as SettingsIcon, AddLarge } from "@carbon/icons-react";
@@ -108,8 +108,8 @@ function WorkspaceSwitcher() {
                         className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
                             tileColors[
-                                (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
-                                    -1) % tileColors.length
+                            (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
+                                -1) % tileColors.length
                             ] ?? tileColors[0],
                         )}
                     >
@@ -256,19 +256,16 @@ function IconNavButton({
             className={cn(
                 "relative flex size-10 min-w-10 items-center justify-center rounded-lg transition-colors duration-200",
                 isActive
-                    ? "bg-brand/10 text-brand"
+                    ? "bg-sidebar-accent text-sidebar-foreground"
                     : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/70",
             )}
             onClick={onClick}
         >
-            <span className="relative">{children}</span>
-            {isActive && (
-                <motion.span
-                    layoutId="nav-tick"
-                    className="bg-brand absolute inset-y-2 left-0 w-0.5 rounded-full"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
-                />
-            )}
+            <span className="relative">
+                {isActive && isValidElement(children)
+                    ? cloneElement(children as React.ReactElement<{ fill?: string }>, { fill: "currentColor" })
+                    : children}
+            </span>
         </button>
     );
 }
@@ -281,7 +278,7 @@ function IconNavigation({
     onSectionChange: (section: string) => void;
 }) {
     return (
-        <div className="bg-sidebar flex flex-col gap-2 items-center p-4 w-16 h-full border-r border-sidebar-border rounded-l-2xl">
+        <div className="aurora-sidebar aurora-sidebar-rail flex flex-col gap-2 items-center p-4 w-16 h-full border-r border-sidebar-border rounded-l-2xl">
             <div className="mb-2 size-10 flex items-center justify-center">
                 <div className="size-7">
                     <img src={logoUrl} alt="Forge" className="size-full object-contain" />
@@ -309,8 +306,8 @@ function IconNavigation({
 /* ------------------------------ Search Input ----------------------------- */
 
 function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
-    const searchValue = useUIStore((s) => s.searchValue);
-    const setSearchValue = useUIStore((s) => s.setSearchValue);
+    const searchConversationValue = useUIStore((s) => s.searchConversationValue);
+    const setSearchConversationValue = useUIStore((s) => s.setSearchConversationValue);
 
     if (collapsed) {
         return (
@@ -324,7 +321,7 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
 
     return (
         <div className="relative shrink-0 w-full">
-            <div className="bg-sidebar h-10 relative rounded-lg flex items-center w-full">
+            <div className="bg-white/10 dark:bg-white/5 h-10 relative rounded-lg flex items-center w-full">
                 <div className="flex items-center justify-center shrink-0 px-1">
                     <div className="size-8 flex items-center justify-center">
                         <SearchIcon size={16} className="text-sidebar-foreground" />
@@ -333,16 +330,16 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
                 <div className="flex-1 relative overflow-hidden">
                     <input
                         type="text"
-                        placeholder="Search Forge"
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
+                        placeholder="Find a conversation.."
+                        value={searchConversationValue}
+                        onChange={(e) => setSearchConversationValue(e.target.value)}
                         className="w-full bg-transparent border-none outline-none text-[14px] text-sidebar-foreground placeholder:text-sidebar-foreground/50 leading-[20px]"
                         tabIndex={0}
                     />
                 </div>
                 <div
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-lg border border-sidebar-border pointer-events-none"
+                    className="absolute inset-0 rounded-lg border border-white/15 pointer-events-none"
                 />
             </div>
         </div>
@@ -415,7 +412,7 @@ function ChannelRow({
         <div
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+                isActive ? "bg-sidebar-selected text-sidebar-selected" : "hover:bg-sidebar-accent",
             )}
             onClick={() => {
                 setSelectedChannelId(channelId);
@@ -426,7 +423,7 @@ function ChannelRow({
             <span
                 className={cn(
                     "flex items-center justify-center shrink-0 size-5 [&>svg]:size-4 transition-colors",
-                    isActive ? "text-brand" : "text-sidebar-foreground/50",
+                    isActive ? "text-sidebar-selected" : "text-sidebar-foreground/50",
                 )}
             >
                 <Hash />
@@ -434,7 +431,7 @@ function ChannelRow({
             <span
                 className={cn(
                     "text-[14px] truncate ml-2 flex-1 transition-colors",
-                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                    isActive ? "text-sidebar-selected font-semibold" : "text-sidebar-foreground/80",
                 )}
             >
                 {name}
@@ -461,19 +458,30 @@ function DMRow({
 }) {
     const selectedConversationId = useUIStore((s) => s.selectedConversationId);
     const isActive = selectedConversationId === dm.id;
+
     return (
         <div
             onClick={onSelect}
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+                isActive
+                    ? "bg-white"
+                    : "hover:bg-sidebar-accent",
             )}
         >
-            <AvatarDot avatar={dm.avatar} online={online} name={dm.displayName} type="dm" />
+            <AvatarDot
+                avatar={dm.avatar}
+                online={online}
+                name={dm.displayName}
+                type="dm"
+            />
+
             <span
                 className={cn(
                     "text-[14px] truncate ml-2 transition-colors",
-                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                    isActive
+                        ? "text-black font-medium"
+                        : "text-sidebar-foreground/80",
                 )}
             >
                 {dm.displayName}
@@ -481,7 +489,6 @@ function DMRow({
         </div>
     );
 }
-
 function PresenceDMRow({
     workspaceId,
     dm,
@@ -575,14 +582,15 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
             onClick={onSelect}
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive ? "bg-brand/10" : "hover:bg-sidebar-accent",
+                isActive ? "bg-white"
+                    : "hover:bg-sidebar-accent",
             )}
         >
             <AvatarDot avatar={gdm.avatar} online={true} name={gdm.groupName} type="gdm" />
             <span
                 className={cn(
                     "text-[14px] truncate ml-2 transition-colors",
-                    isActive ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground/80",
+                    isActive ? "text-black font-medium " : "text-sidebar-foreground/80",
                 )}
             >
                 {gdm.groupName}
@@ -881,7 +889,7 @@ function DetailSidebar({
     return (
         <div className="relative flex h-full min-w-0">
             <div
-                className="bg-sidebar flex flex-col items-start p-4 gap-3 rounded-r-2xl h-full overflow-hidden"
+                className="aurora-sidebar flex flex-col items-start p-4 gap-3 rounded-r-2xl h-full overflow-hidden"
                 style={{ width }}
             >
                 <WorkspaceSwitcher />
@@ -1041,7 +1049,7 @@ export function Frame760() {
     );
 
     return (
-        <div className="bg-sidebar flex h-full">
+        <div className="aurora-sidebar flex h-full">
             <IconNavigation activeSection={activeSection} onSectionChange={handleSectionChange} />
             <DetailSidebar
                 width={sidebarWidth}

@@ -128,7 +128,7 @@ function AvatarCircle() {
 /* ------------------------------ Search Input ----------------------------- */
 
 function SearchContainer({ isCollapsed = false }: { isCollapsed?: boolean }) {
-    const [searchValue, setSearchValue] = useState("");
+    const [searchConversationValue, setSearchConversationValue] = useState("");
 
     return (
         <div
@@ -161,8 +161,8 @@ function SearchContainer({ isCollapsed = false }: { isCollapsed?: boolean }) {
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                value={searchValue}
-                                onChange={(e) => setSearchValue(e.target.value)}
+                                value={searchConversationValue}
+                                onChange={(e) => setSearchConversationValue(e.target.value)}
                                 className="w-full bg-transparent border-none outline-none font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground placeholder:text-sidebar-foreground/50 leading-[20px]"
                                 tabIndex={isCollapsed ? -1 : 0}
                             />
@@ -656,17 +656,17 @@ function IconNavigation({
 
             {/* Bottom section */}
             <div className="flex flex-col gap-1 w-full items-center justify-center">
-                  <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleTheme}
-                        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                    >
-                        {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-                    </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                    {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
+                </Button>
                 <Link to="/app/settings">
-                
+
                     <IconNavButton isActive={activeSection === "settings"} onClick={() => onSectionChange("settings")}>
 
                         <SettingsIcon size={16} />

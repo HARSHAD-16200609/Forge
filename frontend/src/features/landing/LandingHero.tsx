@@ -3,6 +3,7 @@ import { motion, useReducedMotion, useScroll, useTransform, type Variants } from
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { DotPattern } from "@/components/ui/dot-pattern";
+import gradientVideo from "@/assets/gradient-21st.mp4";
 import { ProductPreview } from "./product-preview";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
@@ -37,7 +38,24 @@ export function LandingHero() {
             />
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute right-[-20%] top-[-20%] -z-10 size-[42rem] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand),transparent_82%),transparent)] opacity-60"
+                className="pointer-events-none absolute inset-0 -z-10"
+            >
+                <video
+                    className="size-full object-cover opacity-100"
+                    autoPlay={!reduce}
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    poster={gradientVideo}
+                >
+                    <source src={gradientVideo} type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-b from-background/75 via-background/40 to-background" />
+            </div>
+            <div
+                aria-hidden="true"
+                className="aurora-hero pointer-events-none absolute right-[-20%] top-[-20%] -z-10 size-[42rem] rounded-full"
             />
 
             <div className="mx-auto grid min-h-svh max-w-7xl items-center gap-12 px-6 pb-20 pt-32 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28 lg:pt-36">

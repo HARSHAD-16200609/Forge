@@ -8,7 +8,7 @@ export function FinalCta() {
         <section className="relative overflow-clip">
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklch,var(--brand),transparent_88%),transparent)]"
+                className="aurora-cta pointer-events-none absolute inset-0 -z-10"
             />
             <div className="mx-auto max-w-4xl px-6 py-28 text-center">
                 <Reveal className="flex flex-col items-center">

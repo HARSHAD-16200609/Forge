@@ -24,15 +24,15 @@ export function AppLayout() {
     const { theme, toggleTheme } = useTheme();
     const Workspaces = useWorkspaces();
     const { selectedWorkspaceId } = useWorkspaceStore();
-    const searchValue = useUIStore((s) => s.searchValue);
-    const setSearchValue = useUIStore((s) => s.setSearchValue);
+    const searchWorkspaceValue = useUIStore((s) => s.searchWorkspaceValue);
+    const setSearchWorkspaceValue = useUIStore((s) => s.setSearchWorkspaceValue);
 
     const activeWorkspaceId =
         selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
 
     return (
         <div className="flex h-svh flex-col">
-            <header className="border-border flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <header className="aurora-sidebar-rail flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
                 <div className="flex min-w-0 items-center gap-2.5">
                     <img
                         src={logoUrl}
@@ -44,16 +44,23 @@ export function AppLayout() {
                     </span>
                 </div>
 
+                <label className="relative hidden w-200 items-center md:flex">
+                    <input
+                        value={searchWorkspaceValue}
+                        onChange={(e) => setSearchWorkspaceValue(e.target.value)}
+                        className="h-8 w-full rounded-lg border border-white/45 bg-white/65 px-3 text-center text-sm text-foreground outline-none placeholder:text-foreground/55 focus:border-brand/40 focus:bg-white/85 focus:ring-2 focus:ring-white/25 dark:border-border/70 dark:bg-muted/40 dark:text-foreground dark:placeholder:text-muted-foreground dark:focus:border-brand/40 dark:focus:bg-background dark:focus:ring-brand/15"
+                    />
+
+                    {!searchWorkspaceValue && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5">
+                            <Search className="size-3.5 text-muted-foreground" />
+                            <span className="text-sm text-foreground/55">
+                                Search my workspace
+                            </span>
+                        </div>
+                    )}
+                </label>
                 <div className="flex shrink-0 items-center gap-1.5">
-                    <label className="relative hidden items-center md:flex">
-                        <Search className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
-                        <input
-                            value={searchValue}
-                            onChange={(e) => setSearchValue(e.target.value)}
-                            placeholder="Search Forge"
-                            className="h-8 w-40 rounded-lg border border-border/70 bg-muted/40 pr-3 pl-8 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-brand/40 focus:bg-background focus:ring-2 focus:ring-brand/15 lg:w-52"
-                        />
-                    </label>
 
                     <button
                         type="button"
@@ -105,7 +112,7 @@ export function AppLayout() {
                     <Frame760 />
                 </aside>
 
-                <main className="min-h-0 flex-1">
+                <main className="force-light min-h-0 flex-1">
                     <Outlet />
                 </main>
             </div>

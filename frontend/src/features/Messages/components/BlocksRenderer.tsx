@@ -81,7 +81,7 @@ export function BlocksRenderer({ blocksJson, className }: BlocksRendererProps) {
                         return (
                             <pre
                                 key={block.id}
-                                className="overflow-x-auto rounded-lg border border-border bg-muted p-3 font-mono text-sm text-foreground dark:bg-zinc-950/70 dark:text-zinc-100"
+                                className="overflow-x-auto rounded-lg border border-border bg-muted p-3 font-mono text-sm text-foreground"
                             >
                                 <code>{String(block.data.code ?? "")}</code>
                             </pre>

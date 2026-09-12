@@ -12,14 +12,14 @@ export function formatMessageTime(iso: string): string {
         hour12: true,
     }).format(date);
 
-    if (dayDiff === 0) return `Today at ${time}`;
-    if (dayDiff === 1) return `Yesterday at ${time}`;
+    if (dayDiff === 0) return `Today  ${time}`;
+    if (dayDiff === 1) return `Yesterday  ${time}`;
     if (date.getFullYear() === now.getFullYear()) {
         const day = new Intl.DateTimeFormat("en-US", {
             month: "short",
             day: "numeric",
         }).format(date);
-        return `${day} at ${time}`;
+        return `${day}  ${time}`;
     }
 
     const full = new Intl.DateTimeFormat("en-US", {
@@ -27,7 +27,37 @@ export function formatMessageTime(iso: string): string {
         day: "numeric",
         year: "numeric",
     }).format(date);
-    return `${full} at ${time}`;
+    return `${full} ${time}`;
+}
+
+export function getDayKey(iso: string): number {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return -1;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+export function getMessageDayLabel(iso: string): string {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayDiff = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+
+    if (dayDiff === 0) return "Today";
+    if (dayDiff === 1) return "Yesterday";
+    if (date.getFullYear() === now.getFullYear()) {
+        return new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            day: "numeric",
+        }).format(date);
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    }).format(date);
 }
 
 export function formatFileSize(bytes: number): string {

@@ -201,45 +201,6 @@ const FlagIcon = () => (
     </svg>
 );
 
-const SunIcon = () => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2" />
-        <path d="M12 20v2" />
-        <path d="M4.93 4.93l1.41 1.41" />
-        <path d="M17.66 17.66l1.41 1.41" />
-        <path d="M2 12h2" />
-        <path d="M20 12h2" />
-        <path d="M6.34 17.66l-1.41 1.41" />
-        <path d="M19.07 4.93l-1.41 1.41" />
-    </svg>
-);
-const MoonIcon = () => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-    </svg>
-);
-
 // --- STORES ---
 class RecentStore {
     static KEY = "apple_emoji_recent";
@@ -738,7 +699,7 @@ const FULL_EMOJI_CATEGORIES = [
 ];
 
 // --- SUB-COMPONENTS ---
-const EmojiSearch = ({ value, onChange, isDark, toggleTheme }: any) => {
+const EmojiSearch = ({ value, onChange }: any) => {
     const [isListening, setIsListening] = useState(false);
 
     const handleVoice = () => {
@@ -783,13 +744,6 @@ const EmojiSearch = ({ value, onChange, isDark, toggleTheme }: any) => {
                     className={`p-2 transition-colors ${isListening ? "text-red-500 animate-pulse" : "text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"}`}
                 >
                     <MicIcon />
-                </button>
-                <button
-                    onClick={toggleTheme}
-                    className="p-2 border-l border-black/5 dark:border-white/10 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-                    title="Toggle Theme"
-                >
-                    {isDark ? <SunIcon /> : <MoonIcon />}
                 </button>
             </div>
         </div>
@@ -928,7 +882,6 @@ export const Component = ({
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("smileys");
     const [recentEmojis, setRecentEmojis] = useState<any[]>([]);
-    const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -937,7 +890,6 @@ export const Component = ({
                 recents.map((native) => ({ id: native, native, name: native, keywords: [] })),
             );
         }
-        setIsDark(document.documentElement.classList.contains("dark"));
     }, [isOpen]);
 
     const handleSelect = (emoji: any) => {
@@ -950,16 +902,6 @@ export const Component = ({
         setActiveCategory(categoryId);
         const el = document.getElementById(`category-${categoryId}`);
         if (el) el.scrollIntoView({ behavior: "smooth" });
-    };
-
-    const toggleTheme = () => {
-        const nextDark = !isDark;
-        setIsDark(nextDark);
-        if (nextDark) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
     };
 
     if (!isOpen) return null;
@@ -982,21 +924,13 @@ export const Component = ({
                     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.35); }
-                    .dark .custom-scrollbar { scrollbar-color: rgba(255,255,255,0.25) transparent; }
-                    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border: 2px solid transparent; background-clip: padding-box; }
-                    .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.45); }
                 `,
                     }}
                 />
                 <div className="flex justify-center pt-2 pb-0">
                     <div className="h-1.5 w-10 rounded-full bg-black/10 dark:bg-white/20" />
                 </div>
-                <EmojiSearch
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    isDark={isDark}
-                    toggleTheme={toggleTheme}
-                />
+                <EmojiSearch value={searchQuery} onChange={setSearchQuery} />
                 <EmojiGrid
                     categories={displayCategories}
                     searchQuery={searchQuery}
@@ -1023,18 +957,10 @@ export const Component = ({
                     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.35); }
-                    .dark .custom-scrollbar { scrollbar-color: rgba(255,255,255,0.25) transparent; }
-                    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border: 2px solid transparent; background-clip: padding-box; }
-                    .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.45); }
                 `,
                     }}
                 />
-                <EmojiSearch
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    isDark={isDark}
-                    toggleTheme={toggleTheme}
-                />
+                <EmojiSearch value={searchQuery} onChange={setSearchQuery} />
                 <EmojiGrid
                     categories={displayCategories}
                     searchQuery={searchQuery}

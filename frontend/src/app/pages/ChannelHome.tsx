@@ -14,13 +14,15 @@ import { cn } from "@/lib/utils";
 import { useComposerStore } from "@/stores/composerStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { AxiosError } from "axios";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Bell, Hash, Info, Search, Star, Users, X } from "lucide-react";
 import { Conversations } from "./Conversations";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
+import { MessageDateDivider } from "@/features/Messages/components/MessageDateDivider";
+import { getDayKey, getMessageDayLabel } from "@/features/Messages/utils/format";
 
 export function ChannelHome() {
     const activeSection = useUIStore((s) => s.activeSection);
@@ -218,9 +220,9 @@ function ChannelHomeInner() {
                             </button>
 
                             <div className="flex min-w-0 items-center gap-1.5">
-                                <span className="bg-brand/10 flex size-6 shrink-0 items-center justify-center rounded-md text-brand">
+                               
+                             
                                     <Hash className="size-3.5" />
-                                </span>
                                 <span className="truncate text-[15px] font-bold leading-tight">
                                     {activeChannel && activeChannel.channelName}
                                 </span>
@@ -275,15 +277,6 @@ function ChannelHomeInner() {
                         exit={reduce ? undefined : { opacity: 0, y: -6 }}
                         transition={{ duration: 0.16, ease: APP_EASE }}
                     >
-                        {/* Date divider */}
-                        <div className="mb-4 flex items-center gap-3">
-                            <div className="h-px flex-1 bg-border" />
-                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Today
-                            </span>
-                            <div className="h-px flex-1 bg-border" />
-                        </div>
-
                         {flattened.length === 0 && (
                             <div className="py-10 text-center text-sm text-muted-foreground">
                                 No messages in #{activeChannel?.channelName ?? "channel"} yet.
@@ -293,12 +286,44 @@ function ChannelHomeInner() {
 
                         {/* Messages */}
                         <div className="space-y-6">
-                            {flattened.map((message) =>
-                                message.parentMsgId ? (
-                                    <div
-                                        key={message.id}
-                                        className="ml-12 border-l-2 border-border pl-3"
-                                    >
+                            {flattened.map((message, index) => {
+                                const prev = flattened[index - 1];
+                                const divider =
+                                    !message.parentMsgId &&
+                                    (index === 0 ||
+                                        getDayKey(prev.sentAt) !== getDayKey(message.sentAt));
+
+                                return (
+                                    <Fragment key={message.id}>
+                                        {divider && <MessageDateDivider label={getMessageDayLabel(message.sentAt)} />}
+                                        {message.parentMsgId ? (
+                                        <div className="ml-12 border-l-2 border-border pl-3">
+                                            <FadeIn
+                                                active={isFresh && !isFetchingNextPage}
+                                                y={0}
+                                                duration={0.12}
+                                            >
+                                                <MessageBubble
+                                                    message={message}
+                                                    onReply={(m) => setReplyingTo(m)}
+                                                    onEdit={setEditingMessage}
+                                                    onDelete={(m) => {
+                                                        if (
+                                                            window.confirm("Delete this message?")
+                                                        ) {
+                                                            deleteMessage.mutate({ messageId: m.id });
+                                                        }
+                                                    }}
+                                                    onReact={(m, emoji) =>
+                                                        react.mutate({
+                                                            messageId: m.id,
+                                                            reaction: emoji,
+                                                        })
+                                                    }
+                                                />
+                                            </FadeIn>
+                                        </div>
+                                    ) : (
                                         <FadeIn
                                             active={isFresh && !isFetchingNextPage}
                                             y={0}
@@ -309,44 +334,19 @@ function ChannelHomeInner() {
                                                 onReply={(m) => setReplyingTo(m)}
                                                 onEdit={setEditingMessage}
                                                 onDelete={(m) => {
-                                                    if (
-                                                        window.confirm("Delete this message?")
-                                                    ) {
+                                                    if (window.confirm("Delete this message?")) {
                                                         deleteMessage.mutate({ messageId: m.id });
                                                     }
                                                 }}
                                                 onReact={(m, emoji) =>
-                                                    react.mutate({
-                                                        messageId: m.id,
-                                                        reaction: emoji,
-                                                    })
+                                                    react.mutate({ messageId: m.id, reaction: emoji })
                                                 }
                                             />
-                                        </FadeIn>
-                                    </div>
-                                ) : (
-                                    <FadeIn
-                                        key={message.id}
-                                        active={isFresh && !isFetchingNextPage}
-                                        y={0}
-                                        duration={0.12}
-                                    >
-                                        <MessageBubble
-                                            message={message}
-                                            onReply={(m) => setReplyingTo(m)}
-                                            onEdit={setEditingMessage}
-                                            onDelete={(m) => {
-                                                if (window.confirm("Delete this message?")) {
-                                                    deleteMessage.mutate({ messageId: m.id });
-                                                }
-                                            }}
-                                            onReact={(m, emoji) =>
-                                                react.mutate({ messageId: m.id, reaction: emoji })
-                                            }
-                                        />
-                                    </FadeIn>
-                                ),
-                            )}
+                                            </FadeIn>
+                                    )}
+                                    </Fragment>
+                                );
+                            })}
 
                             {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
