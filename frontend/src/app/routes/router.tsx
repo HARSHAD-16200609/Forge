@@ -9,6 +9,7 @@ import { Invites } from "@/app/pages/Invites";
 import { Notifications } from "@/app/pages/Notifications";
 import { Activity } from "@/app/pages/Activity";
 import { Saved } from "@/app/pages/Saved";
+import { Files } from "@/app/pages/Files";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
@@ -54,6 +55,10 @@ export const router = createBrowserRouter([
                     {
                         path: "saved",
                         Component: Saved,
+                    },
+                    {
+                        path: "files",
+                        Component: Files,
                     },
                     {
                         path: "settings",

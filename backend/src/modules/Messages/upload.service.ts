@@ -1,12 +1,12 @@
-
 import { fType, Prisma } from "../../../generated/prisma/client";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../../config/cloudinary";
 import { getFileType, getResourceType } from "../../db/message.schema";
 import { ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
+import { workspaceRepository } from "../Workspace/workspace.repository";
 import { messageRepository } from "./message.repository";
 import { messageService } from "./message.service";
-import { uploadRepository } from "./upload.repository";
+import { uploadRepository, WorkspaceFileRow } from "./upload.repository";
 
 class UploadService {
     async uploadAttachments(attachments: Express.Multer.File[], userId: string) {
@@ -89,8 +89,103 @@ class UploadService {
 
 
     }
+
+    async getWorkspaceFiles(
+        workspaceId: string,
+        userId: string,
+        pagination: { cursor?: string | undefined, limit: number, fileType?: fType | undefined, search?: string | undefined }
+    ) {
+        const workspaceMember = await workspaceRepository.memberExists(userId, workspaceId)
+        if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
+
+        const scope = await uploadRepository.getScopeIds(workspaceId, userId)
+        if (scope.channelIds.length === 0 && scope.conversationIds.length === 0) {
+            return {
+                files: [] as WorkspaceFileDTO[],
+                hasMore: false,
+                nextCursor: null,
+            }
+        }
+
+        const uploads = await uploadRepository.getWorkspaceFiles(scope, pagination)
+
+        const hasMore = uploads.length > pagination.limit
+        const visible = hasMore ? uploads.slice(0, pagination.limit) : uploads
+
+        return {
+            files: visible.map((upload) => this.toWorkspaceFileDTO(upload)),
+            hasMore,
+            nextCursor: hasMore && visible.length > 0 ? visible[visible.length - 1]!.id : null,
+        }
+    }
+
+    private toWorkspaceFileDTO(upload: WorkspaceFileRow): WorkspaceFileDTO {
+        const uploader = upload.message?.sender ?? null;
+        let source: WorkspaceFileDTO["source"];
+
+        if (upload.channel) {
+            source = {
+                type: "channel",
+                id: upload.channel.id,
+                label: `#${upload.channel.channelName}`,
+            };
+        } else {
+            const convo = upload.conversation;
+            if (!convo) {
+                source = { type: "conversation", id: "", label: "Unknown chat" };
+            } else if (convo.type === "GDM") {
+                source = {
+                    type: "conversation",
+                    id: convo.id,
+                    label: convo.groupName ?? "Group chat",
+                };
+            } else {
+                const other = convo.members.find((member) => member.user.id !== uploader?.id)?.user;
+                source = {
+                    type: "conversation",
+                    id: convo.id,
+                    label: other ? (other.name ?? other.username) : "Direct message",
+                };
+            }
+        }
+
+        return {
+            id: upload.id,
+            filename: upload.filename,
+            url: upload.url,
+            mimeType: upload.mimeType,
+            fileSize: upload.fileSize,
+            fileType: upload.fileType,
+            uploadedAt: upload.uploadedAt,
+            uploader: uploader
+                ? {
+                      id: uploader.id,
+                      username: uploader.username,
+                      name: uploader.name,
+                      avatar: uploader.avatar,
+                  }
+                : null,
+            source,
+        };
+    }
 }
 
 
 
 export const uploadService = new UploadService()
+
+export interface WorkspaceFileDTO {
+    id: string;
+    filename: string;
+    url: string;
+    mimeType: string;
+    fileSize: number;
+    fileType: fType;
+    uploadedAt: Date;
+    uploader: { id: string, username: string, name: string | null, avatar: string | null } | null;
+    source: {
+        type: "channel" | "conversation";
+        id: string;
+        label: string;
+    };
+}

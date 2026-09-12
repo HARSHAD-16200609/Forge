@@ -69,4 +69,15 @@ export const delUploadParamsSchema = z.object({
   uploads: z.array(z.uuid()).min(1, "At least one upload ID is required")
 })
 
+export const workspaceFilesParamsSchema = z.object({
+  workspaceId: z.uuid(),
+})
+
+export const getWorkspaceFilesSchema = z.object({
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(100).default(30),
+  fileType: z.enum(["IMAGE", "VIDEO", "AUDIO", "DOCUMENT", "ARCHIVE", "OTHER"]).optional(),
+  search: z.string().trim().max(100).optional(),
+})
+
 export type getMessagesDTO = z.infer<typeof getMessagesSchema> 

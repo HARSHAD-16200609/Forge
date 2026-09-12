@@ -18,6 +18,8 @@ class MessageRepository {
             const attachments = await tx.upload.updateMany({
                 data: {
                     messageId: message.id,
+                    channelId: "channelId" in messageObj ? messageObj.channelId : null,
+                    conversationId: "conversationId" in messageObj ? messageObj.conversationId : null,
 
                 }, where: {
                     id: {

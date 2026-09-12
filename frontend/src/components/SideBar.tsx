@@ -12,6 +12,7 @@ import {
     Check,
     ChevronDown,
     CirclePlus,
+    FileText,
     Hash,
     Home,
     Mail,
@@ -197,6 +198,7 @@ const navItems: NavItem[] = [
     { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
     { id: "activity", label: "Activity", icon: <Archive size={18} /> },
     { id: "saved", label: "Saved Items", icon: <Bookmark size={18} /> },
+    { id: "files", label: "Files", icon: <FileText size={18} /> },
     { id: "members", label: "Members", icon: <Users size={18} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
 ];
@@ -708,6 +710,13 @@ const sectionContent: Record<string, Section[]> = {
             rows: [{ label: "Invite people to Forge", icon: <Users size={16} />, to: "/app/invites" }],
         },
     ],
+    files: [
+        {
+            title: "All Files",
+            kind: "quick",
+            rows: [{ label: "All files", icon: <FileText size={16} />, to: "/app/files" }],
+        },
+    ],
     settings: [
         {
             title: "Workspace",
@@ -988,6 +997,7 @@ const sectionRouteMap: Record<string, string> = {
     notifications: "/app/notifications",
     activity: "/app/activity",
     saved: "/app/saved",
+    files: "/app/files",
     members: "/app/members",
     invites: "/app/invites",
     settings: "/app/settings",
@@ -997,6 +1007,7 @@ const routeSectionMap: Record<string, string> = {
     "/app/notifications": "notifications",
     "/app/activity": "activity",
     "/app/saved": "saved",
+    "/app/files": "files",
     "/app/members": "members",
     "/app/invites": "invites",
     "/app/settings": "settings",

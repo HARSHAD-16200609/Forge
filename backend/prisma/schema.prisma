@@ -149,6 +149,7 @@ model channel {
   messages                   message[]
   members                    channelMember[]
   invites                    channelInvite[]
+  uploads                    upload[]
 
   @@unique([workspaceId, channelName])
 }
@@ -197,6 +198,7 @@ model conversation {
   workspace      workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   messages       message[]
   members        conversationMember[]
+  uploads        upload[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
@@ -245,18 +247,25 @@ model notification {
 }
 
 model upload {
-  id String @id @default(uuid())
-  filename   String
-  uploaderId String
-  url        String
-  publicId   String    @unique
-  mimeType   String
-  fileType   fType
-  fileSize   Int
-  messageId  String?
-  message    message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  uploadedAt DateTime  @default(now())
-  deletedAt  DateTime?
+  id             String        @id @default(uuid())
+  filename       String
+  uploaderId     String
+  url            String
+  publicId       String        @unique
+  mimeType       String
+  fileType       fType
+  fileSize       Int
+  messageId      String?
+  message        message?      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  channelId      String?
+  channel        channel?      @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  conversationId String?
+  conversation   conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  uploadedAt     DateTime      @default(now())
+  deletedAt      DateTime?
+
+  @@index([channelId, uploadedAt])
+  @@index([conversationId, uploadedAt])
 }
 
 model workspaceInvite {
