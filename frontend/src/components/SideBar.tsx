@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search as SearchIcon, Settings as SettingsIcon, AddLarge } from "@carbon/icons-react";
@@ -254,19 +254,16 @@ function IconNavButton({
             className={cn(
                 "relative flex size-10 min-w-10 items-center justify-center rounded-lg transition-colors duration-200",
                 isActive
-                    ? "bg-brand/10 text-brand"
+                    ? "bg-sidebar-accent text-sidebar-foreground"
                     : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/70",
             )}
             onClick={onClick}
         >
-            <span className="relative">{children}</span>
-            {isActive && (
-                <motion.span
-                    layoutId="nav-tick"
-                    className="bg-brand absolute inset-y-2 left-0 w-0.5 rounded-full"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
-                />
-            )}
+            <span className="relative">
+                {isActive && isValidElement(children)
+                    ? cloneElement(children as React.ReactElement<{ fill?: string }>, { fill: "currentColor" })
+                    : children}
+            </span>
         </button>
     );
 }
@@ -307,8 +304,8 @@ function IconNavigation({
 /* ------------------------------ Search Input ----------------------------- */
 
 function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
-    const searchValue = useUIStore((s) => s.searchValue);
-    const setSearchValue = useUIStore((s) => s.setSearchValue);
+    const searchConversationValue = useUIStore((s) => s.searchConversationValue);
+    const setSearchConversationValue = useUIStore((s) => s.setSearchConversationValue);
 
     if (collapsed) {
         return (
@@ -322,7 +319,7 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
 
     return (
         <div className="relative shrink-0 w-full">
-            <div className="bg-sidebar h-10 relative rounded-lg flex items-center w-full">
+            <div className="bg-white/10 dark:bg-white/5 h-10 relative rounded-lg flex items-center w-full">
                 <div className="flex items-center justify-center shrink-0 px-1">
                     <div className="size-8 flex items-center justify-center">
                         <SearchIcon size={16} className="text-sidebar-foreground" />
@@ -331,16 +328,16 @@ function SearchContainer({ collapsed = false }: { collapsed?: boolean }) {
                 <div className="flex-1 relative overflow-hidden">
                     <input
                         type="text"
-                        placeholder="Search Forge"
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
+                        placeholder="Find a conversation.."
+                        value={searchConversationValue}
+                        onChange={(e) => setSearchConversationValue(e.target.value)}
                         className="w-full bg-transparent border-none outline-none text-[14px] text-sidebar-foreground placeholder:text-sidebar-foreground/50 leading-[20px]"
                         tabIndex={0}
                     />
                 </div>
                 <div
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-lg border border-sidebar-border pointer-events-none"
+                    className="absolute inset-0 rounded-lg border border-white/15 pointer-events-none"
                 />
             </div>
         </div>
@@ -583,7 +580,7 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
             onClick={onSelect}
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive  ? "bg-white"
+                isActive ? "bg-white"
                     : "hover:bg-sidebar-accent",
             )}
         >

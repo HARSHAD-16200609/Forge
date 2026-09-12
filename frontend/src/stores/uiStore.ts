@@ -9,8 +9,10 @@ interface UIState {
     expandSection: (title: string) => void;
     collapseSection: (title: string) => void;
     resetSections: () => void;
-    searchValue: string;
-    setSearchValue: (value: string) => void;
+    searchConversationValue: string;
+    setSearchConversationValue: (value: string) => void;
+    searchWorkspaceValue: string;
+    setSearchWorkspaceValue: (value : string) => void;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
     selectedChannelId: string | null;
@@ -29,6 +31,12 @@ const DEFAULT_WIDTH = 320;
 export const useUIStore = create<UIState>()(
     persist(
         (set) => ({
+            searchWorkspaceValue : "",
+            setSearchWorkspaceValue : (value)=>{
+               set({
+                searchWorkspaceValue : value
+               })
+            },
             selectedChannelId: null,
             setSelectedChannelId: (id) =>
                 set({
@@ -77,10 +85,10 @@ export const useUIStore = create<UIState>()(
                 })),
             resetSections: () => set({ collapsedSections: {} }),
 
-            searchValue: "",
-            setSearchValue: (value) =>
+            searchConversationValue: "",
+            setSearchConversationValue: (value) =>
                 set({
-                    searchValue: value,
+                    searchConversationValue: value,
                 }),
 
             sidebarWidth: DEFAULT_WIDTH,
