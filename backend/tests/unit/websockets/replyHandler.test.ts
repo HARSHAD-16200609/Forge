@@ -146,7 +146,9 @@ describe("replyHandler.reply", () => {
 
         expect(messageRepository.createReply).toHaveBeenCalledWith(
             { channelId: CHANNEL_ID, content: "hello", senderId: "user-1" },
-            PARENT_ID
+            PARENT_ID,
+            [],
+            "user-1"
         );
         expect(conversationRepository.conversationExists).not.toHaveBeenCalled();
 
@@ -190,7 +192,9 @@ describe("replyHandler.reply", () => {
 
         expect(messageRepository.createReply).toHaveBeenCalledWith(
             { conversationId: CONVO_ID, content: "hello", senderId: "user-1" },
-            PARENT_ID
+            PARENT_ID,
+            [],
+            "user-1"
         );
         expect(channelRepository.memberExists).not.toHaveBeenCalled();
 

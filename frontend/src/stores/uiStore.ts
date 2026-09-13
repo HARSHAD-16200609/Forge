@@ -15,6 +15,8 @@ interface UIState {
     setSearchWorkspaceValue: (value : string) => void;
     sidebarWidth: number;
     setSidebarWidth: (width: number) => void;
+    threadWidth: number;
+    setThreadWidth: (width: number) => void;
     selectedChannelId: string | null;
     setSelectedChannelId: (id: string) => void;
     clearSelectedChannelId: () => void;
@@ -27,6 +29,10 @@ interface UIState {
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 420;
 const DEFAULT_WIDTH = 320;
+
+const MIN_THREAD_WIDTH = 320;
+const MAX_THREAD_WIDTH = 640;
+const DEFAULT_THREAD_WIDTH = 400;
 
 export const useUIStore = create<UIState>()(
     persist(
@@ -95,6 +101,12 @@ export const useUIStore = create<UIState>()(
             setSidebarWidth: (width) =>
                 set({
                     sidebarWidth: Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH),
+                }),
+
+            threadWidth: DEFAULT_THREAD_WIDTH,
+            setThreadWidth: (width) =>
+                set({
+                    threadWidth: Math.min(Math.max(width, MIN_THREAD_WIDTH), MAX_THREAD_WIDTH),
                 }),
         }),
 

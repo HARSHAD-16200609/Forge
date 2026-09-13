@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { CornerUpLeft } from "lucide-react";
 import { MessageAttachments } from "./MessageAttachments";
 import { BlocksRenderer } from "./BlocksRenderer";
 import { formatMessageTime } from "../utils/format";
@@ -15,6 +16,9 @@ interface MessageBubbleProps {
     onEdit?: (message: Message) => void;
     onDelete?: (message: Message) => void;
     onReact?: (message: Message, emoji: string) => void;
+    onOpenThread?: (message: Message) => void;
+    threadSummary?: { replyCount: number; lastReplyAt: string } | null;
+    hideActions?: boolean;
 }
 
 function initialsOf(sender: MessageSender): string {
@@ -28,6 +32,9 @@ export function MessageBubble({
     onEdit,
     onDelete,
     onReact,
+    onOpenThread,
+    threadSummary,
+    hideActions = false,
 }: MessageBubbleProps) {
     const currentUser = useAuth().user;
     const [showActions, setShowActions] = useState(false);
@@ -70,11 +77,16 @@ export function MessageBubble({
         );
     }
 
+    const openThread = () => {
+        if (onOpenThread) onOpenThread(message);
+        else onReply?.(message);
+    };
+
     return (
         <div
             className="group flex gap-3"
-            onMouseEnter={() => setShowActions(true)}
-            onMouseLeave={() => setShowActions(false)}
+            onMouseEnter={hideActions ? undefined : () => setShowActions(true)}
+            onMouseLeave={hideActions ? undefined : () => setShowActions(false)}
         >
             <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
                 {message.sender.avatar ? (
@@ -108,7 +120,7 @@ export function MessageBubble({
                     </div>
 
                     <AnimatePresence>
-                    {showActions && (
+                    {showActions && !hideActions && (
                         <motion.span
                             initial={reduce ? false : { opacity: 0, y: 3 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -146,13 +158,13 @@ export function MessageBubble({
                                     Delete
                                 </button>
                             )}
-                            {onReply && (
+                            {(onOpenThread || onReply) && (
                                 <button
                                     type="button"
-                                    onClick={() => onReply(message)}
+                                    onClick={openThread}
                                     className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                 >
-                                    Reply
+                                    {onOpenThread ? "Thread" : "Reply"}
                                 </button>
                             )}
                         </motion.span>
@@ -187,6 +199,23 @@ export function MessageBubble({
                             );
                         })}
                     </div>
+                )}
+
+                {onOpenThread && threadSummary && threadSummary.replyCount > 0 && (
+                    <button
+                        type="button"
+                        onClick={openThread}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-brand transition-colors hover:text-brand/80"
+                    >
+                        <CornerUpLeft className="size-3.5" />
+                        <span>
+                            {threadSummary.replyCount}{" "}
+                            {threadSummary.replyCount === 1 ? "reply" : "replies"}
+                        </span>
+                        <span className="text-muted-foreground">
+                            · last reply {formatMessageTime(threadSummary.lastReplyAt)}
+                        </span>
+                    </button>
                 )}
             </div>
         </div>

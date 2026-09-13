@@ -106,20 +106,38 @@ class MessageRepository {
         return toWsMessageDTO(tombstone!)
     }
 
-    async createReply(message: MessageDTO, parentMessageId: string): Promise<WsMessageDTO> {
-        const reply = await prisma.message.create({
-            data: {
-                ...message,
-                parentMsgId: parentMessageId
-            },
-            select: { id: true }
-        })
+    async createReply(message: MessageDTO, parentMessageId: string, uploadIds: string[] = [], uploaderId?: string): Promise<WsMessageDTO> {
+        return await prisma.$transaction(async (tx) => {
+            const reply = await tx.message.create({
+                data: {
+                    ...message,
+                    parentMsgId: parentMessageId
+                },
+                select: { id: true }
+            })
 
-        const created = await prisma.message.findUnique({
-            where: { id: reply.id },
-            include: messageDetailsInclude,
+            if (uploadIds.length > 0 && uploaderId) {
+                const attachments = await tx.upload.updateMany({
+                    data: {
+                        messageId: reply.id,
+                    },
+                    where: {
+                        id: {
+                            in: uploadIds
+                        },
+                        messageId: null,
+                        uploaderId: uploaderId
+                    },
+                })
+                if (attachments.count !== uploadIds.length) throw new BadRequestError("Some uipload Id's are invlaid or already attached")
+            }
+
+            const created = await tx.message.findUnique({
+                where: { id: reply.id },
+                include: messageDetailsInclude,
+            })
+            return toWsMessageDTO(created!)
         })
-        return toWsMessageDTO(created!)
     }
     async addReaction(userId: string, messageId: string, emoji: string) {
         const reaction = await prisma.reaction.create({

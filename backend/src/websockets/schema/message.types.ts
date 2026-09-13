@@ -102,8 +102,8 @@ export const postReplySchema = z.object({
     uploadIds: z.array(uuid()).max(3).default([]),
     entityType: z.enum(["conversation", "channel"])
 
-}).refine((data) => data.content.length > 0, {
-    message: "Reply content is required"
+}).refine((data) => data.content.length > 0 || data.uploadIds.length > 0, {
+    message: "Reply content or at least one attachment is required"
 })
 
 export type channelMessage = z.infer<typeof createChannelMessageSchema>

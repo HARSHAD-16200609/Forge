@@ -4,15 +4,17 @@ import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton"
 import { ConvoMembers } from "@/features/Messages/components/ConvoMembers";
 import { EmptyConversation } from "@/features/Messages/components/EmptyConversation";
 import { TypingIndicator } from "@/features/Messages/components/TypingIndicator";
+import { ThreadPanel } from "@/features/Messages/components/ThreadPanel";
 import { useConversationMessages } from "@/features/Messages/hooks/useConversationMessages";
 import { useSendConversationMessage } from "@/features/Messages/hooks/useSendConversationMessage";
-import { useSendReply } from "@/features/Messages/hooks/useSendReply";
 import { useEditMessage } from "@/features/Messages/hooks/useEditMessage";
 import { useDeleteMessage } from "@/features/Messages/hooks/useDeleteMessage";
 import { useReact } from "@/features/Messages/hooks/useReact";
 import { useDm } from "@/features/Messages/hooks/useDms";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
+import { useThreadStore } from "@/stores/threadStore";
+import { lastReplyOf, repliesOf } from "@/features/Messages/utils/threads";
 import type { AxiosError } from "axios";
 import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -52,11 +54,6 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         selectedConversationId ?? "",
     );
 
-    const sendReply = useSendReply(
-        selectedWorkspaceId ?? "",
-        selectedConversationId ?? "",
-        "conversation",
-    );
     const editMessage = useEditMessage(
         "conversation",
         selectedWorkspaceId ?? "",
@@ -73,7 +70,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         selectedConversationId ?? "",
     );
 
-    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const { parent: activeThread, setThread, clearThread } = useThreadStore();
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
     const Messages = useMemo(() => {
@@ -81,22 +78,11 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         return [...all].sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
     }, [data]);
 
-    const flattened = useMemo(() => {
-        const topLevel = Messages?.filter((m) => !m.parentMsgId) ?? [];
-        const repliesByParent = new Map<string, Message[]>();
-        Messages?.forEach((m) => {
-            if (!m.parentMsgId) return;
-            const list = repliesByParent.get(m.parentMsgId) ?? [];
-            list.push(m);
-            repliesByParent.set(m.parentMsgId, list);
-        });
-        const result: Message[] = [];
-        topLevel.forEach((m) => {
-            result.push(m);
-            (repliesByParent.get(m.id) ?? []).forEach((r) => result.push(r));
-        });
-        return result;
-    }, [Messages]);
+    const topLevel = useMemo(() => Messages.filter((m) => !m.parentMsgId), [Messages]);
+
+    useEffect(() => {
+        clearThread();
+    }, [selectedConversationId, clearThread]);
 
     const backendSaysEmpty =
         (error as AxiosError<{ message: string }>)?.response?.data.message === "No Messages Found";
@@ -252,88 +238,64 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
             </header>
 
             <div className="flex min-h-0 flex-1">
-                <div
-                    ref={scrollRef}
-                    onScroll={handleScroll}
-                    className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
-                >
-                    {isPending && <MessageSkeleton rows={6} />}
+                <div className="flex min-w-0 flex-1 flex-col">
+                    <div
+                        ref={scrollRef}
+                        onScroll={handleScroll}
+                        className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
+                    >
+                        {isPending && <MessageSkeleton rows={6} />}
 
-                    {isError && !backendSaysEmpty && (
-                        <div className="text-sm text-destructive">
-                            {(error as AxiosError<{ message: string }>)?.response?.data.message ??
-                                "Failed to load conversation"}
-                        </div>
-                    )}
+                        {isError && !backendSaysEmpty && (
+                            <div className="text-sm text-destructive">
+                                {(error as AxiosError<{ message: string }>)?.response?.data
+                                    .message ?? "Failed to load conversation"}
+                            </div>
+                        )}
 
-                    {isEmpty && (
-                        <EmptyConversation
-                            detail={detail}
-                            type={selectedConversationType}
-                            name={headerName}
-                        />
-                    )}
+                        {isEmpty && (
+                            <EmptyConversation
+                                detail={detail}
+                                type={selectedConversationType}
+                                name={headerName}
+                            />
+                        )}
 
-                    {Messages && Messages.length > 0 && (
-                        <>
-                            <AnimatePresence mode="wait" initial={false}>
-                                <motion.div
-                                    key={selectedConversationId}
-                                    initial={reduce ? false : { opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={reduce ? undefined : { opacity: 0, y: -6 }}
-                                    transition={{ duration: 0.16, ease: APP_EASE }}
-                                >
-                                    <div className="space-y-6">
-                                        {flattened.map((message, index) => {
-                                            const prev = flattened[index - 1];
-                                            const divider =
-                                                !message.parentMsgId &&
-                                                (index === 0 ||
+                        {Messages && Messages.length > 0 && (
+                            <>
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.div
+                                        key={selectedConversationId}
+                                        initial={reduce ? false : { opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={reduce ? undefined : { opacity: 0, y: -6 }}
+                                        transition={{ duration: 0.16, ease: APP_EASE }}
+                                    >
+                                        <div className="space-y-6">
+                                            {topLevel.map((message, index) => {
+                                                const prev = topLevel[index - 1];
+                                                const divider =
+                                                    index === 0 ||
                                                     getDayKey(prev.sentAt) !==
-                                                        getDayKey(message.sentAt));
+                                                        getDayKey(message.sentAt);
+                                                const threadReplies = repliesOf(
+                                                    Messages,
+                                                    message.id,
+                                                );
+                                                const lastReply = lastReplyOf(
+                                                    Messages,
+                                                    message.id,
+                                                );
 
-                                            return (
-                                                <Fragment key={message.id}>
-                                                    {divider && (
-                                                        <MessageDateDivider
-                                                            label={getMessageDayLabel(
-                                                                message.sentAt,
-                                                            )}
-                                                        />
-                                                    )}
-                                                    {message.parentMsgId ? (
-                                                        <div className="ml-12 border-l-2 border-border pl-3">
-                                                            <FadeIn
-                                                                active={isFresh && !isFetchingNextPage}
-                                                                y={0}
-                                                                duration={0.12}
-                                                            >
-                                                                <MessageBubble
-                                                                    message={message}
-                                                                    onReply={(m) => setReplyingTo(m)}
-                                                                    onEdit={setEditingMessage}
-                                                                    onDelete={(m) => {
-                                                                        if (
-                                                                            window.confirm(
-                                                                                "Delete this message?",
-                                                                            )
-                                                                        ) {
-                                                                            deleteMessage.mutate({
-                                                                                messageId: m.id,
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    onReact={(m, emoji) =>
-                                                                        react.mutate({
-                                                                            messageId: m.id,
-                                                                            reaction: emoji,
-                                                                        })
-                                                                    }
-                                                                />
-                                                            </FadeIn>
-                                                        </div>
-                                                    ) : (
+                                                return (
+                                                    <Fragment key={message.id}>
+                                                        {divider && (
+                                                            <MessageDateDivider
+                                                                label={getMessageDayLabel(
+                                                                    message.sentAt,
+                                                                )}
+                                                            />
+                                                        )}
                                                         <FadeIn
                                                             active={
                                                                 isFresh && !isFetchingNextPage
@@ -343,7 +305,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                         >
                                                             <MessageBubble
                                                                 message={message}
-                                                                onReply={(m) => setReplyingTo(m)}
+                                                                onOpenThread={(m) => setThread(m)}
                                                                 onEdit={setEditingMessage}
                                                                 onDelete={(m) => {
                                                                     if (
@@ -362,27 +324,63 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                                         reaction: emoji,
                                                                     })
                                                                 }
+                                                                threadSummary={
+                                                                    lastReply
+                                                                        ? {
+                                                                              replyCount:
+                                                                                  threadReplies.length,
+                                                                              lastReplyAt:
+                                                                                  lastReply.sentAt,
+                                                                          }
+                                                                        : null
+                                                                }
                                                             />
                                                         </FadeIn>
-                                                    )}
-                                                </Fragment>
-                                            );
-                                        })}
+                                                    </Fragment>
+                                                );
+                                            })}
 
-                                        {isFetchingNextPage && <MessageSkeleton rows={2} />}
+                                            {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
-                                        {!hasNextPage &&
-                                            Messages &&
-                                            Messages.length > 0 && (
-                                                <div className="py-4 text-center text-xs text-muted-foreground">
-                                                    You&apos;re all caught up
-                                                </div>
-                                            )}
-                                    </div>
-                                </motion.div>
-                            </AnimatePresence>
-                        </>
-                    )}
+                                            {!hasNextPage &&
+                                                Messages &&
+                                                Messages.length > 0 && (
+                                                    <div className="py-4 text-center text-xs text-muted-foreground">
+                                                        You&apos;re all caught up
+                                                    </div>
+                                                )}
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="shrink-0 px-4 pb-4">
+                        <TypingIndicator
+                            entityId={selectedConversationId ?? ""}
+                            workspaceId={selectedWorkspaceId}
+                        />
+                        <MessageComposer
+                            key={selectedConversationId}
+                            channelId={selectedConversationId ?? ""}
+                            channelName={headerName}
+                            placeholder={`Message ${headerName}`}
+                            disabled={sendMessage.isPending}
+                            typingTarget={
+                                selectedWorkspaceId
+                                    ? {
+                                          workspaceId: selectedWorkspaceId,
+                                          entityId: selectedConversationId ?? "",
+                                          entityType: "conversation",
+                                      }
+                                    : undefined
+                            }
+                            onSend={(content, files) =>
+                                sendMessage.mutateAsync({ content, files })
+                            }
+                        />
+                    </div>
                 </div>
 
                 <AnimatePresence initial={false}>
@@ -396,44 +394,29 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                         />
                     )}
                 </AnimatePresence>
-            </div>
 
-            <div className="shrink-0 px-4 pb-4">
-                <TypingIndicator
-                    entityId={selectedConversationId ?? ""}
-                    workspaceId={selectedWorkspaceId}
-                />
-                <MessageComposer
-                    key={selectedConversationId}
-                    channelId={selectedConversationId ?? ""}
-                    channelName={headerName}
-                    placeholder={`Message ${headerName}`}
-                    disabled={sendMessage.isPending || sendReply.isPending}
-                    typingTarget={
-                        selectedWorkspaceId
-                            ? {
-                                  workspaceId: selectedWorkspaceId,
-                                  entityId: selectedConversationId ?? "",
-                                  entityType: "conversation",
-                              }
-                            : undefined
-                    }
-                    replyTo={
-                        replyingTo
-                            ? { id: replyingTo.id, sender: replyingTo.sender.username }
-                            : null
-                    }
-                    onCancelReply={() => setReplyingTo(null)}
-                    onSend={(content, files, replyToId) => {
-                        if (replyToId) {
-                            return sendReply.mutateAsync(
-                                { messageId: replyToId, content, files },
-                                { onSuccess: () => setReplyingTo(null) },
-                            );
-                        }
-                        return sendMessage.mutateAsync({ content, files });
-                    }}
-                />
+                <AnimatePresence initial={false}>
+                    {activeThread && (
+                        <ThreadPanel
+                            parent={Messages.find((m) => m.id === activeThread.id) ?? activeThread}
+                            replies={repliesOf(Messages, activeThread.id)}
+                            workspaceId={selectedWorkspaceId ?? ""}
+                            entityId={selectedConversationId ?? ""}
+                            entityType="conversation"
+                            channelName={headerName}
+                            onEdit={setEditingMessage}
+                            onDelete={(m) => {
+                                if (window.confirm("Delete this message?")) {
+                                    deleteMessage.mutate({ messageId: m.id });
+                                }
+                            }}
+                            onReact={(m, emoji) =>
+                                react.mutate({ messageId: m.id, reaction: emoji })
+                            }
+                            onClose={clearThread}
+                        />
+                    )}
+                </AnimatePresence>
             </div>
 
             {editingMessage && (

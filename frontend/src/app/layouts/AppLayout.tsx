@@ -32,7 +32,7 @@ export function AppLayout() {
 
     return (
         <div className="flex h-svh flex-col">
-            <header className="aurora-sidebar-rail flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <header className="aurora-sidebar-rail flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 text-white backdrop-blur supports-[backdrop-filter]:bg-background/70">
                 <div className="flex min-w-0 items-center gap-2.5">
                     <img
                         src={logoUrl}
@@ -66,7 +66,7 @@ export function AppLayout() {
                         type="button"
                         aria-label="Notifications"
                         onClick={() => navigate("/app/notifications")}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
+                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative hover:bg-white/10 hover:text-white")}
                     >
                         <Bell className="size-4" />
                     </button>
@@ -76,7 +76,7 @@ export function AppLayout() {
                         aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                         title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                         onClick={toggleTheme}
-                        className={buttonVariants({ variant: "ghost", size: "icon" })}
+                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "hover:bg-white/10 hover:text-white")}
                     >
                         {theme === "dark" ? (
                             <Sun className="size-4" />

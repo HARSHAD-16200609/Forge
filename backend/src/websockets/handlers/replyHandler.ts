@@ -34,7 +34,7 @@ async function reply(
         )
         return
     }
-    const { workspaceId, parentMsgId, entityId, content, entityType } = messagePayload.data
+    const { workspaceId, parentMsgId, entityId, content, uploadIds, entityType } = messagePayload.data
 
     const parent = await messageRepository.messageExists(parentMsgId)
     if (!parent) {
@@ -85,7 +85,7 @@ async function reply(
         }
     }
 
-    const createdReply = await messageRepository.createReply(messageObj, parentMsgId)
+    const createdReply = await messageRepository.createReply(messageObj, parentMsgId, uploadIds, userMetadata.userId)
     if (!createdReply) {
         sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Invalid ParentMsgId"))
         return

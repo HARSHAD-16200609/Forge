@@ -272,6 +272,7 @@ export function MessageComposer({
         if (event.shiftKey) return;
         event.preventDefault();
         handleSendRef.current();
+        
     }
 
     useEffect(() => {
