@@ -1,18 +1,22 @@
-import {
-    Bell,
-    Moon,
-    Search,
-    Sun,
-} from "lucide-react";
+import { Bell, Moon, Search, Sun, TriangleAlert } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 import logoUrl from "@/assets/forge.png";
 import Frame760 from "@/components/SideBar";
 import { PresenceAvatar } from "@/components/ui/presence-avatar";
 import { buttonVariants } from "@/components/ui/button";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
+import {
+    WorkspaceAccessDenied,
+    WorkspaceNotFound,
+} from "@/components/access/AccessDeniedScreens";
+import { getApiError } from "@/lib/errorMessage";
 import useAuth from "@/features/auth/hooks/useAuth";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
+import {
+    useWorkspace,
+    useWorkspaces,
+} from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -29,6 +33,27 @@ export function AppLayout() {
 
     const activeWorkspaceId =
         selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
+
+    const activeWorkspace = useWorkspace(activeWorkspaceId ?? "");
+
+    const mainContent = () => {
+        if (activeWorkspaceId && activeWorkspace.isError) {
+            const { status } = getApiError(activeWorkspace.error);
+            if (status === 403) return <WorkspaceAccessDenied />;
+            if (status === 404) return <WorkspaceNotFound />;
+            return (
+                <ErrorScreen
+                    statusCode={status !== undefined ? String(status) : undefined}
+                    scope="ERROR"
+                    icon={<TriangleAlert className="size-6" />}
+                    title="Couldn't load this workspace"
+                    highlight="workspace"
+                    description="Something went wrong on our end. Try again in a moment."
+                />
+            );
+        }
+        return <Outlet />;
+    };
 
     return (
         <div className="flex h-svh flex-col">
@@ -112,9 +137,7 @@ export function AppLayout() {
                     <Frame760 />
                 </aside>
 
-                <main className="force-light min-h-0 flex-1">
-                    <Outlet />
-                </main>
+                <main className="force-light min-h-0 flex-1">{mainContent()}</main>
             </div>
         </div>
     );

@@ -15,11 +15,16 @@ import { useComposerStore } from "@/stores/composerStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useThreadStore } from "@/stores/threadStore";
 import { lastReplyOf, repliesOf } from "@/features/Messages/utils/threads";
-import type { AxiosError } from "axios";
+import { getApiError } from "@/lib/errorMessage";
+import {
+    ChannelAccessDenied,
+    ChannelNotFound,
+} from "@/components/access/AccessDeniedScreens";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bell, Hash, Info, Search, Star, Users, X } from "lucide-react";
+import { Bell, Hash, Info, Search, Star, TriangleAlert, Users, X } from "lucide-react";
 import { Conversations } from "./Conversations";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
@@ -164,16 +169,40 @@ function ChannelHomeInner() {
     }
 
     if (isError) {
-        const axiosError = error as AxiosError<{
-            message: string;
-        }>;
+        const { status, message } = getApiError(error);
+
+        if (status === 403) {
+            return <ChannelAccessDenied />;
+        }
+
+        if (status === 404 && message === "No Messages Found") {
+            return (
+                <div className="flex h-full flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/15">
+                        <Hash className="size-5" />
+                    </span>
+                    <h3 className="text-[15px] font-semibold">
+                        No messages in #{activeChannel?.channelName ?? "this channel"} yet
+                    </h3>
+                    <p className="max-w-xs text-sm text-muted-foreground">
+                        Be the first to post something and start the conversation.
+                    </p>
+                </div>
+            );
+        }
+
+        if (status === 404) {
+            return <ChannelNotFound />;
+        }
 
         return (
-            <div className="flex h-full items-center justify-center">
-                <div className="text-sm text-destructive">
-                    {axiosError.response?.data.message ?? "Failed to load messages"}
-                </div>
-            </div>
+            <ErrorScreen
+                statusCode={status !== undefined ? String(status) : undefined}
+                scope="ERROR"
+                icon={<TriangleAlert className="size-6" />}
+                title="Couldn't load messages"
+                description={message}
+            />
         );
     }
 

@@ -2,11 +2,15 @@ import { Outlet } from "react-router-dom";
 import { WorkspaceList } from "@/features/Workspaces/components/workspaces";
 
 import { useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
+import { Button } from "@/components/ui/button";
+import { getApiError } from "@/lib/errorMessage";
+import { TriangleAlert } from "lucide-react";
 import Swirling from "@/components/ui/Swirling";
 
 export function Workspaces() {
 
-    const { data: workspaces, isPending, isError } = useWorkspaces();
+    const { data: workspaces, isPending, isError, error, refetch } = useWorkspaces();
 
     if (isPending) {
 
@@ -18,8 +22,21 @@ export function Workspaces() {
     }
 
     if (isError) {
-
-        return <div>Failed to load workspaces.</div>;
+        const { status, message } = getApiError(error);
+        return (
+            <ErrorScreen
+                statusCode={status !== undefined ? String(status) : undefined}
+                scope="ERROR"
+                icon={<TriangleAlert className="size-6" />}
+                title="Couldn't load your workspaces"
+                description={message}
+                actions={
+                    <Button onClick={() => void refetch()}>
+                        Try again
+                    </Button>
+                }
+            />
+        );
     }
     return (
         <div className="h-full overflow-y-auto p-6">

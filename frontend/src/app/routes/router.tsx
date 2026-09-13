@@ -14,6 +14,7 @@ import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Settings from "../pages/Settings";
+import { AppNotFound, NotFoundPage } from "@/app/pages/NotFoundPage";
 
 export const router = createBrowserRouter([
     {
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
                         path: "settings",
                         Component: Settings,
                     },
+                    {
+                        path: "*",
+                        Component: AppNotFound,
+                    },
                 ],
             },
         ],
@@ -70,5 +75,9 @@ export const router = createBrowserRouter([
             { path: "register", Component: RegisterPage },
             { path: "callback", Component: AuthCallbackPage },
         ],
+    },
+    {
+        path: "*",
+        Component: NotFoundPage,
     },
 ]);

@@ -15,8 +15,13 @@ import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useThreadStore } from "@/stores/threadStore";
 import { lastReplyOf, repliesOf } from "@/features/Messages/utils/threads";
-import type { AxiosError } from "axios";
-import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
+import { getApiError } from "@/lib/errorMessage";
+import {
+    ConversationNotFound,
+    WorkspaceAccessDenied,
+} from "@/components/access/AccessDeniedScreens";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
+import { ArrowLeft, Bell, Search, TriangleAlert, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
@@ -85,7 +90,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
     }, [selectedConversationId, clearThread]);
 
     const backendSaysEmpty =
-        (error as AxiosError<{ message: string }>)?.response?.data.message === "No Messages Found";
+        getApiError(error).message === "No Messages Found";
     const isEmpty = !isPending && (backendSaysEmpty || (Messages?.length ?? 0) === 0);
 
     const prevOldestIdRef = useRef<string | null>(null);
@@ -154,6 +159,22 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                     Select a conversation to view messages
                 </div>
             </div>
+        );
+    }
+
+    if (isError && !backendSaysEmpty) {
+        const { status, message } = getApiError(error);
+        if (status === 403) return <WorkspaceAccessDenied />;
+        if (status === 404) return <ConversationNotFound />;
+        return (
+            <ErrorScreen
+                statusCode={status !== undefined ? String(status) : undefined}
+                scope="ERROR"
+                icon={<TriangleAlert className="size-6" />}
+                title="Couldn't load this conversation"
+                highlight="conversation"
+                description={message}
+            />
         );
     }
 
@@ -245,13 +266,6 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                         className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
                     >
                         {isPending && <MessageSkeleton rows={6} />}
-
-                        {isError && !backendSaysEmpty && (
-                            <div className="text-sm text-destructive">
-                                {(error as AxiosError<{ message: string }>)?.response?.data
-                                    .message ?? "Failed to load conversation"}
-                            </div>
-                        )}
 
                         {isEmpty && (
                             <EmptyConversation

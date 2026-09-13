@@ -520,3 +520,56 @@
         animation: none !important;
     }
 }
+
+/* ── Error / status screens: lavender stage ──────────────────────────────
+   Calm material language echoing the sidebar/header aurora: a faint
+   brand-tinted wash, one restrained corner glow, and a double-bezel
+   "specimen" panel whose outer shell frames a solid inner core. */
+
+.error-stage {
+    background-color: color-mix(in oklch, var(--brand), transparent 96%);
+}
+
+.error-stage-glow {
+    opacity: 0.8;
+    background-image: radial-gradient(
+        closest-side at 100% 0%,
+        color-mix(in oklch, var(--brand), transparent 91%),
+        transparent 62%
+    );
+}
+
+.error-panel-shell {
+    background-color: color-mix(in oklch, var(--brand-soft), transparent 40%);
+    box-shadow: inset 0 1px 0 color-mix(in oklch, oklch(1 0 0), transparent 88%);
+}
+
+.error-panel-core {
+    background-color: var(--card);
+    box-shadow:
+        0 28px 70px -44px color-mix(in oklch, var(--brand), transparent 55%),
+        inset 0 1px 0 color-mix(in oklch, oklch(1 0 0), transparent 94%);
+}
+
+.error-mark {
+    background-image: linear-gradient(
+        160deg,
+        var(--brand),
+        color-mix(in oklch, var(--brand), oklch(0.08 0 0) 24%)
+    );
+    box-shadow:
+        0 18px 40px -24px color-mix(in oklch, var(--brand), transparent 45%),
+        inset 0 0 0 1px color-mix(in oklch, oklch(1 0 0), transparent 86%);
+}
+
+.error-mark-hatch {
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0 6px,
+        color-mix(in oklch, oklch(1 0 0), transparent 84%) 6px 7px
+    );
+}
+
+.error-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
