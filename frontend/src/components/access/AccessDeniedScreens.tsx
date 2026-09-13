@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 import {
     ArrowUpRight,
+    Building2,
+    FileQuestion,
+    Hash,
+    Lock,
+    MessagesSquare,
+    ShieldX,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,6 +34,7 @@ export function ChannelAccessDenied() {
         <ErrorScreen
             statusCode="403 Forbidden"
             scope="ACCESS"
+            icon={<Lock aria-hidden="true" />}
             title="You're not a member of this channel"
             highlight="member"
             description="This channel is private or isn't on your list anymore. Ask a workspace admin for access, then check your channel list."
@@ -69,6 +76,7 @@ export function NotFoundContent({
             standalone={standalone}
             statusCode="404"
             scope="PAGE"
+            icon={<FileQuestion aria-hidden="true" />}
             title={title}
             highlight="Page"
             description={description}
@@ -95,6 +103,7 @@ export function ChannelNotFound() {
         <ErrorScreen
             statusCode="404"
             scope="CHANNEL"
+            icon={<Hash aria-hidden="true" />}
             title="Channel not found"
             highlight="Channel"
             description="This channel doesn't exist or was deleted. Head back to your workspace and pick another one."
@@ -122,6 +131,7 @@ export function ConversationNotFound() {
         <ErrorScreen
             statusCode="404"
             scope="CONVERSATION"
+            icon={<MessagesSquare aria-hidden="true" />}
             title="Conversation not found"
             highlight="Conversation"
             description="This conversation doesn't exist or is no longer available to you."
@@ -151,6 +161,7 @@ export function WorkspaceAccessDenied() {
         <ErrorScreen
             statusCode="403"
             scope="ACCESS"
+            icon={<ShieldX aria-hidden="true" />}
             title="You're not a member of this workspace"
             highlight="member"
             description="This workspace isn't on your list anymore. Ask a workspace admin for an invite to rejoin."
@@ -180,6 +191,7 @@ export function WorkspaceNotFound() {
         <ErrorScreen
             statusCode="404"
             scope="WORKSPACE"
+            icon={<Building2 aria-hidden="true" />}
             title="Workspace not found"
             highlight="Workspace"
             description="We couldn't find this workspace. It may have been deleted or renamed."

@@ -21,14 +21,101 @@ import {
     WorkspaceAccessDenied,
 } from "@/components/access/AccessDeniedScreens";
 import { ErrorScreen } from "@/components/access/ErrorScreen";
-import { ArrowLeft, Bell, Search, TriangleAlert, Users, X } from "lucide-react";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { AccessManagerCard } from "@/components/ui/health-stat-card";
+import type { Member } from "@/components/ui/health-stat-card";
+import { cn } from "@/lib/utils";
+import {
+    ArrowLeft,
+    Bell,
+    Search,
+    ShieldCheck,
+    TriangleAlert,
+    Users,
+    X,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
+import type { ConversationDetail } from "@/features/Messages/types";
 import { MessageDateDivider } from "@/features/Messages/components/MessageDateDivider";
 import { getDayKey, getMessageDayLabel } from "@/features/Messages/utils/format";
+import { usePresenceStore } from "@/realtime/presenceStore";
+
+
+
+
+function resolveMembers(detail?: ConversationDetail): Member[] {
+    return (detail?.members ?? []).map((m) => ({
+        id: m.user.id,
+        name: m.user.username,
+        avatar: m.user.avatar ?? undefined,
+        role: "Viewer",
+    }));
+}
+
+function GroupMembersCard({
+    detail,
+    workspaceId,
+    headerName,
+}: {
+    detail?: ConversationDetail;
+    workspaceId?: string;
+    headerName: string;
+}) {
+    const isOnline = usePresenceStore((state) => state.isOnline);
+
+    const [local, setLocal] = useState<Member[] | null>(null);
+
+    const members: Member[] = local ?? resolveMembers(detail);
+
+    const onlineUserIds = members
+        .filter((m) => workspaceId && isOnline(workspaceId, m.id))
+        .map((m) => m.id);
+
+   
+
+
+
+    const handleInvite = (email: string, role: "Viewer" | "Editor") => {
+        const next: Member = {
+            id: (members.length + 1).toString(),
+            name: email.split("@")[0] || email,
+            email,
+            avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
+            role,
+        };
+        setLocal([...members, next]);
+    };
+
+    const handleRoleChange = (id: string, newRole: "Viewer" | "Editor") => {
+        setLocal(
+            (prev) =>
+                (prev ?? members).map((m) =>
+                    m.id === id ? { ...m, role: newRole } : m,
+                ),
+        );
+    };
+
+    return (
+        <AccessManagerCard
+            title="Group members"
+            description="Who can view and send in this group chat."
+            folderName={headerName}
+            members={members}
+            onlineUserIds={onlineUserIds}
+            onInvite={handleInvite}
+            onRoleChange={handleRoleChange}
+            folderIcon={<ShieldCheck className="h-6 w-6 text-primary" />}
+        />
+    );
+}
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
     const navigate = useNavigate();
@@ -235,13 +322,44 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
-                    <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                        aria-label="Members"
-                        onClick={() => setShowMembers((prev) => !prev)}
-                    >
-                        <Users className="size-[18px]" />
-                    </button>
+                    <Popover open={showMembers} onOpenChange={setShowMembers}>
+                        <PopoverTrigger asChild>
+                            <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                                aria-label="Members"
+                            >
+                                <Users className="size-[18px]" />
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            align="end"
+                            sideOffset={6}
+                            className={cn(
+                                "rounded-2xl border-brand/15 p-0 shadow-xl shadow-brand/10",
+                                selectedConversationType === "GDM"
+                                    ? "w-[24rem]"
+                                    : "w-[22rem]",
+                            )}
+                        >
+                            {selectedConversationType === "GDM" ? (
+<GroupMembersCard
+                                    key={selectedConversationId}
+                                    detail={detail}
+                                    workspaceId={selectedWorkspaceId ?? undefined}
+                                    headerName={headerName}
+                                />
+                            ) : (
+                                <ConvoMembers
+                                    detail={detail}
+                                    title={headerName}
+                                    type={selectedConversationType ?? "DM"}
+                                    workspaceId={selectedWorkspaceId ?? ""}
+                                    onClose={() => setShowMembers(false)}
+                                />
+                            )}
+                        </PopoverContent>
+                    </Popover>
                     <button
                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Search"
@@ -291,7 +409,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                 const divider =
                                                     index === 0 ||
                                                     getDayKey(prev.sentAt) !==
-                                                        getDayKey(message.sentAt);
+                                                    getDayKey(message.sentAt);
                                                 const threadReplies = repliesOf(
                                                     Messages,
                                                     message.id,
@@ -341,11 +459,11 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                                 threadSummary={
                                                                     lastReply
                                                                         ? {
-                                                                              replyCount:
-                                                                                  threadReplies.length,
-                                                                              lastReplyAt:
-                                                                                  lastReply.sentAt,
-                                                                          }
+                                                                            replyCount:
+                                                                                threadReplies.length,
+                                                                            lastReplyAt:
+                                                                                lastReply.sentAt,
+                                                                        }
                                                                         : null
                                                                 }
                                                             />
@@ -384,10 +502,10 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                             typingTarget={
                                 selectedWorkspaceId
                                     ? {
-                                          workspaceId: selectedWorkspaceId,
-                                          entityId: selectedConversationId ?? "",
-                                          entityType: "conversation",
-                                      }
+                                        workspaceId: selectedWorkspaceId,
+                                        entityId: selectedConversationId ?? "",
+                                        entityType: "conversation",
+                                    }
                                     : undefined
                             }
                             onSend={(content, files) =>
@@ -396,18 +514,6 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                         />
                     </div>
                 </div>
-
-                <AnimatePresence initial={false}>
-                    {showMembers && (
-                        <ConvoMembers
-                            detail={detail}
-                            title={headerName}
-                            type={selectedConversationType ?? "DM"}
-                            workspaceId={selectedWorkspaceId ?? ""}
-                            onClose={() => setShowMembers(false)}
-                        />
-                    )}
-                </AnimatePresence>
 
                 <AnimatePresence initial={false}>
                     {activeThread && (

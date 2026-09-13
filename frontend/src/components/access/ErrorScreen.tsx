@@ -21,7 +21,7 @@ function renderHighlight(title: string, highlight?: string) {
 
 interface ErrorScreenProps {
     statusCode?: string;
-  
+    icon: ReactNode;
     title: string;
     description: string;
     highlight?: string;
@@ -33,6 +33,7 @@ interface ErrorScreenProps {
 
 export function ErrorScreen({
     statusCode,
+    icon,
     title,
     description,
     highlight,
@@ -142,7 +143,36 @@ export function ErrorScreen({
                                     )}
                                 </div>
 
-                                
+                                <motion.div
+                                    initial={reduce ? false : { opacity: 0, scale: 0.92 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{
+                                        duration: DURATION,
+                                        delay: STEP,
+                                        ease: EASE,
+                                    }}
+                                    className="order-first md:col-start-2 md:row-start-1 md:order-none md:pt-1"
+                                >
+                                    <div className="auth-float relative">
+                                        <span
+                                            className="absolute -top-2 -right-2 z-10 size-3.5 rounded-[4px] bg-brand-soft ring-1 ring-brand/30"
+                                            aria-hidden="true"
+                                        />
+                                        <div className="relative flex size-20 items-center justify-center rounded-2xl md:size-24">
+                                            <span
+                                                className="error-mark absolute inset-0 rounded-2xl"
+                                                aria-hidden="true"
+                                            />
+                                            <span
+                                                className="error-mark-hatch absolute inset-0 rounded-2xl"
+                                                aria-hidden="true"
+                                            />
+                                            <span className="relative text-white [&>svg]:size-8 md:[&>svg]:size-9">
+                                                {icon}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </motion.div>
                             </div>
                         </div>
                     </div>

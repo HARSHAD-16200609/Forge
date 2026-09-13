@@ -444,7 +444,6 @@ function ChannelRow({
         </div>
     );
 }
-
 function DMRow({
     dm,
     online,
@@ -501,7 +500,7 @@ function PresenceDMRow({
     );
     return <DMRow dm={dm} online={online} onSelect={onSelect} />;
 }
-function AvatarDot({
+export function AvatarDot({
     avatar,
     online,
     name,

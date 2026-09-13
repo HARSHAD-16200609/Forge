@@ -15,14 +15,16 @@ export function AuthCallbackPage() {
     }, [result, navigate]);
 
     return (
-        <div className="flex min-h-screen items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center bg-white p-6 text-black antialiased dark:bg-[#050505] dark:text-white">
             <div className="text-center">
                 {result === "success" ? (
-                    <p className="text-muted-foreground">Signing you in...</p>
+                    <p className="text-black/60 dark:text-white/55">Signing you in...</p>
                 ) : result === "error" ? (
-                    <p className="text-destructive">Google sign-in failed. Redirecting to login...</p>
+                    <p className="text-red-600 dark:text-red-400">
+                        Google sign-in failed. Redirecting to login...
+                    </p>
                 ) : (
-                    <p className="text-muted-foreground">Finishing sign-in...</p>
+                    <p className="text-black/60 dark:text-white/55">Finishing sign-in...</p>
                 )}
             </div>
         </div>
