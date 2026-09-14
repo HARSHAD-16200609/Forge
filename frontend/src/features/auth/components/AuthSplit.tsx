@@ -42,7 +42,7 @@ export function AuthSplit({
                         noise={0.25}
                         shape="corners"
                         frame={2854.5}
-                        colors={["#FFFFFF", "#FC7819", "#FC7819", "#FFFFFF"]}
+                        colors={["#FFFFFF", "#309bff", "#1e9deb", "#FFFFFF"]}
                         colorBack="#00000000"
                         className="absolute inset-0 bg-black"
                     />

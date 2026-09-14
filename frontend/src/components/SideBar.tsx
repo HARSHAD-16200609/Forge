@@ -43,11 +43,11 @@ const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 const tileColors = [
     "bg-brand",
-    "bg-[oklch(0.52_0.13_185)]",
-    "bg-[oklch(0.52_0.16_293)]",
-    "bg-[oklch(0.55_0.12_35)]",
-    "bg-[oklch(0.49_0.13_320)]",
-    "bg-[oklch(0.45_0.04_262)]",
+    "bg-[oklch(0.52_0.13_243)]",
+    "bg-[oklch(0.55_0.16_255)]",
+    "bg-[oklch(0.5_0.12_228)]",
+    "bg-[oklch(0.49_0.13_266)]",
+    "bg-[oklch(0.45_0.09_250)]",
 ];
 
 function getInitials(name: string) {
@@ -532,7 +532,7 @@ export function AvatarDot({
                         "flex size-6 items-center justify-center rounded-full text-[10px] font-semibold",
                         type === "gdm"
                             ? "bg-emerald-500/20 text-emerald-500"
-                            : "bg-violet-500/20 text-violet-600",
+                            : "bg-brand/20 text-brand",
                     )}
                 >
                     {type === "gdm" && !initials ? <Users className="size-3.5" /> : initials}

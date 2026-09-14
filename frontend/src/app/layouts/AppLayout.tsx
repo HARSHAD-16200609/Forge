@@ -57,7 +57,7 @@ export function AppLayout() {
 
     return (
         <div className="flex h-svh flex-col">
-            <header className="aurora-sidebar-rail flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 text-white backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <header className="aurora-header flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/15 px-4 text-white">
                 <div className="flex min-w-0 items-center gap-2.5">
                     <img
                         src={logoUrl}
@@ -73,13 +73,13 @@ export function AppLayout() {
                     <input
                         value={searchWorkspaceValue}
                         onChange={(e) => setSearchWorkspaceValue(e.target.value)}
-                        className="h-8 w-full rounded-lg border border-white/45 bg-white/65 px-3 text-center text-sm text-foreground outline-none placeholder:text-foreground/55 focus:border-brand/40 focus:bg-white/85 focus:ring-2 focus:ring-white/25 dark:border-border/70 dark:bg-muted/40 dark:text-foreground dark:placeholder:text-muted-foreground dark:focus:border-brand/40 dark:focus:bg-background dark:focus:ring-brand/15"
+                        className="h-8 w-full rounded-lg border border-white/35 bg-white/15 px-3 text-center text-sm text-white outline-none placeholder:text-white/70 focus:border-white/60 focus:bg-white/20 focus:ring-2 focus:ring-white/25"
                     />
 
                     {!searchWorkspaceValue && (
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5">
-                            <Search className="size-3.5 text-muted-foreground" />
-                            <span className="text-sm text-foreground/55">
+                            <Search className="size-3.5 text-white/70" />
+                            <span className="text-sm text-white/70">
                                 Search my workspace
                             </span>
                         </div>
@@ -91,7 +91,7 @@ export function AppLayout() {
                         type="button"
                         aria-label="Notifications"
                         onClick={() => navigate("/app/notifications")}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative hover:bg-white/10 hover:text-white")}
+                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative hover:bg-white/15 hover:text-white")}
                     >
                         <Bell className="size-4" />
                     </button>
@@ -101,7 +101,7 @@ export function AppLayout() {
                         aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                         title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                         onClick={toggleTheme}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "hover:bg-white/10 hover:text-white")}
+                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "hover:bg-white/15 hover:text-white")}
                     >
                         {theme === "dark" ? (
                             <Sun className="size-4" />
@@ -110,7 +110,7 @@ export function AppLayout() {
                         )}
                     </button>
 
-                    <span aria-hidden="true" className="border-border mx-1 hidden h-6 border-r sm:block" />
+                    <span aria-hidden="true" className="border-white/25 mx-1 hidden h-6 border-r sm:block" />
 
                     {user && (
                         <UserMenu user={user}>

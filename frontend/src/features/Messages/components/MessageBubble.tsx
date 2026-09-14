@@ -96,7 +96,7 @@ export function MessageBubble({
                         className="size-10 rounded-lg object-cover"
                     />
                 ) : (
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-violet-500">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-brand">
                         {initialsOf(message.sender)}
                     </div>
                 )}

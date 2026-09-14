@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Reveal } from "./Reveal";
 
 const reply = [
-    { name: "Mira", color: "bg-violet-500", text: "Reopened the workspace switcher for the holdout ✌️" },
+    { name: "Mira", color: "bg-brand", text: "Reopened the workspace switcher for the holdout ✌️" },
     { name: "Devon", color: "bg-emerald-500", text: "Merge when checks go green.", reactions: ["❤️"] },
 ];
 
@@ -30,7 +30,7 @@ export function ProductShowcase() {
                         <div className="grid lg:grid-cols-[1fr_300px]">
                             <div className="space-y-4 p-6 sm:p-10">
                                 <div className="flex items-start gap-3">
-                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-500 text-sm font-bold text-white">
+                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white">
                                         M
                                     </span>
                                     <div className="min-w-0 flex-1">
