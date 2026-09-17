@@ -18,10 +18,10 @@ export function LoginForm() {
     const errorMessage = errors.email?.message ?? errors.password?.message;
 
     return (
-        <Card>
+        <Card className="bg-transparent ring-0">
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-6 ">
                         <div className="grid gap-2">
                             <Label htmlFor="email">Email</Label>
                             <Input

@@ -114,15 +114,16 @@ function getActiveEditable(editorHost: HTMLElement): HTMLElement | null {
     const anchorNode = selection?.anchorNode;
     const selector = "[contenteditable=true]";
     if (anchorNode) {
-        const element =
-            anchorNode instanceof Element ? anchorNode : anchorNode.parentElement;
+        const element = anchorNode instanceof Element ? anchorNode : anchorNode.parentElement;
         const editable = element?.closest<HTMLElement>(selector) ?? null;
         if (editable && editorHost.contains(editable)) return editable;
     }
     return editorHost.querySelector<HTMLElement>(selector);
 }
 
-function getMentionCaret(editorHost: HTMLElement | null): { query: string; deleteStart: number } | null {
+function getMentionCaret(
+    editorHost: HTMLElement | null,
+): { query: string; deleteStart: number } | null {
     if (!editorHost) return null;
     const editable = getActiveEditable(editorHost);
     const selection = window.getSelection();
@@ -136,8 +137,7 @@ function getMentionCaret(editorHost: HTMLElement | null): { query: string; delet
     const match = /(?:^|\s)@([\w.-]*)$/.exec(textBefore);
     if (!match) return null;
 
-    const atIndex =
-        caretOffset - match[0].length + (match[0][0] === "@" ? 0 : 1);
+    const atIndex = caretOffset - match[0].length + (match[0][0] === "@" ? 0 : 1);
     return { query: match[1], deleteStart: atIndex };
 }
 
@@ -470,9 +470,7 @@ export function MessageComposer({
             placeholder: placeholderRef.current,
             autofocus: true,
             data: parseStoredBlocks(
-                useComposerStore.getState().getDraft(channelId ?? "") ||
-                    initialContent ||
-                    "",
+                useComposerStore.getState().getDraft(channelId ?? "") || initialContent || "",
             ),
             tools: {
                 paragraph: {
@@ -778,11 +776,7 @@ export function MessageComposer({
                 const range = rangeFromTo(editable, caret.deleteStart, end);
                 selection.removeAllRanges();
                 selection.addRange(range);
-                document.execCommand(
-                    "insertHTML",
-                    false,
-                    buildMentionHtml(member) + "\u00A0",
-                );
+                document.execCommand("insertHTML", false, buildMentionHtml(member) + "\u00A0");
                 inserted = true;
             }
         } catch {
@@ -889,33 +883,31 @@ export function MessageComposer({
             </div>
 
             <AnimatePresence initial={false}>
-                    {replyTo && (
-                        <motion.div
-                            initial={reduce ? false : { opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={reduce ? undefined : { opacity: 0, y: -4 }}
-                            transition={{ duration: 0.14, ease: APP_EASE }}
-                            className="flex items-center gap-2 border-b border-border/60 bg-accent/40 px-3 py-1.5 text-xs"
+                {replyTo && (
+                    <motion.div
+                        initial={reduce ? false : { opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduce ? undefined : { opacity: 0, y: -4 }}
+                        transition={{ duration: 0.14, ease: APP_EASE }}
+                        className="flex items-center gap-2 border-b border-border/60 bg-accent/40 px-3 py-1.5 text-xs"
+                    >
+                        <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+                            <CornerUpLeft className="size-3.5 text-brand" />
+                            Replying to{" "}
+                            <span className="font-semibold text-foreground">@{replyTo.sender}</span>
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="Cancel reply"
+                            title="Cancel reply"
+                            onClick={onCancelReply}
+                            className="ml-auto flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
                         >
-                            <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
-                                <CornerUpLeft className="size-3.5 text-brand" />
-                                Replying to{" "}
-                                <span className="font-semibold text-foreground">
-                                    @{replyTo.sender}
-                                </span>
-                            </span>
-                            <button
-                                type="button"
-                                aria-label="Cancel reply"
-                                title="Cancel reply"
-                                onClick={onCancelReply}
-                                className="ml-auto flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                            >
-                                <X className="size-3.5" />
-                            </button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            <X className="size-3.5" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Main editor area */}
             <div>
@@ -995,25 +987,25 @@ export function MessageComposer({
                 </ToolbarButton>
 
                 <div className="ml-auto flex items-center gap-0.5">
-                        <button
-                            type="button"
-                            aria-label="Send message"
-                            title="Send message"
-                            onClick={handleSend}
-                            disabled={disabled}
-                            className={cn(
-                                "flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
-                                hasContent
-                                    ? "bg-brand text-brand-foreground hover:bg-brand/90"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                        >
-                            {disabled ? (
-                                <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                                <Send className="size-4" />
-                            )}
-                        </button>
+                    <button
+                        type="button"
+                        aria-label="Send message"
+                        title="Send message"
+                        onClick={handleSend}
+                        disabled={disabled}
+                        className={cn(
+                            "flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
+                            hasContent
+                                ? "bg-brand text-brand-foreground hover:bg-brand/90"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                    >
+                        {disabled ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <Send className="size-4" />
+                        )}
+                    </button>
                     <button
                         type="button"
                         aria-label="Send options"
@@ -1074,7 +1066,6 @@ export function MessageComposer({
                                             onMouseDown={(event) => {
                                                 event.preventDefault();
                                                 handleMentionSelect(member);
-                                                
                                             }}
                                             onMouseEnter={() => {
                                                 mentionHighlightRef.current = index;

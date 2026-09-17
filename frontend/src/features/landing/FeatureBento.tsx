@@ -48,7 +48,7 @@ function FeatureCard({
 
 function ChannelsVisual() {
     const rows = [
-        { name: "Mira", color: "bg-violet-500", text: "npm run build is green again ✅", time: "9:41" },
+        { name: "Mira", color: "bg-brand", text: "npm run build is green again ✅", time: "9:41" },
         { name: "Devon", color: "bg-emerald-500", text: "Channels make it easy to follow launch", time: "9:44" },
         { name: "Priya", color: "bg-amber-500", text: "Agreed. Topic-first beats inbox threads", time: "9:47" },
     ];
@@ -98,7 +98,7 @@ function ThreadsVisual() {
                 </div>
             </div>
             <div className="ml-3.5 mt-1.5 space-y-1 border-l-2 pl-3">
-                {["bg-violet-500", "bg-amber-500"].map((color, i) => (
+                {["bg-brand", "bg-amber-500"].map((color, i) => (
                     <div key={color} className="flex items-center gap-1.5">
                         <span className={cn("flex size-4 shrink-0 items-center justify-center rounded text-[8px] font-bold text-white", color)}>
                             {i === 0 ? "M" : "P"}

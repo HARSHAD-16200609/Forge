@@ -7,7 +7,7 @@ const channels = ["general", "design", "engineering", "launch", "random"];
 const messages = [
     {
         author: "Mira",
-        color: "bg-violet-500",
+        color: "bg-brand",
         time: "9:41",
         text: "Shipped the new composer — rich blocks are live in #engineering.",
         reactions: [

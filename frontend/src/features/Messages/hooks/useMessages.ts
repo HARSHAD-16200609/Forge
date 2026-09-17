@@ -4,7 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 export function useMessages(params: getMessageParams) {
     return useInfiniteQuery({
-        queryKey: ["messages", params.channelId],
+        queryKey: ["messages", params.workspaceId, params.channelId],
 
         queryFn: ({ pageParam }) =>
             messageService.getMessages({

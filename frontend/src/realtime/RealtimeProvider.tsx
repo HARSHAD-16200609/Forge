@@ -60,12 +60,16 @@ function applyMessageFrame(
     type: string,
 ): void {
     if (message.entity.type === "channel") {
-        queryClient.setQueryData(["messages", message.entity.id], (data) =>
-            updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
+        queryClient.setQueryData(
+            ["messages", useWorkspaceStore.getState().selectedWorkspaceId, message.entity.id],
+            (data) =>
+                updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
         );
     } else {
-        queryClient.setQueryData(["conversation-messages", message.entity.id], (data) =>
-            updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
+        queryClient.setQueryData(
+            ["conversation-messages", useWorkspaceStore.getState().selectedWorkspaceId, message.entity.id],
+            (data) =>
+                updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
         );
 
         if (type === WsEvent.ConversationMessageCreated && !message.parentMsgId && !message.deletedAt) {
@@ -176,13 +180,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
         if (selectedChannelId) {
             realtimeActions.subscribeChannel(selectedWorkspaceId, selectedChannelId);
-            queryClient.invalidateQueries({ queryKey: ["messages", selectedChannelId] });
+            queryClient.invalidateQueries({
+                queryKey: ["messages", selectedWorkspaceId, selectedChannelId],
+            });
         }
 
         if (selectedConversationId) {
             realtimeActions.subscribeConversation(selectedConversationId);
             queryClient.invalidateQueries({
-                queryKey: ["conversation-messages", selectedConversationId],
+                queryKey: ["conversation-messages", selectedWorkspaceId, selectedConversationId],
             });
         }
 

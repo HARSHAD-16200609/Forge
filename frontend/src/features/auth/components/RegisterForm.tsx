@@ -32,7 +32,7 @@ export function RegisterForm() {
         errors.confirmPassword?.message;
 
     return (
-        <Card>
+        <Card className="bg-transparent ring-0">
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
                     <div className="flex flex-col gap-5">

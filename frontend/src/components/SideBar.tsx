@@ -44,11 +44,11 @@ const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 const tileColors = [
     "bg-brand",
-    "bg-[oklch(0.52_0.13_185)]",
-    "bg-[oklch(0.52_0.16_293)]",
-    "bg-[oklch(0.55_0.12_35)]",
-    "bg-[oklch(0.49_0.13_320)]",
-    "bg-[oklch(0.45_0.04_262)]",
+    "bg-[oklch(0.52_0.13_243)]",
+    "bg-[oklch(0.55_0.16_255)]",
+    "bg-[oklch(0.5_0.12_228)]",
+    "bg-[oklch(0.49_0.13_266)]",
+    "bg-[oklch(0.45_0.09_250)]",
 ];
 
 function getInitials(name: string) {
@@ -108,8 +108,8 @@ function WorkspaceSwitcher() {
                         className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
                             tileColors[
-                            (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
-                                -1) % tileColors.length
+                                (Workspaces.data?.findIndex((w) => w.workspace.id === active?.id) ??
+                                    -1) % tileColors.length
                             ] ?? tileColors[0],
                         )}
                     >
@@ -263,7 +263,9 @@ function IconNavButton({
         >
             <span className="relative">
                 {isActive && isValidElement(children)
-                    ? cloneElement(children as React.ReactElement<{ fill?: string }>, { fill: "currentColor" })
+                    ? cloneElement(children as React.ReactElement<{ fill?: string }>, {
+                          fill: "currentColor",
+                      })
                     : children}
             </span>
         </button>
@@ -398,13 +400,7 @@ function SectionHeader({
     );
 }
 
-function ChannelRow({
-    name,
-    channelId,
-}: {
-    name: string;
-    channelId: string;
-}) {
+function ChannelRow({ name, channelId }: { name: string; channelId: string }) {
     const { setSelectedChannelId, selectedChannelId, setActiveSection } = useUIStore();
     const navigate = useNavigate();
     const isActive = selectedChannelId === channelId;
@@ -417,7 +413,7 @@ function ChannelRow({
             onClick={() => {
                 setSelectedChannelId(channelId);
                 setActiveSection("home");
-                navigate("/app");
+                navigate("/app/home");
             }}
         >
             <span
@@ -446,7 +442,6 @@ function ChannelRow({
         </div>
     );
 }
-
 function DMRow({
     dm,
     online,
@@ -464,24 +459,15 @@ function DMRow({
             onClick={onSelect}
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive
-                    ? "bg-white"
-                    : "hover:bg-sidebar-accent",
+                isActive ? "bg-white" : "hover:bg-sidebar-accent",
             )}
         >
-            <AvatarDot
-                avatar={dm.avatar}
-                online={online}
-                name={dm.displayName}
-                type="dm"
-            />
+            <AvatarDot avatar={dm.avatar} online={online} name={dm.displayName} type="dm" />
 
             <span
                 className={cn(
                     "text-[14px] truncate ml-2 transition-colors",
-                    isActive
-                        ? "text-black font-medium"
-                        : "text-sidebar-foreground/80",
+                    isActive ? "text-black font-medium" : "text-sidebar-foreground/80",
                 )}
             >
                 {dm.displayName}
@@ -503,7 +489,7 @@ function PresenceDMRow({
     );
     return <DMRow dm={dm} online={online} onSelect={onSelect} />;
 }
-function AvatarDot({
+export function AvatarDot({
     avatar,
     online,
     name,
@@ -535,7 +521,7 @@ function AvatarDot({
                         "flex size-6 items-center justify-center rounded-full text-[10px] font-semibold",
                         type === "gdm"
                             ? "bg-emerald-500/20 text-emerald-500"
-                            : "bg-violet-500/20 text-violet-600",
+                            : "bg-brand/20 text-brand",
                     )}
                 >
                     {type === "gdm" && !initials ? <Users className="size-3.5" /> : initials}
@@ -567,9 +553,7 @@ function QuickLink({
             onClick={onClick}
         >
             <span className="shrink-0 text-sidebar-foreground/60 [&>svg]:size-4">{icon}</span>
-            <span className="text-[14px] text-sidebar-foreground/80 truncate">
-                {label}
-            </span>
+            <span className="text-[14px] text-sidebar-foreground/80 truncate">{label}</span>
         </div>
     );
 }
@@ -582,8 +566,7 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
             onClick={onSelect}
             className={cn(
                 "relative flex items-center w-full h-9 px-2 rounded-lg cursor-pointer transition-colors",
-                isActive ? "bg-white"
-                    : "hover:bg-sidebar-accent",
+                isActive ? "bg-white" : "hover:bg-sidebar-accent",
             )}
         >
             <AvatarDot avatar={gdm.avatar} online={true} name={gdm.groupName} type="gdm" />
@@ -632,12 +615,8 @@ function ActivityRow({ name, meta, icon }: { name: string; meta: string; icon: R
                 {icon}
             </span>
             <div className="min-w-0">
-                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px]">
-                    {name}
-                </div>
-                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">
-                    {meta}
-                </div>
+                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px]">{name}</div>
+                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">{meta}</div>
             </div>
         </div>
     );
@@ -653,9 +632,7 @@ function SavedRow({ name, meta }: { name: string; meta: string }) {
                 <div className="text-[13px] text-sidebar-foreground/85 leading-[18px] truncate">
                     {name}
                 </div>
-                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">
-                    {meta}
-                </div>
+                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">{meta}</div>
             </div>
         </div>
     );
@@ -715,7 +692,9 @@ const sectionContent: Record<string, Section[]> = {
         {
             title: "Invite",
             kind: "quick",
-            rows: [{ label: "Invite people to Forge", icon: <Users size={16} />, to: "/app/invites" }],
+            rows: [
+                { label: "Invite people to Forge", icon: <Users size={16} />, to: "/app/invites" },
+            ],
         },
     ],
     files: [
@@ -850,7 +829,7 @@ function DetailSidebar({
                         onSelect={() => {
                             setSelectedConversation(d.id, "DM");
                             setActiveSection("dms");
-                            navigate("/app");
+                            navigate("/app/dms");
                         }}
                     />
                 ));
@@ -863,7 +842,7 @@ function DetailSidebar({
                         onSelect={() => {
                             setSelectedConversation(g.id, "GDM");
                             setActiveSection("dms");
-                            navigate("/app");
+                            navigate("/app/dms");
                         }}
                     />
                 ));
@@ -1000,8 +979,8 @@ function DetailSidebar({
 /* ------------------------------- Root Frame ------------------------------ */
 
 const sectionRouteMap: Record<string, string> = {
-    home: "/app",
-    dms: "/app",
+    home: "/app/home",
+    dms: "/app/dms",
     notifications: "/app/notifications",
     activity: "/app/activity",
     saved: "/app/saved",
@@ -1012,6 +991,8 @@ const sectionRouteMap: Record<string, string> = {
 };
 
 const routeSectionMap: Record<string, string> = {
+    "/app/home": "home",
+    "/app/dms": "dms",
     "/app/notifications": "notifications",
     "/app/activity": "activity",
     "/app/saved": "saved",
@@ -1032,10 +1013,10 @@ export function Frame760() {
 
     useEffect(() => {
         const section = routeSectionMap[location.pathname];
-        if (section && section !== activeSection) {
+        if (section && useUIStore.getState().activeSection !== section) {
             setActiveSection(section);
         }
-    }, [location.pathname, activeSection, setActiveSection]);
+    }, [location.pathname, setActiveSection]);
 
     const handleSectionChange = useCallback(
         (section: string) => {
@@ -1043,7 +1024,7 @@ export function Frame760() {
             if (section === "home" || section === "dms") {
                 clearSelectedConversation();
             }
-            navigate(sectionRouteMap[section] ?? "/app");
+            navigate(sectionRouteMap[section] ?? "/app/home");
         },
         [navigate, setActiveSection, clearSelectedConversation],
     );

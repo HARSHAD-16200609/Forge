@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { CornerUpLeft } from "lucide-react";
 import { MessageAttachments } from "./MessageAttachments";
 import { BlocksRenderer } from "./BlocksRenderer";
 import { formatMessageTime } from "../utils/format";
@@ -16,6 +17,9 @@ interface MessageBubbleProps {
     onEdit?: (message: Message) => void;
     onDelete?: (message: Message) => void;
     onReact?: (message: Message, emoji: string) => void;
+    onOpenThread?: (message: Message) => void;
+    threadSummary?: { replyCount: number; lastReplyAt: string } | null;
+    hideActions?: boolean;
 }
 
 function initialsOf(sender: MessageSender): string {
@@ -30,11 +34,14 @@ export function MessageBubble({
     onEdit,
     onDelete,
     onReact,
+    onOpenThread,
+    threadSummary,
+    hideActions = false,
 }: MessageBubbleProps) {
     const currentUser = useAuth().user;
     const [showActions, setShowActions] = useState(false);
     const reduce = useReducedMotion();
-   
+
     const isMine = currentUser?.id === message.sender.id;
     const isDeleted = message.deletedAt !== null;
     const isEdited = message.editedAt !== null && !isDeleted;
@@ -72,11 +79,16 @@ export function MessageBubble({
         );
     }
 
+    const openThread = () => {
+        if (onOpenThread) onOpenThread(message);
+        else onReply?.(message);
+    };
+
     return (
         <div
             className="group flex gap-3"
-            onMouseEnter={() => setShowActions(true)}
-            onMouseLeave={() => setShowActions(false)}
+            onMouseEnter={hideActions ? undefined : () => setShowActions(true)}
+            onMouseLeave={hideActions ? undefined : () => setShowActions(false)}
         >
             <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
                 {message.sender.avatar ? (
@@ -86,7 +98,7 @@ export function MessageBubble({
                         className="size-10 rounded-lg object-cover"
                     />
                 ) : (
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-violet-500">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-brand">
                         {initialsOf(message.sender)}
                     </div>
                 )}
@@ -95,7 +107,9 @@ export function MessageBubble({
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                     <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="truncate text-sm font-bold">{message.sender.username}</span>
+                        <span className="truncate text-sm font-bold">
+                            {message.sender.username}
+                        </span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                             {formatMessageTime(message.sentAt)}
                         </span>
@@ -110,56 +124,73 @@ export function MessageBubble({
                     </div>
 
                     <AnimatePresence>
-                    {showActions && (
-                        <motion.span
-                            initial={reduce ? false : { opacity: 0, y: 3 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={reduce ? undefined : { opacity: 0, y: 3 }}
-                            transition={{ duration: 0.12, ease: APP_EASE }}
-                            className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-background px-1.5 py-0.5 shadow-sm ring-1 ring-border"
-                        >
-                            {onReact &&
-                                QUICK_REACTIONS.map((emoji) => (
+                        {showActions && !hideActions && (
+                            <motion.span
+                                initial={reduce ? false : { opacity: 0, y: 3 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={reduce ? undefined : { opacity: 0, y: 3 }}
+                                transition={{ duration: 0.12, ease: APP_EASE }}
+                                className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-background px-1.5 py-0.5 shadow-sm ring-1 ring-border"
+                            >
+                                {onReact &&
+                                    QUICK_REACTIONS.map((emoji) => (
+                                        <button
+                                            key={emoji}
+                                            type="button"
+                                            aria-label={`React ${emoji}`}
+                                            onClick={() => onReact(message, emoji)}
+                                            className="rounded px-1 py-0.5 text-sm transition-colors hover:bg-muted"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                {isMine && onEdit && (
                                     <button
-                                        key={emoji}
                                         type="button"
-                                        aria-label={`React ${emoji}`}
-                                        onClick={() => onReact(message, emoji)}
-                                        className="rounded px-1 py-0.5 text-sm transition-colors hover:bg-muted"
+                                        onClick={() => onEdit(message)}
+                                        className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     >
-                                        {emoji}
+                                        Edit
                                     </button>
-                                ))}
-                            {isMine && onEdit && (
-                                <button
-                                    type="button"
-                                    onClick={() => onEdit(message)}
-                                    className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                >
-                                    Edit
-                                </button>
-                            )}
-                            {isMine && onDelete && (
-                                <button
-                                    type="button"
-                                    onClick={() => onDelete(message)}
-                                    className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                    Delete
-                                </button>
-                            )}
-                            {onReply && (
-                                <button
-                                    type="button"
-                                    onClick={() => onReply(message)}
-                                    className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                >
-                                    Reply
-                                </button>
-                            )}
-                        </motion.span>
-                    )}
-                </AnimatePresence>
+                                )}
+                                {isMine && onDelete && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onDelete(message)}
+                                        className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        Delete
+                                    </button>
+                                )}
+                                {onOpenThread && (
+                                    <button
+                                        type="button"
+                                        onClick={openThread}
+                                        className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    >
+                                        Thread
+                                    </button>
+                                )}
+                                {onOpenThread && onReply && (
+                                    <span
+                                        aria-hidden="true"
+                                        className="mx-0.5 text-muted-foreground/40"
+                                    >
+                                        ·
+                                    </span>
+                                )}
+                                {onReply && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onReply(message)}
+                                        className="rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    >
+                                        Reply
+                                    </button>
+                                )}
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 <BlocksRenderer blocksJson={message.content} workspaceId={workspaceId} />
@@ -189,6 +220,23 @@ export function MessageBubble({
                             );
                         })}
                     </div>
+                )}
+
+                {onOpenThread && threadSummary && threadSummary.replyCount > 0 && (
+                    <button
+                        type="button"
+                        onClick={openThread}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-brand transition-colors hover:text-brand/80"
+                    >
+                        <CornerUpLeft className="size-3.5" />
+                        <span>
+                            {threadSummary.replyCount}{" "}
+                            {threadSummary.replyCount === 1 ? "reply" : "replies"}
+                        </span>
+                        <span className="text-muted-foreground">
+                            · last reply {formatMessageTime(threadSummary.lastReplyAt)}
+                        </span>
+                    </button>
                 )}
             </div>
         </div>

@@ -18,6 +18,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
             setSelectedWorkspaceId: (workspaceId) => {
                 useUIStore.getState().clearSelectedConversation();
+                useUIStore.getState().clearSelectedChannelId();
                 set({
                     selectedWorkspaceId: workspaceId,
                 });

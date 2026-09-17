@@ -4,6 +4,7 @@ import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton"
 import { ConvoMembers } from "@/features/Messages/components/ConvoMembers";
 import { EmptyConversation } from "@/features/Messages/components/EmptyConversation";
 import { TypingIndicator } from "@/features/Messages/components/TypingIndicator";
+import { ThreadPanel } from "@/features/Messages/components/ThreadPanel";
 import { useConversationMessages } from "@/features/Messages/hooks/useConversationMessages";
 import { useSendConversationMessage } from "@/features/Messages/hooks/useSendConversationMessage";
 import { useSendReply } from "@/features/Messages/hooks/useSendReply";
@@ -13,15 +14,87 @@ import { useReact } from "@/features/Messages/hooks/useReact";
 import { useDm } from "@/features/Messages/hooks/useDms";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
-import type { AxiosError } from "axios";
-import { ArrowLeft, Bell, Search, Users, X } from "lucide-react";
+import { useThreadStore } from "@/stores/threadStore";
+import { lastReplyOf, repliesOf } from "@/features/Messages/utils/threads";
+import { getApiError } from "@/lib/errorMessage";
+import {
+    ConversationNotFound,
+    WorkspaceAccessDenied,
+} from "@/components/access/AccessDeniedScreens";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AccessManagerCard } from "@/components/ui/health-stat-card";
+import type { Member } from "@/components/ui/health-stat-card";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, Bell, Search, ShieldCheck, TriangleAlert, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
+import type { ConversationDetail } from "@/features/Messages/types";
 import { MessageDateDivider } from "@/features/Messages/components/MessageDateDivider";
 import { getDayKey, getMessageDayLabel } from "@/features/Messages/utils/format";
+import { usePresenceStore } from "@/realtime/presenceStore";
+
+function resolveMembers(detail?: ConversationDetail): Member[] {
+    return (detail?.members ?? []).map((m) => ({
+        id: m.user.id,
+        name: m.user.username,
+        avatar: m.user.avatar ?? undefined,
+        role: "Viewer",
+    }));
+}
+
+function GroupMembersCard({
+    detail,
+    workspaceId,
+    headerName,
+}: {
+    detail?: ConversationDetail;
+    workspaceId?: string;
+    headerName: string;
+}) {
+    const isOnline = usePresenceStore((state) => state.isOnline);
+
+    const [local, setLocal] = useState<Member[] | null>(null);
+
+    const members: Member[] = local ?? resolveMembers(detail);
+
+    const onlineUserIds = members
+        .filter((m) => workspaceId && isOnline(workspaceId, m.id))
+        .map((m) => m.id);
+
+    const handleInvite = (email: string, role: "Viewer" | "Editor") => {
+        const next: Member = {
+            id: (members.length + 1).toString(),
+            name: email.split("@")[0] || email,
+            email,
+            avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
+            role,
+        };
+        setLocal([...members, next]);
+    };
+
+    const handleRoleChange = (id: string, newRole: "Viewer" | "Editor") => {
+        setLocal((prev) =>
+            (prev ?? members).map((m) => (m.id === id ? { ...m, role: newRole } : m)),
+        );
+    };
+
+    return (
+        <AccessManagerCard
+            title="Group members"
+            description="Who can view and send in this group chat."
+            folderName={headerName}
+            members={members}
+            onlineUserIds={onlineUserIds}
+            onInvite={handleInvite}
+            onRoleChange={handleRoleChange}
+            folderIcon={<ShieldCheck className="h-6 w-6 text-primary" />}
+        />
+    );
+}
 
 export function Conversations({ showBack = false }: { showBack?: boolean }) {
     const navigate = useNavigate();
@@ -57,6 +130,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         selectedConversationId ?? "",
         "conversation",
     );
+
     const editMessage = useEditMessage(
         "conversation",
         selectedWorkspaceId ?? "",
@@ -67,14 +141,11 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         selectedWorkspaceId ?? "",
         selectedConversationId ?? "",
     );
-    const react = useReact(
-        "conversation",
-        selectedWorkspaceId ?? "",
-        selectedConversationId ?? "",
-    );
+    const react = useReact("conversation", selectedWorkspaceId ?? "", selectedConversationId ?? "");
 
-    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const { parent: activeThread, setThread, clearThread } = useThreadStore();
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
     const convoMembers = useMemo(
         () =>
@@ -91,25 +162,13 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         return [...all].sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
     }, [data]);
 
-    const flattened = useMemo(() => {
-        const topLevel = Messages?.filter((m) => !m.parentMsgId) ?? [];
-        const repliesByParent = new Map<string, Message[]>();
-        Messages?.forEach((m) => {
-            if (!m.parentMsgId) return;
-            const list = repliesByParent.get(m.parentMsgId) ?? [];
-            list.push(m);
-            repliesByParent.set(m.parentMsgId, list);
-        });
-        const result: Message[] = [];
-        topLevel.forEach((m) => {
-            result.push(m);
-            (repliesByParent.get(m.id) ?? []).forEach((r) => result.push(r));
-        });
-        return result;
-    }, [Messages]);
+    const topLevel = useMemo(() => Messages.filter((m) => !m.parentMsgId), [Messages]);
 
-    const backendSaysEmpty =
-        (error as AxiosError<{ message: string }>)?.response?.data.message === "No Messages Found";
+    useEffect(() => {
+        clearThread();
+    }, [selectedConversationId, clearThread]);
+
+    const backendSaysEmpty = getApiError(error).message === "No Messages Found";
     const isEmpty = !isPending && (backendSaysEmpty || (Messages?.length ?? 0) === 0);
 
     const prevOldestIdRef = useRef<string | null>(null);
@@ -181,6 +240,22 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
         );
     }
 
+    if (isError && !backendSaysEmpty) {
+        const { status, message } = getApiError(error);
+        if (status === 403) return <WorkspaceAccessDenied />;
+        if (status === 404) return <ConversationNotFound />;
+        return (
+            <ErrorScreen
+                statusCode={status !== undefined ? String(status) : undefined}
+                scope="ERROR"
+                icon={<TriangleAlert className="size-6" />}
+                title="Couldn't load this conversation"
+                highlight="conversation"
+                description={message}
+            />
+        );
+    }
+
     const headerName =
         selectedConversationType === "GDM"
             ? (detail?.groupName ?? detail?.displayName ?? "Group")
@@ -238,13 +313,42 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
-                    <button
-                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                        aria-label="Members"
-                        onClick={() => setShowMembers((prev) => !prev)}
-                    >
-                        <Users className="size-[18px]" />
-                    </button>
+                    <Popover open={showMembers} onOpenChange={setShowMembers}>
+                        <PopoverTrigger asChild>
+                            <button
+                                type="button"
+                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                                aria-label="Members"
+                            >
+                                <Users className="size-[18px]" />
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            align="end"
+                            sideOffset={6}
+                            className={cn(
+                                "rounded-2xl border-brand/15 p-0 shadow-xl shadow-brand/10",
+                                selectedConversationType === "GDM" ? "w-[24rem]" : "w-[22rem]",
+                            )}
+                        >
+                            {selectedConversationType === "GDM" ? (
+                                <GroupMembersCard
+                                    key={selectedConversationId}
+                                    detail={detail}
+                                    workspaceId={selectedWorkspaceId ?? undefined}
+                                    headerName={headerName}
+                                />
+                            ) : (
+                                <ConvoMembers
+                                    detail={detail}
+                                    title={headerName}
+                                    type={selectedConversationType ?? "DM"}
+                                    workspaceId={selectedWorkspaceId ?? ""}
+                                    onClose={() => setShowMembers(false)}
+                                />
+                            )}
+                        </PopoverContent>
+                    </Popover>
                     <button
                         className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                         aria-label="Search"
@@ -262,95 +366,56 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
             </header>
 
             <div className="flex min-h-0 flex-1">
-                <div
-                    ref={scrollRef}
-                    onScroll={handleScroll}
-                    className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
-                >
-                    {isPending && <MessageSkeleton rows={6} />}
+                <div className="flex min-w-0 flex-1 flex-col">
+                    <div
+                        ref={scrollRef}
+                        onScroll={handleScroll}
+                        className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
+                    >
+                        {isPending && <MessageSkeleton rows={6} />}
 
-                    {isError && !backendSaysEmpty && (
-                        <div className="text-sm text-destructive">
-                            {(error as AxiosError<{ message: string }>)?.response?.data.message ??
-                                "Failed to load conversation"}
-                        </div>
-                    )}
+                        {isEmpty && (
+                            <EmptyConversation
+                                detail={detail}
+                                type={selectedConversationType}
+                                name={headerName}
+                            />
+                        )}
 
-                    {isEmpty && (
-                        <EmptyConversation
-                            detail={detail}
-                            type={selectedConversationType}
-                            name={headerName}
-                        />
-                    )}
-
-                    {Messages && Messages.length > 0 && (
-                        <>
-                            <AnimatePresence mode="wait" initial={false}>
-                                <motion.div
-                                    key={selectedConversationId}
-                                    initial={reduce ? false : { opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={reduce ? undefined : { opacity: 0, y: -6 }}
-                                    transition={{ duration: 0.16, ease: APP_EASE }}
-                                >
-                                    <div className="space-y-6">
-                                        {flattened.map((message, index) => {
-                                            const prev = flattened[index - 1];
-                                            const divider =
-                                                !message.parentMsgId &&
-                                                (index === 0 ||
+                        {Messages && Messages.length > 0 && (
+                            <>
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.div
+                                        key={selectedConversationId}
+                                        initial={reduce ? false : { opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={reduce ? undefined : { opacity: 0, y: -6 }}
+                                        transition={{ duration: 0.16, ease: APP_EASE }}
+                                    >
+                                        <div className="space-y-6">
+                                            {topLevel.map((message, index) => {
+                                                const prev = topLevel[index - 1];
+                                                const divider =
+                                                    index === 0 ||
                                                     getDayKey(prev.sentAt) !==
-                                                        getDayKey(message.sentAt));
+                                                        getDayKey(message.sentAt);
+                                                const threadReplies = repliesOf(
+                                                    Messages,
+                                                    message.id,
+                                                );
+                                                const lastReply = lastReplyOf(Messages, message.id);
 
-                                            return (
-                                                <Fragment key={message.id}>
-                                                    {divider && (
-                                                        <MessageDateDivider
-                                                            label={getMessageDayLabel(
-                                                                message.sentAt,
-                                                            )}
-                                                        />
-                                                    )}
-                                                    {message.parentMsgId ? (
-                                                        <div className="ml-12 border-l-2 border-border pl-3">
-                                                            <FadeIn
-                                                                active={isFresh && !isFetchingNextPage}
-                                                                y={0}
-                                                                duration={0.12}
-                                                            >
-                                                                <MessageBubble
-                                                                    message={message}
-                                                                    workspaceId={
-                                                                        selectedWorkspaceId ?? undefined
-                                                                    }
-                                                                    onReply={(m) => setReplyingTo(m)}
-                                                                    onEdit={setEditingMessage}
-                                                                    onDelete={(m) => {
-                                                                        if (
-                                                                            window.confirm(
-                                                                                "Delete this message?",
-                                                                            )
-                                                                        ) {
-                                                                            deleteMessage.mutate({
-                                                                                messageId: m.id,
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    onReact={(m, emoji) =>
-                                                                        react.mutate({
-                                                                            messageId: m.id,
-                                                                            reaction: emoji,
-                                                                        })
-                                                                    }
-                                                                />
-                                                            </FadeIn>
-                                                        </div>
-                                                    ) : (
+                                                return (
+                                                    <Fragment key={message.id}>
+                                                        {divider && (
+                                                            <MessageDateDivider
+                                                                label={getMessageDayLabel(
+                                                                    message.sentAt,
+                                                                )}
+                                                            />
+                                                        )}
                                                         <FadeIn
-                                                            active={
-                                                                isFresh && !isFetchingNextPage
-                                                            }
+                                                            active={isFresh && !isFetchingNextPage}
                                                             y={0}
                                                             duration={0.12}
                                                         >
@@ -360,6 +425,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                                     selectedWorkspaceId ?? undefined
                                                                 }
                                                                 onReply={(m) => setReplyingTo(m)}
+                                                                onOpenThread={(m) => setThread(m)}
                                                                 onEdit={setEditingMessage}
                                                                 onDelete={(m) => {
                                                                     if (
@@ -378,79 +444,99 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                                         reaction: emoji,
                                                                     })
                                                                 }
+                                                                threadSummary={
+                                                                    lastReply
+                                                                        ? {
+                                                                              replyCount:
+                                                                                  threadReplies.length,
+                                                                              lastReplyAt:
+                                                                                  lastReply.sentAt,
+                                                                          }
+                                                                        : null
+                                                                }
                                                             />
                                                         </FadeIn>
-                                                    )}
-                                                </Fragment>
-                                            );
-                                        })}
+                                                    </Fragment>
+                                                );
+                                            })}
 
-                                        {isFetchingNextPage && <MessageSkeleton rows={2} />}
+                                            {isFetchingNextPage && <MessageSkeleton rows={2} />}
 
-                                        {!hasNextPage &&
-                                            Messages &&
-                                            Messages.length > 0 && (
+                                            {!hasNextPage && Messages && Messages.length > 0 && (
                                                 <div className="py-4 text-center text-xs text-muted-foreground">
                                                     You&apos;re all caught up
                                                 </div>
                                             )}
-                                    </div>
-                                </motion.div>
-                            </AnimatePresence>
-                        </>
-                    )}
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="shrink-0 px-4 pb-4">
+                        <TypingIndicator
+                            entityId={selectedConversationId ?? ""}
+                            workspaceId={selectedWorkspaceId}
+                        />
+                        <MessageComposer
+                            key={selectedConversationId}
+                            channelId={selectedConversationId ?? ""}
+                            channelName={headerName}
+                            placeholder={`Message ${headerName}`}
+                            disabled={sendMessage.isPending || sendReply.isPending}
+                            typingTarget={
+                                selectedWorkspaceId
+                                    ? {
+                                          workspaceId: selectedWorkspaceId,
+                                          entityId: selectedConversationId ?? "",
+                                          entityType: "conversation",
+                                      }
+                                    : undefined
+                            }
+                            replyTo={
+                                replyingTo
+                                    ? { id: replyingTo.id, sender: replyingTo.sender.username }
+                                    : null
+                            }
+                            onCancelReply={() => setReplyingTo(null)}
+                            members={convoMembers}
+                            onSend={(content, files, replyToId, mentions) => {
+                                if (replyToId) {
+                                    return sendReply.mutateAsync(
+                                        { messageId: replyToId, content, files, mentions },
+                                        { onSuccess: () => setReplyingTo(null) },
+                                    );
+                                }
+                                return sendMessage.mutateAsync({ content, files, mentions });
+                            }}
+                        />
+                    </div>
                 </div>
 
                 <AnimatePresence initial={false}>
-                    {showMembers && (
-                        <ConvoMembers
-                            detail={detail}
-                            title={headerName}
-                            type={selectedConversationType ?? "DM"}
+                    {activeThread && (
+                        <ThreadPanel
+                            parent={Messages.find((m) => m.id === activeThread.id) ?? activeThread}
+                            replies={repliesOf(Messages, activeThread.id)}
                             workspaceId={selectedWorkspaceId ?? ""}
-                            onClose={() => setShowMembers(false)}
+                            entityId={selectedConversationId ?? ""}
+                            entityType="conversation"
+                            channelName={headerName}
+                            members={convoMembers}
+                            onEdit={setEditingMessage}
+                            onDelete={(m) => {
+                                if (window.confirm("Delete this message?")) {
+                                    deleteMessage.mutate({ messageId: m.id });
+                                }
+                            }}
+                            onReact={(m, emoji) =>
+                                react.mutate({ messageId: m.id, reaction: emoji })
+                            }
+                            onClose={clearThread}
                         />
                     )}
                 </AnimatePresence>
-            </div>
-
-            <div className="shrink-0 px-4 pb-4">
-                <TypingIndicator
-                    entityId={selectedConversationId ?? ""}
-                    workspaceId={selectedWorkspaceId}
-                />
-                <MessageComposer
-                    key={selectedConversationId}
-                    channelId={selectedConversationId ?? ""}
-                    channelName={headerName}
-                    placeholder={`Message ${headerName}`}
-                    disabled={sendMessage.isPending || sendReply.isPending}
-                    typingTarget={
-                        selectedWorkspaceId
-                            ? {
-                                  workspaceId: selectedWorkspaceId,
-                                  entityId: selectedConversationId ?? "",
-                                  entityType: "conversation",
-                              }
-                            : undefined
-                    }
-                    replyTo={
-                        replyingTo
-                            ? { id: replyingTo.id, sender: replyingTo.sender.username }
-                            : null
-                    }
-                    onCancelReply={() => setReplyingTo(null)}
-                    members={convoMembers}
-                    onSend={(content, files, replyToId, mentions) => {
-                        if (replyToId) {
-                            return sendReply.mutateAsync(
-                                { messageId: replyToId, content, files, mentions },
-                                { onSuccess: () => setReplyingTo(null) },
-                            );
-                        }
-                        return sendMessage.mutateAsync({ content, files, mentions });
-                    }}
-                />
             </div>
 
             {editingMessage && (

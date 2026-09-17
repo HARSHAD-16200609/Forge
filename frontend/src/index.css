@@ -7,9 +7,9 @@
 
 :root {
     --radius: 0.625rem;
-    --brand: oklch(0.52 0.2 262);
+    --brand: oklch(0.56 0.18 251);
     --brand-foreground: oklch(0.985 0 0);
-    --brand-soft: oklch(0.95 0.035 262);
+    --brand-soft: oklch(0.95 0.04 251);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -45,9 +45,9 @@
 
 .dark {
     --background: oklch(0.145 0 0);
-    --brand: oklch(0.64 0.17 262);
-    --brand-foreground: oklch(0.11 0.02 262);
-    --brand-soft: oklch(0.2 0.045 262);
+    --brand: oklch(0.68 0.175 251);
+    --brand-foreground: oklch(0.11 0.02 251);
+    --brand-soft: oklch(0.2 0.045 251);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
@@ -72,7 +72,7 @@
     --chart-5: oklch(0.269 0 0);
     --sidebar: oklch(0.178 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary: oklch(0.52 0.16 251);
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.218 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -86,9 +86,9 @@
     color-scheme: light;
     color: var(--foreground);
     --background: oklch(1 0 0);
-    --brand: oklch(0.52 0.2 262);
+    --brand: oklch(0.56 0.18 251);
     --brand-foreground: oklch(0.985 0 0);
-    --brand-soft: oklch(0.95 0.035 262);
+    --brand-soft: oklch(0.95 0.04 251);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
@@ -373,17 +373,17 @@
     opacity: 0.35;
     background-image: radial-gradient(
             closest-side,
-            color-mix(in oklch, oklch(0.55 0.09 262), transparent 88%),
+            color-mix(in oklch, oklch(0.6 0.12 251), transparent 88%),
             transparent 70%
         ),
         radial-gradient(
             45% 45% at 78% 82%,
-            color-mix(in oklch, oklch(0.5 0.07 285), transparent 90%),
+            color-mix(in oklch, oklch(0.55 0.1 243), transparent 90%),
             transparent 70%
         ),
         radial-gradient(
             40% 40% at 20% 60%,
-            color-mix(in oklch, oklch(0.52 0.06 215), transparent 92%),
+            color-mix(in oklch, oklch(0.52 0.08 250), transparent 92%),
             transparent 70%
         );
 }
@@ -392,12 +392,12 @@
     opacity: 0.4;
     background-image: radial-gradient(
             closest-side,
-            color-mix(in oklch, oklch(0.54 0.09 262), transparent 90%),
+            color-mix(in oklch, oklch(0.58 0.12 251), transparent 90%),
             transparent 70%
         ),
         radial-gradient(
             50% 50% at 30% 25%,
-            color-mix(in oklch, oklch(0.5 0.07 285), transparent 92%),
+            color-mix(in oklch, oklch(0.55 0.1 243), transparent 92%),
             transparent 70%
         );
 }
@@ -405,75 +405,75 @@
 .dark .aurora-cta {
     background-image: radial-gradient(
             60% 60% at 50% 0%,
-            color-mix(in oklch, oklch(0.55 0.09 262), transparent 90%),
+            color-mix(in oklch, oklch(0.6 0.12 251), transparent 90%),
             transparent
         ),
         radial-gradient(
             35% 40% at 24% 8%,
-            color-mix(in oklch, oklch(0.5 0.07 285), transparent 93%),
+            color-mix(in oklch, oklch(0.55 0.1 243), transparent 93%),
             transparent
         ),
         radial-gradient(
             35% 40% at 76% 8%,
-            color-mix(in oklch, oklch(0.52 0.06 215), transparent 93%),
+            color-mix(in oklch, oklch(0.52 0.08 250), transparent 93%),
             transparent
         );
 }
 
-/* ── Sidebar: always lavender, darker in dark mode ──────────────────────
-   The sidebar is plum→lavender in BOTH themes (`image copy 4` reference);
+/* ── Sidebar: always blue, darker in dark mode ──────────────────────────
+   The sidebar is blue in BOTH themes (`#309bff` / `#1e9deb` reference);
    dark mode deepens it. Pinning the `--sidebar-*` tokens here keeps nav
    text/hover readable regardless of the active theme. The icon rail is a
    shade darker, and deepens too. */
 
 .aurora-sidebar {
-    --sidebar: oklch(34% 0.099 326);
+    --sidebar: oklch(50% 0.11 250);
     --sidebar-foreground: oklch(98.5% 0 0);
-    --sidebar-primary: oklch(48.8% 0.243 264.376);
+    --sidebar-primary: oklch(54% 0.16 251);
     --sidebar-primary-foreground: oklch(98.5% 0 0);
-    --sidebar-accent: oklch(42% 0.085 326);
+    --sidebar-accent: oklch(60% 0.09 250);
     --sidebar-accent-foreground: oklch(98.5% 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(55.6% 0 0);
-    --sidebar-selected: oklch(96.1% 0.027 314.7);
-    --sidebar-selected-foreground: oklch(30% 0.07 326);
-    background-color: oklch(34% 0.099 326);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --sidebar-ring: oklch(75% 0.08 250);
+    --sidebar-selected: oklch(96% 0.03 250);
+    --sidebar-selected-foreground: oklch(35% 0.14 251);
+    background-color: oklch(50% 0.11 250);
     background-image: radial-gradient(
             closest-side at 0% 0%,
-            color-mix(in oklch, oklch(0.55 0.09 262), transparent 88%),
+            color-mix(in oklch, oklch(0.68 0.175 251), transparent 84%),
             transparent 65%
         ),
         radial-gradient(
             closest-side at 120% 110%,
-            color-mix(in oklch, oklch(0.5 0.07 285), transparent 90%),
+            color-mix(in oklch, oklch(0.67 0.154 243), transparent 86%),
             transparent 65%
         ),
         radial-gradient(
             55% 45% at 58% 95%,
-            color-mix(in oklch, oklch(0.52 0.06 215), transparent 92%),
+            color-mix(in oklch, oklch(0.6 0.12 250), transparent 90%),
             transparent 70%
         ),
-        linear-gradient(180deg, oklch(37.1% 0.1 326), oklch(34% 0.099 326));
+        linear-gradient(180deg, oklch(52% 0.11 250), oklch(47% 0.11 250));
 }
 
 .dark .aurora-sidebar {
-    --sidebar-accent: oklch(22% 0 0);
-    background-color: oklch(20% 0 0);
-    background-image: linear-gradient(180deg, oklch(23% 0 0), oklch(18% 0 0));
+    --sidebar-accent: oklch(28% 0.04 250);
+    background-color: oklch(23% 0.05 250);
+    background-image: linear-gradient(180deg, oklch(25% 0.05 250), oklch(20% 0.05 250));
 }
 
 .aurora-sidebar-rail {
-    background-color: oklch(27.6% 0.106 327);
+    background-color: oklch(42% 0.12 251);
     background-image: linear-gradient(
         180deg,
-        oklch(29% 0.107 327),
-        oklch(26.5% 0.106 327)
+        oklch(44% 0.13 251),
+        oklch(40% 0.11 250)
     );
 }
 
 .dark .aurora-sidebar-rail {
-    background-color: oklch(13% 0 0);
-    background-image: linear-gradient(180deg, oklch(14.5% 0 0), oklch(11.5% 0 0));
+    background-color: oklch(16% 0.04 250);
+    background-image: linear-gradient(180deg, oklch(17.5% 0.05 250), oklch(14% 0.04 250));
 }
 
 .bg-sidebar-selected {
@@ -484,26 +484,25 @@
     color: var(--sidebar-selected-foreground);
 }
 
-/* ── Header: always lavender, darker in dark mode ──────────────────────
-   The header carries the same lavender gradient as the sidebar (reference
-   image). Light mode uses a paler lavender; dark mode deepens it. Text and
-   icons inherit the sidebar foreground tokens for contrast on lavender. */
+/* ── Header: darker blue, deepens in dark mode ──────────────────────────
+   Carries a shade darker than the sidebar for contrast (reference). Text and
+   icons are white to stay readable on the blue. */
 
 .aurora-header {
-    color: oklch(30% 0.07 326);
-    background-color: oklch(57% 0.08 326);
+    color: oklch(98.5% 0 0);
+    background-color: oklch(42% 0.12 251);
     background-image: linear-gradient(
         90deg,
-        oklch(55% 0.085 327),
-        oklch(57% 0.08 326),
-        oklch(59% 0.078 323)
+        oklch(40% 0.13 251),
+        oklch(43% 0.12 251),
+        oklch(45% 0.11 250)
     );
 }
 
 .dark .aurora-header {
     color: oklch(98.5% 0 0);
-    background-color: oklch(15% 0 0);
-    background-image: linear-gradient(90deg, oklch(17% 0 0), oklch(14% 0 0), oklch(16% 0 0));
+    background-color: oklch(17% 0.05 250);
+    background-image: linear-gradient(90deg, oklch(18% 0.05 250), oklch(16% 0.04 250), oklch(19% 0.05 250));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -519,4 +518,57 @@
     .marquee-track {
         animation: none !important;
     }
+}
+
+/* ── Error / status screens: lavender stage ──────────────────────────────
+   Calm material language echoing the sidebar/header aurora: a faint
+   brand-tinted wash, one restrained corner glow, and a double-bezel
+   "specimen" panel whose outer shell frames a solid inner core. */
+
+.error-stage {
+    background-color: color-mix(in oklch, var(--brand), transparent 96%);
+}
+
+.error-stage-glow {
+    opacity: 0.8;
+    background-image: radial-gradient(
+        closest-side at 100% 0%,
+        color-mix(in oklch, var(--brand), transparent 91%),
+        transparent 62%
+    );
+}
+
+.error-panel-shell {
+    background-color: color-mix(in oklch, var(--brand-soft), transparent 40%);
+    box-shadow: inset 0 1px 0 color-mix(in oklch, oklch(1 0 0), transparent 88%);
+}
+
+.error-panel-core {
+    background-color: var(--card);
+    box-shadow:
+        0 28px 70px -44px color-mix(in oklch, var(--brand), transparent 55%),
+        inset 0 1px 0 color-mix(in oklch, oklch(1 0 0), transparent 94%);
+}
+
+.error-mark {
+    background-image: linear-gradient(
+        160deg,
+        var(--brand),
+        color-mix(in oklch, var(--brand), oklch(0.08 0 0) 24%)
+    );
+    box-shadow:
+        0 18px 40px -24px color-mix(in oklch, var(--brand), transparent 45%),
+        inset 0 0 0 1px color-mix(in oklch, oklch(1 0 0), transparent 86%);
+}
+
+.error-mark-hatch {
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0 6px,
+        color-mix(in oklch, oklch(1 0 0), transparent 84%) 6px 7px
+    );
+}
+
+.error-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

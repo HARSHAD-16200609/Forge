@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { AppLayout } from "@/app/layouts/AppLayout";
 import { Workspaces } from "@/app/pages/Workspaces";
@@ -15,6 +15,7 @@ import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Settings from "../pages/Settings";
+import { AppNotFound, NotFoundPage } from "@/app/pages/NotFoundPage";
 
 export const router = createBrowserRouter([
     {
@@ -30,6 +31,14 @@ export const router = createBrowserRouter([
                 children: [
                     {
                         index: true,
+                        element: <Navigate to="/app/home" replace />,
+                    },
+                    {
+                        path: "home",
+                        Component: ChannelHome,
+                    },
+                    {
+                        path: "dms",
                         Component: ChannelHome,
                     },
                     {
@@ -64,6 +73,10 @@ export const router = createBrowserRouter([
                         path: "settings",
                         Component: Settings,
                     },
+                    {
+                        path: "*",
+                        Component: AppNotFound,
+                    },
                 ],
             },
         ],
@@ -75,5 +88,9 @@ export const router = createBrowserRouter([
             { path: "register", Component: RegisterPage },
             { path: "callback", Component: AuthCallbackPage },
         ],
+    },
+    {
+        path: "*",
+        Component: NotFoundPage,
     },
 ]);

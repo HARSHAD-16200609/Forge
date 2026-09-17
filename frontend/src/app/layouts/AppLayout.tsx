@@ -1,18 +1,16 @@
-import {
-    Bell,
-    Moon,
-    Search,
-    Sun,
-} from "lucide-react";
+import { Bell, Moon, Search, Sun, TriangleAlert } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 import logoUrl from "@/assets/forge.png";
 import Frame760 from "@/components/SideBar";
 import { PresenceAvatar } from "@/components/ui/presence-avatar";
 import { buttonVariants } from "@/components/ui/button";
+import { ErrorScreen } from "@/components/access/ErrorScreen";
+import { WorkspaceAccessDenied, WorkspaceNotFound } from "@/components/access/AccessDeniedScreens";
+import { getApiError } from "@/lib/errorMessage";
 import useAuth from "@/features/auth/hooks/useAuth";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
+import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUnreadCount } from "@/features/Notifications/hooks/useUnreadCount";
 import { cn } from "@/lib/utils";
@@ -28,20 +26,35 @@ export function AppLayout() {
     const searchWorkspaceValue = useUIStore((s) => s.searchWorkspaceValue);
     const setSearchWorkspaceValue = useUIStore((s) => s.setSearchWorkspaceValue);
 
-    const activeWorkspaceId =
-        selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
+    const activeWorkspaceId = selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
 
     const { data: unreadCount = 0 } = useUnreadCount();
+    const activeWorkspace = useWorkspace(activeWorkspaceId ?? "");
+
+    const mainContent = () => {
+        if (activeWorkspaceId && activeWorkspace.isError) {
+            const { status } = getApiError(activeWorkspace.error);
+            if (status === 403) return <WorkspaceAccessDenied />;
+            if (status === 404) return <WorkspaceNotFound />;
+            return (
+                <ErrorScreen
+                    statusCode={status !== undefined ? String(status) : undefined}
+                    scope="ERROR"
+                    icon={<TriangleAlert className="size-6" />}
+                    title="Couldn't load this workspace"
+                    highlight="workspace"
+                    description="Something went wrong on our end. Try again in a moment."
+                />
+            );
+        }
+        return <Outlet />;
+    };
 
     return (
         <div className="flex h-svh flex-col">
-            <header className="aurora-sidebar-rail flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <header className="aurora-header flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/15 px-4 text-white">
                 <div className="flex min-w-0 items-center gap-2.5">
-                    <img
-                        src={logoUrl}
-                        alt="Forge"
-                        className="size-7 shrink-0 object-contain"
-                    />
+                    <img src={logoUrl} alt="Forge" className="size-7 shrink-0 object-contain" />
                     <span className="hidden text-lg font-semibold tracking-tight sm:block">
                         Forge
                     </span>
@@ -51,25 +64,25 @@ export function AppLayout() {
                     <input
                         value={searchWorkspaceValue}
                         onChange={(e) => setSearchWorkspaceValue(e.target.value)}
-                        className="h-8 w-full rounded-lg border border-white/45 bg-white/65 px-3 text-center text-sm text-foreground outline-none placeholder:text-foreground/55 focus:border-brand/40 focus:bg-white/85 focus:ring-2 focus:ring-white/25 dark:border-border/70 dark:bg-muted/40 dark:text-foreground dark:placeholder:text-muted-foreground dark:focus:border-brand/40 dark:focus:bg-background dark:focus:ring-brand/15"
+                        className="h-8 w-full rounded-lg border border-white/35 bg-white/15 px-3 text-center text-sm text-white outline-none placeholder:text-white/70 focus:border-white/60 focus:bg-white/20 focus:ring-2 focus:ring-white/25"
                     />
 
                     {!searchWorkspaceValue && (
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5">
-                            <Search className="size-3.5 text-muted-foreground" />
-                            <span className="text-sm text-foreground/55">
-                                Search my workspace
-                            </span>
+                            <Search className="size-3.5 text-white/70" />
+                            <span className="text-sm text-white/70">Search my workspace</span>
                         </div>
                     )}
                 </label>
                 <div className="flex shrink-0 items-center gap-1.5">
-
                     <button
                         type="button"
                         aria-label="Notifications"
                         onClick={() => navigate("/app/notifications")}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
+                        className={cn(
+                            buttonVariants({ variant: "ghost", size: "icon" }),
+                            "relative hover:bg-white/15 hover:text-white",
+                        )}
                     >
                         <Bell className="size-4" />
                         {unreadCount > 0 && (
@@ -84,10 +97,15 @@ export function AppLayout() {
 
                     <button
                         type="button"
-                        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        aria-label={
+                            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+                        }
                         title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                         onClick={toggleTheme}
-                        className={buttonVariants({ variant: "ghost", size: "icon" })}
+                        className={cn(
+                            buttonVariants({ variant: "ghost", size: "icon" }),
+                            "hover:bg-white/15 hover:text-white",
+                        )}
                     >
                         {theme === "dark" ? (
                             <Sun className="size-4" />
@@ -96,7 +114,10 @@ export function AppLayout() {
                         )}
                     </button>
 
-                    <span aria-hidden="true" className="border-border mx-1 hidden h-6 border-r sm:block" />
+                    <span
+                        aria-hidden="true"
+                        className="border-white/25 mx-1 hidden h-6 border-r sm:block"
+                    />
 
                     {user && (
                         <UserMenu user={user}>
@@ -123,9 +144,7 @@ export function AppLayout() {
                     <Frame760 />
                 </aside>
 
-                <main className="force-light min-h-0 flex-1">
-                    <Outlet />
-                </main>
+                <main className="force-light min-h-0 flex-1">{mainContent()}</main>
             </div>
         </div>
     );

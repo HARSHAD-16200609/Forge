@@ -2,14 +2,23 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { AxiosError } from "axios";
 import { useLoginForm } from "../../src/features/auth/hooks/useLoginForm";
-import { api } from "../../src/lib/api";
+
+const mocks = vi.hoisted(() => ({
+    login: vi.fn(),
+    setUser: vi.fn(),
+    setIsLoading: vi.fn(),
+}));
 
 vi.mock("react-router-dom", () => ({
     useNavigate: () => mockNavigate,
 }));
 
-vi.mock("../../src/lib/api", () => ({
-    api: { post: vi.fn() },
+vi.mock("../../src/features/auth/hooks/useAuth", () => ({
+    default: () => ({
+        login: mocks.login,
+        setUser: mocks.setUser,
+        setIsLoading: mocks.setIsLoading,
+    }),
 }));
 
 const mockNavigate = vi.fn();
@@ -20,7 +29,7 @@ describe("useLoginForm", () => {
     });
 
     it("navigates to /app on successful login", async () => {
-        vi.mocked(api.post).mockResolvedValue({ data: { token: "abc" } });
+        mocks.login.mockResolvedValue({ data: { user: { id: "1" } } });
 
         const { result } = renderHook(() => useLoginForm());
 
@@ -28,7 +37,7 @@ describe("useLoginForm", () => {
             await result.current.onSubmit({ email: "user@test.com", password: "secret" });
         });
 
-        expect(api.post).toHaveBeenCalledWith("/auth/login", {
+        expect(mocks.login).toHaveBeenCalledWith({
             email: "user@test.com",
             password: "secret",
         });
@@ -36,7 +45,7 @@ describe("useLoginForm", () => {
     });
 
     it("sets a server error message when login fails", async () => {
-        vi.mocked(api.post).mockRejectedValue(
+        mocks.login.mockRejectedValue(
             new AxiosError("Unauthorized", "ERR_BAD_REQUEST", undefined, undefined, {
                 status: 401,
                 data: { message: "Invalid credentials" },
@@ -53,7 +62,7 @@ describe("useLoginForm", () => {
     });
 
     it("sets a generic error message when the request fails unexpectedly", async () => {
-        vi.mocked(api.post).mockRejectedValue(new Error("Network down"));
+        mocks.login.mockRejectedValue(new Error("Network down"));
 
         const { result } = renderHook(() => useLoginForm());
 
@@ -62,7 +71,7 @@ describe("useLoginForm", () => {
         });
 
         expect(result.current.errors.email?.message).toBe(
-            "Something went wrong. Please try again.",
+            "Unable to connect to the server. Please try again later.",
         );
     });
 });
