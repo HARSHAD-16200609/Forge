@@ -674,6 +674,7 @@ export function MessageComposer({
             onChangeRef.current?.(JSON.stringify([]));
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
             sendTyping(false);
+            editorRef.current?.focus()
         } catch {
             /* keep editor content so the user can retry on failure */
         }

@@ -64,9 +64,7 @@ class NotificationService {
     }
 
     async list(userId: string, filter: NotificationFilter, cursor: string | undefined, limit: number) {
-        const result = await notificationRepository.list(userId, filter, { cursor, limit })
-        if (result.items.length === 0) throw new NotFoundError("No Notifications Found")
-        return result
+        return notificationRepository.list(userId, filter, { cursor, limit })
     }
 
     async markRead(userId: string, notificationId: string) {

@@ -55,12 +55,6 @@ class NotificationRepository {
 
         const eligible = new Set(await this.eligibleRecipientIds(context))
         const recipients = mentionIds.filter((id) => id !== actorId && eligible.has(id))
-        console.log(
-            "🆔 [mention] repo createMentions → mentionIds(%d) eligible(%d) recipients → %O",
-            mentionIds.length,
-            eligible.size,
-            recipients,
-        )
         if (recipients.length === 0) return
 
         await prisma.notification.createMany({

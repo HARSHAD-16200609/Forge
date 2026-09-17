@@ -173,7 +173,10 @@ export function Notifications() {
     });
 
     const items = useMemo(
-        () => data?.pages.flatMap((page) => page.items) ?? [],
+        () =>
+            (data?.pages.flatMap((page) => page.items) ?? []).filter(
+                (n): n is AppNotification => !!n && typeof n.id === "string",
+            ),
         [data],
     );
 
@@ -265,7 +268,7 @@ export function Notifications() {
 
             {isError && (
                 <div className="flex h-40 items-center justify-center text-sm text-destructive">
-                    Failed to load notifications
+                    Failed to Load Notifications
                 </div>
             )}
 

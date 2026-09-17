@@ -54,7 +54,13 @@ class NotificationsService {
         if (params.cursor) query.set("cursor", params.cursor);
 
         const response = await api.get(`/notifications?${query.toString()}`);
-        return response.data.data;
+        const payload: unknown = response.data.data;
+        const page = payload as Partial<NotificationsPage>;
+        return {
+            items: Array.isArray(page.items) ? page.items : [],
+            hasMore: page.hasMore ?? false,
+            nextCursor: page.nextCursor,
+        };
     }
 
     async markRead(id: string): Promise<void> {

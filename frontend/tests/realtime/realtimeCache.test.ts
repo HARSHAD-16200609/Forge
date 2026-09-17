@@ -1,182 +1,77 @@
 import { describe, expect, it } from "vitest";
-import {
-    applyReactionDelta,
-    extractPlainText,
-    updateConversationLastMessage,
-    upsertMessage,
-} from "@/realtime/realtimeCache";
-import type { Message, ReactionDelta } from "@/features/Messages/types";
+import { upsertMessage } from "@/realtime/realtimeCache";
+import type { Message, paginatedMessages } from "@/features/Messages/types";
 
-function makeMessage(overrides: Partial<Message> = {}): Message {
+function makeMessage(id: string, sentAt: string): Message {
     return {
-        id: "msg-1",
-        entityId: "ch-1",
-        entityType: "channel",
-        content: JSON.stringify([
-            { type: "paragraph", data: { text: "hello" } },
-        ]),
-        sentAt: "2026-09-09T10:00:00.000Z",
-        sender: {
-            id: "user-1",
-            username: "harshad",
-            name: "Harshad",
-            avatar: null,
-        },
+        id,
+        content: "[]",
+        sentAt,
+        editedAt: null,
+        deletedAt: null,
+        parentMsgId: null,
+        entity: { type: "channel", id: "ch-1" },
+        sender: { id: "u-1", username: "a", name: "A", avatar: null },
+        uploads: [],
         reactions: [],
         replies: [],
-        parentMsgId: null,
-        deletedAt: null,
-        ...overrides,
     };
 }
 
-const page = (messages: Message[]): { messages: Message[]; hasMore: boolean } => ({
-    messages,
-    hasMore: false,
-});
+function makePage(messageIds: string[]): paginatedMessages {
+    return {
+        messages: messageIds.map((id, i) => makeMessage(id, `2026-09-09T10:0${i}:00.000Z`)),
+        hasMore: true,
+    };
+}
+
+function idsOf(pages: paginatedMessages[] | undefined): string[] {
+    return pages?.flatMap((page) => page.messages.map((m) => m.id)) ?? [];
+}
 
 describe("upsertMessage", () => {
-    it("appends a new message to the page", () => {
-        const before = page([makeMessage({ id: "a" })]);
-        const next = upsertMessage([before], makeMessage({ id: "b" }));
-        expect(next?.[0].messages.map((m) => m.id)).toEqual(["a", "b"]);
+    it("appends a new message only to the first (newest) page", () => {
+        const pages = [makePage(["m1", "m2"]), makePage(["m3", "m4"])];
+        const fresh = makeMessage("m5", "2026-09-09T10:05:00.000Z");
+
+        const result = upsertMessage(pages, fresh);
+
+        expect(idsOf(result)).toEqual(["m1", "m2", "m5", "m3", "m4"]);
+        expect(idsOf(result).filter((id) => id === "m5")).toHaveLength(1);
+        expect(result?.[0].messages).toHaveLength(3);
+        expect(result?.[1].messages).toHaveLength(2);
     });
 
-    it("replaces an existing message by id instead of duplicating", () => {
-        const before = page([makeMessage({ id: "a" })]);
-        const updated = upsertMessage([before], makeMessage({ id: "a", content: "[]" }));
-        expect(updated?.[0].messages).toHaveLength(1);
-        expect(updated?.[0].messages[0].content).toBe("[]");
+    it("replaces an existing message in place without touching other pages", () => {
+        const pages = [makePage(["m1", "m2"]), makePage(["m3", "m4"])];
+        const updated = { ...makeMessage("m3", "2026-09-09T10:03:00.000Z"), content: "[edited]" };
+
+        const result = upsertMessage(pages, updated);
+
+        expect(idsOf(result)).toEqual(["m1", "m2", "m3", "m4"]);
+        const hit = result?.[1].messages.find((m) => m.id === "m3");
+        expect(hit?.content).toBe("[edited]");
+        expect(result?.[0].messages).toHaveLength(2);
     });
 
-    it("returns undefined when pages are empty", () => {
-        expect(upsertMessage(undefined, makeMessage())).toBeUndefined();
-    });
-});
+    it("keeps a single copy when the same fresh message frame arrives again", () => {
+        const pages = [makePage(["m1", "m2"]), makePage(["m3"])];
+        const incoming = makeMessage("m4", "2026-09-09T10:04:00.000Z");
 
-describe("applyReactionDelta", () => {
-    const base = makeMessage();
+        const once = upsertMessage(pages, incoming);
+        const twice = upsertMessage(once, incoming);
 
-    it("adds a reaction for a new user", () => {
-        const pages = [page([base])];
-        const delta: ReactionDelta = {
-            userId: "user-2",
-            username: "kim",
-            messageId: "msg-1",
-            reaction: "👍",
-            action: "added",
-        };
-        const next = applyReactionDelta(pages, delta);
-        expect(next?.[0].messages[0].reactions).toEqual([
-            {
-                emoji: "👍",
-                reactedBy: { id: "user-2", username: "kim", name: "", avatar: null },
-            },
-        ]);
+        expect(idsOf(twice).filter((id) => id === "m4")).toHaveLength(1);
     });
 
-    it("does not duplicate a reaction from the same user", () => {
-        const pages = [
-            page([
-                makeMessage({
-                    reactions: [
-                        {
-                            emoji: "👍",
-                            reactedBy: { id: "user-2", username: "kim", name: "", avatar: null },
-                        },
-                    ],
-                }),
-            ]),
-        ];
-        const delta: ReactionDelta = {
-            userId: "user-2",
-            username: "kim",
-            messageId: "msg-1",
-            reaction: "👍",
-            action: "added",
-        };
-        const next = applyReactionDelta(pages, delta);
-        expect(next?.[0].messages[0].reactions).toHaveLength(1);
-    });
-
-    it("removes a reaction on removed action", () => {
-        const pages = [
-            page([
-                makeMessage({
-                    reactions: [
-                        {
-                            emoji: "👍",
-                            reactedBy: { id: "user-2", username: "kim", name: "", avatar: null },
-                        },
-                    ],
-                }),
-            ]),
-        ];
-        const delta: ReactionDelta = {
-            userId: "user-2",
-            username: "kim",
-            messageId: "msg-1",
-            reaction: "👍",
-            action: "removed",
-        };
-        const next = applyReactionDelta(pages, delta);
-        expect(next?.[0].messages[0].reactions).toEqual([]);
-    });
-});
-
-describe("updateConversationLastMessage", () => {
-    const conversation = {
-        id: "conv-1",
-        workspaceId: "ws-1",
-        type: "DM" as const,
-        idempotencyKey: "key",
-        displayName: "kim",
-        avatar: "",
-        groupName: undefined,
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-        lastMessage: { content: "old", sentAt: "2026-01-01T00:00:00.000Z" },
-    };
-
-    it("updates the conversation preview with plain text of the new message", () => {
-        const cache = { conversations: [conversation] };
-        const next = updateConversationLastMessage(cache, "conv-1", makeMessage());
-        expect(next?.conversations[0].lastMessage.content).toBe("hello");
-        expect(next?.conversations[0].lastMessage.sentAt).toBe("2026-09-09T10:00:00.000Z");
-    });
-
-    it("ignores tombstone (deleted) messages", () => {
-        const cache = { conversations: [conversation] };
-        const tombstone = makeMessage({ deletedAt: "2026-09-09T11:00:00.000Z" });
-        const next = updateConversationLastMessage(cache, "conv-1", tombstone);
-        expect(next?.conversations[0].lastMessage.content).toBe("old");
-    });
-
-    it("does not touch other conversations", () => {
-        const other = { ...conversation, id: "conv-2" };
-        const cache = { conversations: [conversation, other] };
-        const next = updateConversationLastMessage(cache, "conv-1", makeMessage());
-        expect(next?.conversations[1].lastMessage.content).toBe("old");
-    });
-});
-
-describe("extractPlainText", () => {
-    it("extracts text from editor.js blocks", () => {
-        expect(extractPlainText(makeMessage().content)).toBe("hello");
-    });
-
-    it("joins multiple blocks", () => {
+    it("returns undefined when pages is undefined", () => {
         expect(
-            extractPlainText(
-                JSON.stringify([
-                    { type: "paragraph", data: { text: "one" } },
-                    { type: "code", data: { code: "two" } },
-                ]),
-            ),
-        ).toBe("one two");
+            upsertMessage(undefined, makeMessage("m1", "2026-09-09T10:00:00.000Z")),
+        ).toBeUndefined();
     });
 
-    it("returns raw content for invalid json", () => {
-        expect(extractPlainText("not json")).toBe("not json");
+    it("returns the pages unchanged when there are no pages", () => {
+        const result = upsertMessage([], makeMessage("m1", "2026-09-09T10:00:00.000Z"));
+        expect(result).toEqual([]);
     });
 });

@@ -1,8 +1,4 @@
-import {
-    QueryClient,
-    useQueryClient,
-    type InfiniteData,
-} from "@tanstack/react-query";
+import { QueryClient, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import useAuth from "@/features/auth/hooks/useAuth";
 import {
@@ -18,11 +14,7 @@ import {
 } from "@/features/Messages/types";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
-import {
-    applyReactionDelta,
-    updateConversationLastMessage,
-    upsertMessage,
-} from "./realtimeCache";
+import { applyReactionDelta, updateConversationLastMessage, upsertMessage } from "./realtimeCache";
 import { realtimeActions } from "./realtimeActions";
 import { realtimeSocket } from "./socket";
 import { usePresenceStore } from "./presenceStore";
@@ -54,30 +46,33 @@ function updateInfinitePages(
     return { ...infinite, pages };
 }
 
-function applyMessageFrame(
-    queryClient: QueryClient,
-    message: Message,
-    type: string,
-): void {
+function applyMessageFrame(queryClient: QueryClient, message: Message, type: string): void {
     if (message.entity.type === "channel") {
         queryClient.setQueryData(
             ["messages", useWorkspaceStore.getState().selectedWorkspaceId, message.entity.id],
-            (data) =>
-                updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
+            (data) => updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
         );
     } else {
         queryClient.setQueryData(
-            ["conversation-messages", useWorkspaceStore.getState().selectedWorkspaceId, message.entity.id],
-            (data) =>
-                updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
+            [
+                "conversation-messages",
+                useWorkspaceStore.getState().selectedWorkspaceId,
+                message.entity.id,
+            ],
+            (data) => updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
         );
 
-        if (type === WsEvent.ConversationMessageCreated && !message.parentMsgId && !message.deletedAt) {
+        if (
+            type === WsEvent.ConversationMessageCreated &&
+            !message.parentMsgId &&
+            !message.deletedAt
+        ) {
             queryClient.setQueriesData(
                 {
                     predicate: (query) =>
-                        query.queryKey.length === 1 &&
-                        typeof query.queryKey[0] === "string",
+                        query.queryKey[0] === "dms" &&
+                        query.queryKey.length === 2 &&
+                        typeof query.queryKey[1] === "string",
                 },
                 (cache: Conversations | undefined) =>
                     updateConversationLastMessage(cache, message.entity.id, message),
@@ -126,9 +121,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
             if (type === WsEvent.PresenceUpdate && data && typeof data === "object") {
                 const presence = data as PresenceRegisterData | PresenceBroadcastData;
                 if ("online" in presence && Array.isArray(presence.online)) {
-                    usePresenceStore
-                        .getState()
-                        .seedRoster(presence.workspaceId, presence.online);
+                    usePresenceStore.getState().seedRoster(presence.workspaceId, presence.online);
                 } else if ("status" in presence) {
                     usePresenceStore.getState().applyPresence(presence);
                 }
@@ -144,13 +137,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
                 const workspaceId = useWorkspaceStore.getState().selectedWorkspaceId;
                 const username =
                     (workspaceId
-                        ? usePresenceStore.getState().roster[workspaceId]?.[
-                              indicator.userId
-                          ]?.username
+                        ? usePresenceStore.getState().roster[workspaceId]?.[indicator.userId]
+                              ?.username
                         : undefined) ?? indicator.userId;
 
                 if (type === WsEvent.TypingStart) {
-                    useTypingStore.getState().setTyping(indicator.entityId, indicator.userId, username);
+                    useTypingStore
+                        .getState()
+                        .setTyping(indicator.entityId, indicator.userId, username);
                 } else {
                     useTypingStore.getState().stopTyping(indicator.entityId, indicator.userId);
                 }

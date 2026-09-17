@@ -12,15 +12,21 @@ export function upsertMessage(
 ): paginatedMessages[] | undefined {
     if (!pages) return pages;
 
-    return pages.map((page) => {
+    const found = pages.findIndex((page) => page.messages.some((m) => m.id === message.id));
+    if (found !== -1) {
+        const page = pages[found];
         const index = page.messages.findIndex((m) => m.id === message.id);
-        if (index === -1) {
-            return { ...page, messages: [...page.messages, message] };
-        }
         const messages = page.messages.slice();
         messages[index] = message;
-        return { ...page, messages };
-    });
+        const next = pages.slice();
+        next[found] = { ...page, messages };
+        return next;
+    }
+
+    if (pages.length === 0) return pages;
+
+    const newest = pages[0];
+    return [{ ...newest, messages: [...newest.messages, message] }, ...pages.slice(1)];
 }
 
 function reactionKey(reaction: MessageReaction): string {
@@ -34,8 +40,7 @@ function applyReactionDeltaToPage(
     const messages = page.messages.map((message) => {
         if (message.id !== delta.messageId) return message;
 
-        const keyOf = (reaction: MessageReaction, user: string) =>
-            `${reaction.emoji}:${user}`;
+        const keyOf = (reaction: MessageReaction, user: string) => `${reaction.emoji}:${user}`;
         const targetKey = keyOf({ emoji: delta.reaction } as MessageReaction, delta.userId);
 
         let reactions = message.reactions.slice();

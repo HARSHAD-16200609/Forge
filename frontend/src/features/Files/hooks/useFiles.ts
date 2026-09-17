@@ -30,7 +30,7 @@ export function useFiles({
             }),
         initialPageParam: null as string | null,
         getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
-        staleTime: 60 * 1000,
+        staleTime:  10000,
         retry: (failureCount, error) => {
             if ((error as { response?: { status?: number } })?.response?.status === 401) {
                 return false;

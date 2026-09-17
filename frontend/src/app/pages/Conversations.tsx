@@ -159,7 +159,10 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
 
     const Messages = useMemo(() => {
         const all = data?.pages.flatMap((page) => page.messages) ?? [];
-        return [...all].sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
+        const unique = [...new Map(all.map((m) => [m.id, m])).values()];
+        return [...unique].sort(
+            (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+        );
     }, [data]);
 
     const topLevel = useMemo(() => Messages.filter((m) => !m.parentMsgId), [Messages]);
