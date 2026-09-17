@@ -16,7 +16,7 @@ export function AppNotFound() {
         <NotFoundContent
             className="h-full"
             actions={
-                <Button className="group" onClick={() => navigate("/app")}>
+                <Button className="group" onClick={() => navigate("/app/home")}>
                     Back to workspace
                     <KineticArrow />
                 </Button>

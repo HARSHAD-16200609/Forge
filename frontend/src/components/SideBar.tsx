@@ -415,7 +415,7 @@ function ChannelRow({
             onClick={() => {
                 setSelectedChannelId(channelId);
                 setActiveSection("home");
-                navigate("/app");
+                navigate("/app/home");
             }}
         >
             <span
@@ -840,7 +840,7 @@ function DetailSidebar({
                         onSelect={() => {
                             setSelectedConversation(d.id, "DM");
                             setActiveSection("dms");
-                            navigate("/app");
+                            navigate("/app/dms");
                         }}
                     />
                 ));
@@ -853,7 +853,7 @@ function DetailSidebar({
                         onSelect={() => {
                             setSelectedConversation(g.id, "GDM");
                             setActiveSection("dms");
-                            navigate("/app");
+                            navigate("/app/dms");
                         }}
                     />
                 ));
@@ -990,8 +990,8 @@ function DetailSidebar({
 /* ------------------------------- Root Frame ------------------------------ */
 
 const sectionRouteMap: Record<string, string> = {
-    home: "/app",
-    dms: "/app",
+    home: "/app/home",
+    dms: "/app/dms",
     notifications: "/app/notifications",
     activity: "/app/activity",
     saved: "/app/saved",
@@ -1001,6 +1001,8 @@ const sectionRouteMap: Record<string, string> = {
 };
 
 const routeSectionMap: Record<string, string> = {
+    "/app/home": "home",
+    "/app/dms": "dms",
     "/app/notifications": "notifications",
     "/app/activity": "activity",
     "/app/saved": "saved",
@@ -1020,10 +1022,10 @@ export function Frame760() {
 
     useEffect(() => {
         const section = routeSectionMap[location.pathname];
-        if (section && section !== activeSection) {
+        if (section && useUIStore.getState().activeSection !== section) {
             setActiveSection(section);
         }
-    }, [location.pathname, activeSection, setActiveSection]);
+    }, [location.pathname, setActiveSection]);
 
     const handleSectionChange = useCallback(
         (section: string) => {
@@ -1031,7 +1033,7 @@ export function Frame760() {
             if (section === "home" || section === "dms") {
                 clearSelectedConversation();
             }
-            navigate(sectionRouteMap[section] ?? "/app");
+            navigate(sectionRouteMap[section] ?? "/app/home");
         },
         [navigate, setActiveSection, clearSelectedConversation],
     );

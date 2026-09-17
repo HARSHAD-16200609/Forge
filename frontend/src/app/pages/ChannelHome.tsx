@@ -60,7 +60,8 @@ function ChannelHomeInner() {
 
     useEffect(() => {
         const channels = WorkspaceDetails.data?.channels;
-        if (selectedChannelId || !channels || channels.length === 0) return;
+        if (!channels || channels.length === 0) return;
+        if (channels.some((channel) => channel.id === selectedChannelId)) return;
 
         const general =
             channels.find((c) => c.channelName.toLowerCase() === "general") ?? channels[0];

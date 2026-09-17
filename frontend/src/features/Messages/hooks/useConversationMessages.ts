@@ -7,7 +7,7 @@ export function useConversationMessages({
     limit,
 }: Omit<getConversationMessagesParams, "cursor">) {
     return useInfiniteQuery({
-        queryKey: ["conversation-messages", conversationId],
+        queryKey: ["conversation-messages", workspaceId, conversationId],
         queryFn: ({ pageParam }) =>
             messageService.getConversationMessages({
                 workspaceId,

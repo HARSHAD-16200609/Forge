@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { AppLayout } from "@/app/layouts/AppLayout";
 import { Workspaces } from "@/app/pages/Workspaces";
@@ -30,6 +30,14 @@ export const router = createBrowserRouter([
                 children: [
                     {
                         index: true,
+                        element: <Navigate to="/app/home" replace />,
+                    },
+                    {
+                        path: "home",
+                        Component: ChannelHome,
+                    },
+                    {
+                        path: "dms",
                         Component: ChannelHome,
                     },
                     {

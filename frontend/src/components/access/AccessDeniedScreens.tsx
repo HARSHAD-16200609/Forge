@@ -44,7 +44,7 @@ export function ChannelAccessDenied() {
                         className="group"
                         onClick={() => {
                             clearSelectedChannelId();
-                            navigate("/app");
+                            navigate("/app/home");
                         }}
                     >
                         Back to #general
@@ -112,7 +112,7 @@ export function ChannelNotFound() {
                     className="group"
                     onClick={() => {
                         clearSelectedChannelId();
-                        navigate("/app");
+                        navigate("/app/home");
                     }}
                 >
                     Back to workspace
@@ -140,7 +140,7 @@ export function ConversationNotFound() {
                     className="group"
                     onClick={() => {
                         clearSelectedConversation();
-                        navigate("/app");
+                        navigate("/app/dms");
                     }}
                 >
                     Back to workspace
