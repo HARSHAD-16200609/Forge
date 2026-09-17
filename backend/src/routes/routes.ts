@@ -6,6 +6,7 @@ import Router from "express"
 import { messageRouter } from "../modules/Messages/message.route"
 import { conversationRouter } from "../modules/Conversations/conversations.route"
 import { uploadRouter } from "../modules/Messages/upload.route"
+import { notificationRouter } from "../modules/Notifications/notifications.route"
 
 
 
@@ -20,6 +21,7 @@ apiRouter.use(inviteRouter)
 apiRouter.use(messageRouter)
 apiRouter.use(conversationRouter)
 apiRouter.use(uploadRouter)
+apiRouter.use(notificationRouter)
 
 export { apiRouter }
 

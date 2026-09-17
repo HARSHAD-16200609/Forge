@@ -5,11 +5,12 @@ import { EntityType } from "../../../generated/prisma/enums";
 export const createChannelMessageSchema = z.object({
     workspaceId: z.uuid(),
     channelId: z.uuid(),
-    content: z
-        .string()
-        .trim()
-        .max(4000, "Message is too long"),
+content: z
+            .string()
+            .trim()
+            .max(4000, "Message is too long"),
     uploadIds: z.array(uuid()).max(3).default([]),
+    mentions: z.array(uuid()).max(20).default([]),
 }).refine((data) => data.content.length > 0 || data.uploadIds.length > 0, {
     message: "Message content or at least one attachment is required"
 });
@@ -22,6 +23,7 @@ export const createConversationMessageSchema = z.object({
         .trim()
         .max(4000, "Message is too long"),
     uploadIds: z.array(uuid()).max(3).default([]),
+    mentions: z.array(uuid()).max(20).default([]),
 }).refine((data) => data.content.length > 0 || data.uploadIds.length > 0, {
     message: "Message content or at least one attachment is required"
 });
@@ -100,7 +102,8 @@ export const postReplySchema = z.object({
         .trim()
         .max(4000, "Message is too long"),
     uploadIds: z.array(uuid()).max(3).default([]),
-    entityType: z.enum(["conversation", "channel"])
+    entityType: z.enum(["conversation", "channel"]),
+    mentions: z.array(uuid()).max(20).default([]),
 
 }).refine((data) => data.content.length > 0, {
     message: "Reply content is required"

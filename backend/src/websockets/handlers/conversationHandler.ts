@@ -13,6 +13,7 @@ import { formatValidationError } from "../utility/error";
 import { workspaceRepository } from "../../modules/Workspace/workspace.repository";
 import { ConversationMessageDTO } from "../../types/message";
 import { messageRepository } from "../../modules/Messages/message.repository";
+import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
 
 class ConversationHandler {
     async subscribe(
@@ -180,6 +181,18 @@ class ConversationHandler {
 
         }
         const createdMessage = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
+
+        await notificationService.createMentions(
+            createdMessage.id,
+            userMetadata.userId,
+            messagePayload.data.mentions,
+            {
+                kind: "conversation",
+                workspaceId: messagePayload.data.workspaceId,
+                conversationId: messagePayload.data.conversationId,
+                snippet: mentionSnippet(messagePayload.data.content),
+            }
+        )
 
         let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
 

@@ -13,10 +13,12 @@ export function useSendReply(
             messageId,
             content,
             files,
+            mentions,
         }: {
             messageId: string;
             content: string;
             files: File[];
+            mentions?: string[];
         }) => {
             const uploadIds = await messageService.uploadFiles(files);
             realtimeActions.sendReply(
@@ -26,6 +28,7 @@ export function useSendReply(
                 entityType,
                 content,
                 uploadIds,
+                mentions ?? [],
             );
         },
     });

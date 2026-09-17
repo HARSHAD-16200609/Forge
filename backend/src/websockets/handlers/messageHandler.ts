@@ -11,6 +11,7 @@ import { WsEvent } from "../types/events";
 import { messageRepository } from "../../modules/Messages/message.repository";
 import { ChannelMessageDTO } from "../../types/message";
 import { formatValidationError } from "../utility/error";
+import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
 
 
 
@@ -167,6 +168,18 @@ class MessageHandler {
 
         }
         const createdMessage = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
+
+        await notificationService.createMentions(
+            createdMessage.id,
+            userMetadata.userId,
+            messagePayload.data.mentions,
+            {
+                kind: "channel",
+                workspaceId: messagePayload.data.workspaceId,
+                channelId: messagePayload.data.channelId,
+                snippet: mentionSnippet(messagePayload.data.content),
+            }
+        )
 
         let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
 

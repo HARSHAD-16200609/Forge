@@ -1,6 +1,7 @@
 import {
     useCallback,
     useEffect,
+    useMemo,
     useRef,
     useState,
     type ComponentProps,
@@ -44,6 +45,118 @@ import { Component as EmojiPicker } from "@/components/ui/emoji-picker";
 import { realtimeActions } from "@/realtime/realtimeActions";
 import type { WsMessageEntityType } from "@/features/Messages/types";
 import type { BlockToolConstructable, OutputData } from "@editorjs/editorjs";
+import {
+    buildMentionHtml,
+    extractMentionIds,
+    type MentionMember,
+} from "@/features/Messages/utils/mentions";
+
+const inlineTextSanitize = {
+    br: true,
+    b: true,
+    strong: true,
+    i: true,
+    em: true,
+    u: true,
+    s: true,
+    strike: true,
+    del: true,
+    code: true,
+    mark: true,
+    a: { href: true, class: true, "data-mention-id": true },
+};
+
+const quoteTextSanitize = {
+    text: inlineTextSanitize,
+    caption: { br: true },
+};
+
+function findTextPosition(root: Node, charIndex: number): { node: Node; offset: number } {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    let remaining = Math.max(0, charIndex);
+    while (node) {
+        const length = node.textContent?.length ?? 0;
+        if (remaining <= length) {
+            return { node, offset: remaining };
+        }
+        remaining -= length;
+        node = walker.nextNode();
+    }
+    return { node: root, offset: 0 };
+}
+
+function caretOffsetIn(editable: HTMLElement): number {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return -1;
+    const range = selection.getRangeAt(0);
+    const pre = document.createRange();
+    pre.setStart(editable, 0);
+    try {
+        pre.setEnd(range.startContainer, range.startOffset);
+    } catch {
+        return -1;
+    }
+    return pre.toString().length;
+}
+
+function rangeFromTo(editable: HTMLElement, start: number, end: number): Range {
+    const startPos = findTextPosition(editable, start);
+    const endPos = findTextPosition(editable, end);
+    const range = document.createRange();
+    range.setStart(startPos.node, startPos.offset);
+    range.setEnd(endPos.node, endPos.offset);
+    return range;
+}
+
+function getActiveEditable(editorHost: HTMLElement): HTMLElement | null {
+    const selection = window.getSelection();
+    const anchorNode = selection?.anchorNode;
+    const selector = "[contenteditable=true]";
+    if (anchorNode) {
+        const element =
+            anchorNode instanceof Element ? anchorNode : anchorNode.parentElement;
+        const editable = element?.closest<HTMLElement>(selector) ?? null;
+        if (editable && editorHost.contains(editable)) return editable;
+    }
+    return editorHost.querySelector<HTMLElement>(selector);
+}
+
+function getMentionCaret(editorHost: HTMLElement | null): { query: string; deleteStart: number } | null {
+    if (!editorHost) return null;
+    const editable = getActiveEditable(editorHost);
+    const selection = window.getSelection();
+    if (!editable || !selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+        return null;
+    }
+    const caretOffset = caretOffsetIn(editable);
+    if (caretOffset < 0) return null;
+
+    const textBefore = (editable.textContent ?? "").slice(0, caretOffset);
+    const match = /(?:^|\s)@([\w.-]*)$/.exec(textBefore);
+    if (!match) return null;
+
+    const atIndex =
+        caretOffset - match[0].length + (match[0][0] === "@" ? 0 : 1);
+    return { query: match[1], deleteStart: atIndex };
+}
+
+function MentionAvatar({ member }: { member: MentionMember }) {
+    if (member.avatar) {
+        return (
+            <img
+                src={member.avatar}
+                alt={member.username}
+                className="size-5 shrink-0 rounded-full object-cover"
+            />
+        );
+    }
+    return (
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/20 text-[10px] font-bold text-brand">
+            {(member.name || member.username).charAt(0).toUpperCase()}
+        </span>
+    );
+}
 
 function parseStoredBlocks(contentJson: string): OutputData | undefined {
     if (!contentJson) return undefined;
@@ -73,11 +186,13 @@ type MessageComposerProps = {
         contentJson: string,
         files: File[],
         replyToId?: string | null,
+        mentions?: string[],
     ) => void | Promise<unknown>;
     disabled?: boolean;
     className?: string;
     replyTo?: { id: string; sender: string } | null;
     onCancelReply?: () => void;
+    members?: MentionMember[];
 };
 
 function ToolbarButton({
@@ -153,6 +268,7 @@ export function MessageComposer({
     className,
     replyTo,
     onCancelReply,
+    members,
 }: MessageComposerProps) {
     const editorHostRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<EditorJS | null>(null);
@@ -164,6 +280,40 @@ export function MessageComposer({
     const [inlineState, setInlineState] = useState<ActiveInline>(emptyActiveInline);
     const [blockState, setBlockState] = useState<string | null>(null);
     const [listStyle, setListStyle] = useState<"ordered" | "unordered" | null>(null);
+
+    const [mentionOpen, setMentionOpen] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionHighlight, setMentionHighlight] = useState(0);
+    const mentionOpenRef = useRef(false);
+    const mentionHighlightRef = useRef(0);
+    const mentionResultsRef = useRef<MentionMember[]>([]);
+    const membersRef = useRef<MentionMember[]>(members ?? []);
+    const mentionIdsRef = useRef<Set<string>>(new Set());
+    const propagateRef = useRef<() => void>(() => {});
+
+    useEffect(() => {
+        membersRef.current = members ?? [];
+    }, [members]);
+
+    const filteredMentions = useMemo(() => {
+        const list = members ?? [];
+        const query = mentionQuery.trim().toLowerCase();
+        if (!query) return list;
+        return list.filter(
+            (member) =>
+                member.username.toLowerCase().includes(query) ||
+                (member.name ?? "").toLowerCase().includes(query),
+        );
+    }, [members, mentionQuery]);
+
+    useEffect(() => {
+        if (!mentionOpen) return;
+        mentionResultsRef.current = filteredMentions;
+        if (mentionHighlightRef.current >= filteredMentions.length) {
+            mentionHighlightRef.current = 0;
+            setMentionHighlight(0);
+        }
+    }, [filteredMentions, mentionOpen]);
 
     const onChangeRef = useRef(onChange);
     const placeholderRef = useRef(placeholder ?? `Message #${channelName ?? "new-channel"}`);
@@ -267,7 +417,44 @@ export function MessageComposer({
         handleTypingActivity();
     }, [readActiveStyles, channelId, handleTypingActivity, files.length]);
 
+    useEffect(() => {
+        propagateRef.current = propagate;
+    }, [propagate, files.length]);
+
     function handleKeyDown(event: KeyboardEvent) {
+        if (mentionOpenRef.current) {
+            const results = mentionResultsRef.current;
+            const count = results.length;
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                const next = count === 0 ? 0 : (mentionHighlightRef.current + 1) % count;
+                mentionHighlightRef.current = next;
+                setMentionHighlight(next);
+                return;
+            }
+            if (event.key === "ArrowUp") {
+                event.preventDefault();
+                const next = count === 0 ? 0 : (mentionHighlightRef.current - 1 + count) % count;
+                mentionHighlightRef.current = next;
+                setMentionHighlight(next);
+                return;
+            }
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (count > 0) {
+                    const member = results[mentionHighlightRef.current % count];
+                    if (member) insertMention(member);
+                }
+                return;
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeMentionPicker();
+                return;
+            }
+        }
+
         if (event.key !== "Enter") return;
         if (event.shiftKey) return;
         event.preventDefault();
@@ -291,6 +478,7 @@ export function MessageComposer({
                 paragraph: {
                     class: Paragraph as unknown as BlockToolConstructable,
                     inlineToolbar: false,
+                    sanitize: { text: inlineTextSanitize },
                 },
                 list: {
                     class: List,
@@ -299,12 +487,14 @@ export function MessageComposer({
                 quote: {
                     class: Quote,
                     inlineToolbar: false,
+                    sanitize: quoteTextSanitize,
                 },
                 code: CodeBlockTool,
                 header: {
                     class: Header,
                     inlineToolbar: false,
                     config: { levels: [2, 3, 4], defaultLevel: 3 },
+                    sanitize: { text: inlineTextSanitize },
                 },
             },
             onChange: async () => {
@@ -318,23 +508,25 @@ export function MessageComposer({
         let destroyed = false;
 
         document.addEventListener("selectionchange", readActiveStyles);
+        document.addEventListener("selectionchange", handleSelectionChange);
         void editor.isReady.then(() => readActiveStyles());
         void editor.isReady.then(() => {
-            const editable =
-                editorHost.querySelector<HTMLElement>("[contenteditable=true]");
-            editable?.addEventListener("keydown", handleKeyDown);
+            editorHost.addEventListener("keydown", handleKeyDown);
+            editorHost.addEventListener("keyup", handleEditableKeyUp);
+            editorHost.addEventListener("input", handleEditableInput);
         });
 
         return () => {
             disposed = true;
             document.removeEventListener("selectionchange", readActiveStyles);
+            document.removeEventListener("selectionchange", handleSelectionChange);
             editorRef.current = null;
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
             sendTyping(false);
             void editor.isReady.then(() => {
-                const editable =
-                    editorHost.querySelector<HTMLElement>("[contenteditable=true]");
-                editable?.removeEventListener("keydown", handleKeyDown);
+                editorHost.removeEventListener("keydown", handleKeyDown);
+                editorHost.removeEventListener("keyup", handleEditableKeyUp);
+                editorHost.removeEventListener("input", handleEditableInput);
                 if (destroyed) return;
                 destroyed = true;
                 if (!disposed) return;
@@ -470,9 +662,13 @@ export function MessageComposer({
         if (disabled) return;
         const blocks = await editorRef.current?.save();
         const contentJson = JSON.stringify(blocks?.blocks ?? []);
+        const domMentions = extractMentionIds(contentJson);
+        const tracked = [...mentionIdsRef.current];
+        const union = [...new Set([...tracked, ...domMentions])];
+        const mentions = union;
         const replyToId = replyTo?.id;
         try {
-            await onSend?.(contentJson, files, replyToId);
+            await onSend?.(contentJson, files, replyToId, mentions);
             await editorRef.current?.clear();
             setFiles([]);
             setHasContent(false);
@@ -494,6 +690,118 @@ export function MessageComposer({
         document.execCommand("insertText", false, emoji.native);
         void propagate();
         setShowEmojiDrawer(false);
+    }
+
+    function openMentionPicker() {
+        const host = editorHostRef.current;
+        const caret = getMentionCaret(host);
+        if (!caret) return;
+        setMentionQuery(caret.query);
+        mentionHighlightRef.current = 0;
+        setMentionHighlight(0);
+        setMentionOpen(true);
+        mentionOpenRef.current = true;
+    }
+
+    function closeMentionPicker() {
+        setMentionOpen(false);
+        setMentionQuery("");
+        mentionOpenRef.current = false;
+    }
+
+    function handleMentionButton() {
+        if (mentionOpenRef.current) {
+            closeMentionPicker();
+            return;
+        }
+        focusEditable();
+        document.execCommand("insertText", false, "@");
+        openMentionPicker();
+    }
+
+    function handleEditableKeyUp(event: KeyboardEvent) {
+        if (event.key === "@") {
+            openMentionPicker();
+        }
+    }
+
+    function handleSelectionChange() {
+        if (!mentionOpenRef.current) return;
+        const host = editorHostRef.current;
+        if (!host) return;
+        const editable = getActiveEditable(host);
+        const selection = window.getSelection();
+        if (!editable || !selection || !selection.rangeCount || !selection.isCollapsed) {
+            return;
+        }
+        if (!editable.contains(selection.anchorNode)) {
+            closeMentionPicker();
+            return;
+        }
+        if (!getMentionCaret(host)) {
+            closeMentionPicker();
+        }
+    }
+
+    function handleEditableInput() {
+        if (!mentionOpenRef.current) return;
+        const host = editorHostRef.current;
+        if (!host || membersRef.current.length === 0) {
+            closeMentionPicker();
+            return;
+        }
+        const caret = getMentionCaret(host);
+        if (!caret) {
+            closeMentionPicker();
+            return;
+        }
+        mentionHighlightRef.current = 0;
+        setMentionHighlight(0);
+        setMentionQuery(caret.query);
+    }
+
+    function insertMention(member: MentionMember) {
+        const host = editorHostRef.current;
+        const selection = window.getSelection();
+        if (!host || !selection) {
+            closeMentionPicker();
+            return;
+        }
+
+        const editable = getActiveEditable(host);
+        const caret = getMentionCaret(host);
+
+        let inserted = false;
+        try {
+            if (editable && caret) {
+                const end = caretOffsetIn(editable);
+                const range = rangeFromTo(editable, caret.deleteStart, end);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                document.execCommand(
+                    "insertHTML",
+                    false,
+                    buildMentionHtml(member) + "\u00A0",
+                );
+                inserted = true;
+            }
+        } catch {
+            /* keep the typed text so the user can retry */
+        }
+
+        if (!inserted) {
+            closeMentionPicker();
+            return;
+        }
+
+        focusEditable();
+        mentionIdsRef.current.add(member.id);
+        closeMentionPicker();
+        void propagateRef.current();
+    }
+
+    function handleMentionSelect(member: MentionMember) {
+        insertMention(member);
     }
 
     return (
@@ -670,7 +978,7 @@ export function MessageComposer({
                 <ToolbarButton label="Emoji" onClick={() => setShowEmojiDrawer((prev) => !prev)}>
                     <Smile className="size-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Mention">
+                <ToolbarButton label="Mention" onClick={() => handleMentionButton()}>
                     <AtSign className="size-4" />
                 </ToolbarButton>
                 <ToolbarButton label="Video">
@@ -732,6 +1040,69 @@ export function MessageComposer({
                             onEmojiSelect={handleEmojiSelect}
                             variant="drawer"
                         />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {mentionOpen && (
+                    <motion.div
+                        initial={reduce ? false : { opacity: 0, y: 8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={reduce ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: APP_EASE }}
+                        className="absolute bottom-full left-1 z-30 w-80 overflow-hidden rounded-lg border border-border/70 bg-popover shadow-xl"
+                    >
+                        <div className="flex items-center justify-between border-b border-border/60 bg-accent/50 px-3 py-2">
+                            <span className="text-xs font-semibold text-muted-foreground">
+                                {mentionQuery ? `Mention @${mentionQuery}` : "Mention someone"}
+                            </span>
+                            <kbd className="rounded border border-border bg-background px-1 text-[10px] text-muted-foreground">
+                                esc
+                            </kbd>
+                        </div>
+                        <ul className="max-h-64 overflow-y-auto p-1">
+                            {filteredMentions.length === 0 ? (
+                                <li className="flex items-center justify-center px-2 py-3 text-sm text-muted-foreground">
+                                    No one found
+                                </li>
+                            ) : (
+                                filteredMentions.map((member, index) => (
+                                    <li key={member.id}>
+                                        <button
+                                            type="button"
+                                            onMouseDown={(event) => {
+                                                event.preventDefault();
+                                                handleMentionSelect(member);
+                                                
+                                            }}
+                                            onMouseEnter={() => {
+                                                mentionHighlightRef.current = index;
+                                                setMentionHighlight(index);
+                                            }}
+                                            className={cn(
+                                                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
+                                                index === mentionHighlight
+                                                    ? "bg-brand/10 text-brand"
+                                                    : "text-foreground hover:bg-muted",
+                                            )}
+                                        >
+                                            <MentionAvatar member={member} />
+                                            <span className="min-w-0">
+                                                <span className="block truncate text-sm font-medium">
+                                                    @{member.username}
+                                                </span>
+                                                {member.name && (
+                                                    <span className="block truncate text-xs text-muted-foreground">
+                                                        {member.name}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </button>
+                                    </li>
+                                ))
+                            )}
+                        </ul>
                     </motion.div>
                 )}
             </AnimatePresence>

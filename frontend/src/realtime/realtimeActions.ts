@@ -18,12 +18,30 @@ export const realtimeActions = {
         realtimeSocket.send(WsEvent.ConversationUnsubscribe, { conversationId });
     },
 
-    sendChannelMessage(workspaceId: string, channelId: string, content: string, uploadIds: string[] = []): void {
-        realtimeSocket.sendQueued(WsEvent.ChannelMessage, { workspaceId, channelId, content, uploadIds });
+    sendChannelMessage(
+        workspaceId: string,
+        channelId: string,
+        content: string,
+        uploadIds: string[] = [],
+        mentions: string[] = [],
+    ): void {
+        realtimeSocket.sendQueued(WsEvent.ChannelMessage, { workspaceId, channelId, content, uploadIds, mentions });
     },
 
-    sendConversationMessage(workspaceId: string, conversationId: string, content: string, uploadIds: string[] = []): void {
-        realtimeSocket.sendQueued(WsEvent.ConversationMessage, { workspaceId, conversationId, content, uploadIds });
+    sendConversationMessage(
+        workspaceId: string,
+        conversationId: string,
+        content: string,
+        uploadIds: string[] = [],
+        mentions: string[] = [],
+    ): void {
+        realtimeSocket.sendQueued(WsEvent.ConversationMessage, {
+            workspaceId,
+            conversationId,
+            content,
+            uploadIds,
+            mentions,
+        });
     },
 
     sendReply(
@@ -33,9 +51,18 @@ export const realtimeActions = {
         entityType: WsMessageEntityType,
         content: string,
         uploadIds: string[] = [],
+        mentions: string[] = [],
     ): void {
         const type = entityType === "channel" ? WsEvent.ChannelMessageReply : WsEvent.ConversationMessageReply;
-        realtimeSocket.sendQueued(type, { workspaceId, parentMsgId, entityId, entityType, content, uploadIds });
+        realtimeSocket.sendQueued(type, {
+            workspaceId,
+            parentMsgId,
+            entityId,
+            entityType,
+            content,
+            uploadIds,
+            mentions,
+        });
     },
 
     updateChannelMessage(workspaceId: string, channelId: string, messageId: string, content: string): void {

@@ -14,6 +14,7 @@ import useAuth from "@/features/auth/hooks/useAuth";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
+import { useUnreadCount } from "@/features/Notifications/hooks/useUnreadCount";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUIStore } from "@/stores/uiStore";
@@ -29,6 +30,8 @@ export function AppLayout() {
 
     const activeWorkspaceId =
         selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
+
+    const { data: unreadCount = 0 } = useUnreadCount();
 
     return (
         <div className="flex h-svh flex-col">
@@ -69,6 +72,14 @@ export function AppLayout() {
                         className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
                     >
                         <Bell className="size-4" />
+                        {unreadCount > 0 && (
+                            <span
+                                aria-hidden="true"
+                                className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold leading-none text-white"
+                            >
+                                {unreadCount > 9 ? "9+" : unreadCount}
+                            </span>
+                        )}
                     </button>
 
                     <button

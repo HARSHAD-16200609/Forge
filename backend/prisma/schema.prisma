@@ -244,6 +244,7 @@ model notification {
   metadata Json?
 
   @@index([receipentId, read])
+  @@index([entityId, type])
 }
 
 model upload {

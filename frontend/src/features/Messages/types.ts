@@ -151,6 +151,7 @@ export interface CreateChannelMessagePayload {
     channelId: string;
     content: string;
     uploadIds?: string[];
+    mentions?: string[];
 }
 
 export interface CreateConversationMessagePayload {
@@ -158,6 +159,7 @@ export interface CreateConversationMessagePayload {
     conversationId: string;
     content: string;
     uploadIds?: string[];
+    mentions?: string[];
 }
 
 export interface CreateReplyPayload {
@@ -167,6 +169,7 @@ export interface CreateReplyPayload {
     entityType: WsMessageEntityType;
     content: string;
     uploadIds?: string[];
+    mentions?: string[];
 }
 
 export interface UpdateChannelMessagePayload {

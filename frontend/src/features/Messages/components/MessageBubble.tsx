@@ -11,6 +11,7 @@ const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "✅"];
 
 interface MessageBubbleProps {
     message: Message;
+    workspaceId?: string;
     onReply?: (message: Message) => void;
     onEdit?: (message: Message) => void;
     onDelete?: (message: Message) => void;
@@ -24,6 +25,7 @@ function initialsOf(sender: MessageSender): string {
 
 export function MessageBubble({
     message,
+    workspaceId,
     onReply,
     onEdit,
     onDelete,
@@ -160,7 +162,7 @@ export function MessageBubble({
                 </AnimatePresence>
                 </div>
 
-                <BlocksRenderer blocksJson={message.content} />
+                <BlocksRenderer blocksJson={message.content} workspaceId={workspaceId} />
                 <MessageAttachments uploads={message.uploads} />
 
                 {groupedReactions.length > 0 && (

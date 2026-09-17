@@ -76,6 +76,16 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
+    const convoMembers = useMemo(
+        () =>
+            (detail?.members ?? []).map((member) => ({
+                id: member.user.id,
+                username: member.user.username,
+                avatar: member.user.avatar,
+            })),
+        [detail],
+    );
+
     const Messages = useMemo(() => {
         const all = data?.pages.flatMap((page) => page.messages) ?? [];
         return [...all].sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
@@ -311,6 +321,9 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                             >
                                                                 <MessageBubble
                                                                     message={message}
+                                                                    workspaceId={
+                                                                        selectedWorkspaceId ?? undefined
+                                                                    }
                                                                     onReply={(m) => setReplyingTo(m)}
                                                                     onEdit={setEditingMessage}
                                                                     onDelete={(m) => {
@@ -343,6 +356,9 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                                         >
                                                             <MessageBubble
                                                                 message={message}
+                                                                workspaceId={
+                                                                    selectedWorkspaceId ?? undefined
+                                                                }
                                                                 onReply={(m) => setReplyingTo(m)}
                                                                 onEdit={setEditingMessage}
                                                                 onDelete={(m) => {
@@ -424,14 +440,15 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                             : null
                     }
                     onCancelReply={() => setReplyingTo(null)}
-                    onSend={(content, files, replyToId) => {
+                    members={convoMembers}
+                    onSend={(content, files, replyToId, mentions) => {
                         if (replyToId) {
                             return sendReply.mutateAsync(
-                                { messageId: replyToId, content, files },
+                                { messageId: replyToId, content, files, mentions },
                                 { onSuccess: () => setReplyingTo(null) },
                             );
                         }
-                        return sendMessage.mutateAsync({ content, files });
+                        return sendMessage.mutateAsync({ content, files, mentions });
                     }}
                 />
             </div>

@@ -51,6 +51,16 @@ function ChannelHomeInner() {
         (channel) => channel.id === selectedChannelId,
     );
 
+    const workspaceMembers = useMemo(
+        () =>
+            (WorkspaceDetails.data?.members ?? []).map((member) => ({
+                id: member.user.id,
+                username: member.user.username,
+                avatar: member.user.avatar,
+            })),
+        [WorkspaceDetails.data],
+    );
+
     useEffect(() => {
         const channels = WorkspaceDetails.data?.channels;
         if (selectedChannelId || !channels || channels.length === 0) return;
@@ -305,6 +315,7 @@ function ChannelHomeInner() {
                                             >
                                                 <MessageBubble
                                                     message={message}
+                                                    workspaceId={selectedWorkspaceId ?? undefined}
                                                     onReply={(m) => setReplyingTo(m)}
                                                     onEdit={setEditingMessage}
                                                     onDelete={(m) => {
@@ -331,6 +342,7 @@ function ChannelHomeInner() {
                                         >
                                             <MessageBubble
                                                 message={message}
+                                                workspaceId={selectedWorkspaceId ?? undefined}
                                                 onReply={(m) => setReplyingTo(m)}
                                                 onEdit={setEditingMessage}
                                                 onDelete={(m) => {
@@ -383,14 +395,15 @@ function ChannelHomeInner() {
                             : null
                     }
                     onCancelReply={() => setReplyingTo(null)}
-                    onSend={(content, files, replyToId) => {
+                    members={workspaceMembers}
+                    onSend={(content, files, replyToId, mentions) => {
                         if (replyToId) {
                             return sendReply.mutateAsync(
-                                { messageId: replyToId, content, files },
+                                { messageId: replyToId, content, files, mentions },
                                 { onSuccess: () => setReplyingTo(null) },
                             );
                         }
-                        return sendMessage.mutateAsync({ content, files });
+                        return sendMessage.mutateAsync({ content, files, mentions });
                     }}
                 />
             </div>

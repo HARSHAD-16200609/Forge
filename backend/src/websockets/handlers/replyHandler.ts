@@ -11,6 +11,7 @@ import { workspaceRepository } from "../../modules/Workspace/workspace.repositor
 import { channelRepository } from "../../modules/Channel/channel.repository";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
 import { ChannelMessageDTO, ConversationMessageDTO } from "../../types/message";
+import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
 
 async function reply(
     ws: WebSocket,
@@ -90,6 +91,15 @@ async function reply(
         sendWs(ws, WsResponse.fail(message.type, StatusCodes.BAD_REQUEST, "BAD_REQUEST", "Invalid ParentMsgId"))
         return
     }
+
+    await notificationService.createMentions(
+        createdReply.id,
+        userMetadata.userId,
+        messagePayload.data.mentions,
+        entityType === "channel"
+            ? { kind: "channel", workspaceId, channelId: entityId, snippet: mentionSnippet(content) }
+            : { kind: "conversation", workspaceId, conversationId: entityId, snippet: mentionSnippet(content) }
+    )
 
     const response = WsResponse.ok(message.type, "OK", StatusCodes.OK, createdReply)
     const subscribers = subscriptionManager.getSubscribers(entityId)
