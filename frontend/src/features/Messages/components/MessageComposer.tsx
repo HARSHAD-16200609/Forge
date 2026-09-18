@@ -50,6 +50,8 @@ import {
     extractMentionIds,
     type MentionMember,
 } from "@/features/Messages/utils/mentions";
+import { ComposerRecorder } from "./ComposerRecorder";
+import { getVideoThumbnail } from "@/features/Messages/utils/videoThumbnail";
 
 const inlineTextSanitize = {
     br: true,
@@ -229,6 +231,32 @@ function ToolbarDivider() {
     return <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />;
 }
 
+function VideoFileThumb({ file }: { file: File }) {
+    const [thumb, setThumb] = useState<string | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        const url = URL.createObjectURL(file);
+        void getVideoThumbnail(url).then((data) => {
+            if (active) setThumb(data);
+        });
+        return () => {
+            active = false;
+            URL.revokeObjectURL(url);
+        };
+    }, [file]);
+
+    return (
+        <span className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground">
+            {thumb ? (
+                <img src={thumb} alt="" className="size-full object-cover" />
+            ) : (
+                <Paperclip className="size-3" />
+            )}
+        </span>
+    );
+}
+
 type ActiveInline = {
     bold: boolean;
     italic: boolean;
@@ -274,6 +302,7 @@ export function MessageComposer({
     const editorRef = useRef<EditorJS | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [files, setFiles] = useState<File[]>([]);
+    const [recorderMode, setRecorderMode] = useState<"audio" | "video" | null>(null);
     const [hasContent, setHasContent] = useState(!!initialContent);
     const [showEmojiDrawer, setShowEmojiDrawer] = useState(false);
     const reduce = useReducedMotion();
@@ -656,6 +685,12 @@ export function MessageComposer({
         });
     }
 
+    function addRecordedFile(file: File) {
+        setFiles((prev) => [...prev, file]);
+        setHasContent(true);
+        setRecorderMode(null);
+    }
+
     async function handleSend() {
         if (disabled) return;
         const blocks = await editorRef.current?.save();
@@ -674,7 +709,7 @@ export function MessageComposer({
             onChangeRef.current?.(JSON.stringify([]));
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
             sendTyping(false);
-            editorRef.current?.focus()
+            editorRef.current?.focus();
         } catch {
             /* keep editor content so the user can retry on failure */
         }
@@ -922,7 +957,7 @@ export function MessageComposer({
             {disabled && (
                 <div className="flex items-center gap-2 border-t border-border/60 bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground">
                     <Loader2 className="size-3.5 animate-spin" />
-                    <span>{files.length > 0 ? "Uploading attachments…" : "Sending message…"}</span>
+                    <span>{files.length > 0 ? "Uploading s…" : "Sending message…"}</span>
                 </div>
             )}
 
@@ -932,9 +967,13 @@ export function MessageComposer({
                     {files.map((file, index) => (
                         <span
                             key={`${file.name}-${index}`}
-                            className="flex items-center gap-1.5 rounded-full bg-muted pl-2 pr-1 py-0.5 text-xs text-muted-foreground"
+                            className="flex items-center gap-1.5 rounded-full bg-muted py-0.5 pl-2 pr-1 text-xs text-muted-foreground"
                         >
-                            <Paperclip className="size-3" />
+                            {file.type.startsWith("video/") ? (
+                                <VideoFileThumb file={file} />
+                            ) : (
+                                <Paperclip className="size-3" />
+                            )}
                             <span className="max-w-40 truncate">{file.name}</span>
                             <button
                                 type="button"
@@ -974,10 +1013,10 @@ export function MessageComposer({
                 <ToolbarButton label="Mention" onClick={() => handleMentionButton()}>
                     <AtSign className="size-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Video">
+                <ToolbarButton label="Video" onClick={() => setRecorderMode("video")}>
                     <Video className="size-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Voice message">
+                <ToolbarButton label="Voice message" onClick={() => setRecorderMode("audio")}>
                     <Mic className="size-4" />
                 </ToolbarButton>
 
@@ -1096,6 +1135,16 @@ export function MessageComposer({
                             )}
                         </ul>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {recorderMode && (
+                    <ComposerRecorder
+                        mode={recorderMode}
+                        onComplete={addRecordedFile}
+                        onCancel={() => setRecorderMode(null)}
+                    />
                 )}
             </AnimatePresence>
         </div>

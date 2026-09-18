@@ -17,7 +17,10 @@ export const uploadOnCloudinary = async (filepath: string, resourceType: rType) 
     try {
 
 
-        const result = await cloudinary.uploader.upload(filepath, { resource_type: resourceType })
+        const result = await cloudinary.uploader.upload(filepath, {
+            resource_type: resourceType,
+            media_metadata: resourceType !== "raw",
+        })
 
         if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath)

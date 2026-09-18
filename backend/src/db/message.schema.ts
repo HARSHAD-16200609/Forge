@@ -18,10 +18,13 @@ export const MIME_TO_RESOURCE_TYPE = new Map<string, "image" | "video" | "raw">(
   ["video/mp4", "video"],
   ["video/webm", "video"],
   ["video/quicktime", "video"],
-
+  ["video/ogg", "video"],
 
   ["audio/mpeg", "raw"],
   ["audio/wav", "raw"],
+  ["audio/webm", "raw"],
+  ["audio/mp4", "raw"],
+  ["audio/ogg", "raw"],
   ["application/pdf", "raw"],
   ["application/msword", "raw"],
   ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "raw"],

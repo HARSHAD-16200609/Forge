@@ -88,7 +88,7 @@ export function AppLayout() {
                         {unreadCount > 0 && (
                             <span
                                 aria-hidden="true"
-                                className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold leading-none text-white"
+                                className="absolute right-1 top-1 flex size-3 items-center justify-center rounded-full bg-brand text-[10px] font-bold leading-none text-white"
                             >
                                 {unreadCount > 9 ? "9+" : unreadCount}
                             </span>

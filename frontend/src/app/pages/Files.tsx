@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+    ExternalLink,
     File,
     FileArchive,
     FileAudio,
@@ -8,17 +10,22 @@ import {
     FileVideo,
     Files as FilesIcon,
     Search,
+    Upload,
+    X,
+    ZoomIn,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageEmptyState } from "@/components/ui/page-empty-state";
 import { PresenceAvatar } from "@/components/ui/presence-avatar";
 import { Swirling } from "@/components/ui/Swirling";
+import { APP_EASE } from "@/components/ui/app-motion";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useFiles } from "@/features/Files/hooks/useFiles";
 import type { FileCategory, WorkspaceFile } from "@/features/Files/files.types";
 import { formatFileSize } from "@/features/Messages/utils/format";
 import { cn } from "@/lib/utils";
+import MediaPlayer from "@/components/media-player";
 
 const FILE_TABS: { label: string; value?: FileCategory }[] = [
     { label: "All" },
@@ -59,16 +66,44 @@ function formatUploadedAt(iso: string): string {
 }
 
 function FileCard({ file, workspaceId }: { file: WorkspaceFile; workspaceId: string }) {
+    const isImage = file.fileType === "IMAGE";
+    const isMedia = file.fileType === "VIDEO" || file.fileType === "AUDIO";
+    const [open, setOpen] = useState(false);
+    const reduce = useReducedMotion();
+
+    const previewLabel = isImage ? "Image" : file.fileType === "AUDIO" ? "Audio" : "Video";
+
+    useEffect(() => {
+        if (!open) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            document.body.style.overflow = "";
+        };
+    }, [open]);
+
     return (
-        <a
-            href={file.url}
-            target="_blank"
-            rel="noreferrer"
-            className="group flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-border hover:bg-card/70"
+        <div
+            onClick={() => {
+                if (isImage || isMedia) setOpen(true);
+            }}
+            className={cn(
+                "group flex w-80 flex-col gap-3 rounded-xl border border-border/60 bg-card p-2 transition-colors hover:border-border hover:bg-card/70",
+                (isImage || isMedia) && "cursor-zoom-in",
+            )}
         >
             <div className="flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-brand/10 group-hover:text-brand">
+                <span className="relative flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-brand/10 group-hover:text-brand">
                     {typeIcon(file.fileType)}
+                    {(isImage || isMedia) && (
+                        <ZoomIn className="absolute inset-0 m-auto size-5 text-brand opacity-0 transition-opacity group-hover:opacity-100" />
+                    )}
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">
@@ -98,7 +133,79 @@ function FileCard({ file, workspaceId }: { file: WorkspaceFile; workspaceId: str
                     </span>
                 </span>
             </div>
-        </a>
+
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`${previewLabel} preview: ${file.filename}`}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setOpen(false);
+                        }}
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 sm:p-10"
+                        initial={reduce ? false : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18, ease: APP_EASE }}
+                    >
+                        <button
+                            type="button"
+                            autoFocus
+                            aria-label="Close preview"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setOpen(false);
+                            }}
+                            className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                        >
+                            <X className="size-5" />
+                        </button>
+
+                        <motion.div
+                            className="max-h-full max-w-full"
+                            onClick={(event) => event.stopPropagation()}
+                            initial={reduce ? false : { opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.22, ease: APP_EASE }}
+                        >
+                            {isImage ? (
+                                <img
+                                    src={file.url}
+                                    alt={file.filename}
+                                    className="max-h-[80vh] max-w-[90vw] rounded-lg border border-white/15 object-contain shadow-2xl"
+                                />
+                            ) : file.fileType === "AUDIO" ? (
+                                <div className="w-full max-w-md">
+                                    <MediaPlayer kind="audio" src={file.url} />
+                                </div>
+                            ) : (
+                                <div className="w-[min(92vw,64rem)]">
+                                    <MediaPlayer kind="video" src={file.url} />
+                                </div>
+                            )}
+                        </motion.div>
+
+                        <div
+                            className="mt-3 flex items-center gap-2 text-sm text-white"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <span className="max-w-72 truncate">{file.filename}</span>
+                            <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-xs transition-colors hover:bg-white/20"
+                            >
+                                <ExternalLink className="size-3.5" />
+                                Open in new tab
+                            </a>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -109,19 +216,16 @@ export function Files() {
     const [query, setQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
 
-    const activeWorkspaceId =
-        selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
+    const activeWorkspaceId = selectedWorkspaceId ?? Workspaces?.data?.[0]?.workspace?.id ?? null;
 
     const details = useWorkspace(activeWorkspaceId ?? "");
     const search = debouncedQuery.trim() || undefined;
 
-    const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useFiles(
-        {
-            workspaceId: activeWorkspaceId ?? "",
-            fileType,
-            search,
-        },
-    );
+    const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useFiles({
+        workspaceId: activeWorkspaceId ?? "",
+        fileType,
+        search,
+    });
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(query), 300);
