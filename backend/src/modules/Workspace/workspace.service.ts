@@ -76,7 +76,7 @@ class WorkspaceService {
 
 
         try {
-            const workspace = await workspaceRepository.getWorkspace(workspaceId)
+            const workspace = await workspaceRepository.getWorkspace(workspaceId, member.id)
             return workspace
         } catch (err) {
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new NotFoundError("Workspace not Found")

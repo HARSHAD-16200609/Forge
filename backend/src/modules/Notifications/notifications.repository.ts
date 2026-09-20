@@ -69,6 +69,26 @@ class NotificationRepository {
         })
     }
 
+    async createInvite(input: {
+        type: NotificationType
+        entity: EntityType
+        entityId: string
+        receipentId: string
+        actorId: string
+        metadata: Prisma.InputJsonObject
+    }): Promise<void> {
+        await prisma.notification.create({
+            data: {
+                type: input.type,
+                entity: input.entity,
+                entityId: input.entityId,
+                receipentId: input.receipentId,
+                actorId: input.actorId,
+                metadata: input.metadata,
+            },
+        })
+    }
+
     async list(receipentId: string, filter: NotificationFilter, pagination: { cursor: string | undefined; limit: number }) {
         const where: Prisma.notificationWhereInput = { receipentId }
 

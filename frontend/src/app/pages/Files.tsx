@@ -10,7 +10,6 @@ import {
     FileVideo,
     Files as FilesIcon,
     Search,
-    Upload,
     X,
     ZoomIn,
 } from "lucide-react";

@@ -1,5 +1,6 @@
 import { Prisma, Status, Visibility } from "../../../generated/prisma/client"
-import { channelInviteDTO, channelParamsDTO } from "../../db/channel.schema"
+import { EntityType, NotificationType } from "../../../generated/prisma/enums"
+import { channelInviteDTO, channelParamsDTO, createChannelInviteDTO } from "../../db/channel.schema"
 import type { getInviteType, InviteType } from "../../db/invitation.schema"
 import { canWorkspace } from "../../utility/Authorization/Permissions"
 import { ApiError } from "../../utility/errorHandling/ApiError"
@@ -7,6 +8,7 @@ import { UnauthorizedAccessError, NotFoundError, ForbiddenError, ConfilctError, 
 import { loggers } from "../../utility/logger/serviceLoggers"
 import { authRepository } from "../Auth/auth.repository"
 import { channelRepository } from "../Channel/channel.repository"
+import { notificationRepository } from "../Notifications/notifications.repository"
 import { workspaceRepository } from "../Workspace/workspace.repository"
 import { inviteRepository } from "./invitation.repository"
 
@@ -141,7 +143,7 @@ class InviteService {
     async createChannelInvite(
         actorId: string,
         Channel: channelParamsDTO,
-        email: string
+        target: createChannelInviteDTO
     ) {
 
         const workspaceMember = await workspaceRepository.memberExists(
@@ -185,7 +187,11 @@ class InviteService {
         }
 
 
-        const receiver = await authRepository.findUserByEmail(email);
+        const receiver = target.receiverId
+            ? await authRepository.getUser(target.receiverId)
+            : target.email
+              ? await authRepository.findUserByEmail(target.email)
+              : null;
 
         if (!receiver) {
             throw new NotFoundError("User not found.");
@@ -226,12 +232,26 @@ class InviteService {
         const inviteData = {
             actorId,
             receiverId: receiver.id,
-            receiverEmail: email,
+            receiverEmail: receiver.email,
             channelId: Channel.channelId,
         };
 
         try {
-            return await inviteRepository.createChannelInvite(inviteData);
+            const invite = await inviteRepository.createChannelInvite(inviteData);
+            await notificationRepository.createInvite({
+                type: NotificationType.CHANNEL_INVITE,
+                entity: EntityType.CHANNEL,
+                entityId: Channel.channelId,
+                receipentId: receiver.id,
+                actorId,
+                metadata: {
+                    kind: "channel",
+                    workspaceId: Channel.workspaceId,
+                    channelId: Channel.channelId,
+                    inviteId: invite.id,
+                },
+            });
+            return invite;
         } catch (err) {
             if (
                 err instanceof Prisma.PrismaClientKnownRequestError &&

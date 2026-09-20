@@ -17,7 +17,7 @@ class ConversationService {
         if (senderId === receiverId) throw new BadRequestError("You can't create an Dm with self")
         const receiver = await authRepository.getUser(receiverId)
         if (!receiver) throw new NotFoundError("No such User Exist's")
-        const existingDM = await conversationRepository.findDMBetweenUsers(senderId, receiverId)
+        const existingDM = await conversationRepository.findDMBetweenUsers(senderId, receiverId, workspaceId)
 
         if (existingDM && existingDM._count.members === 2) return existingDM
 
@@ -106,12 +106,16 @@ class ConversationService {
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const members = await workspaceRepository.getWorkspaceMembers(gdm.memberIds, workspaceId)
         if (members.length !== gdm.memberIds.length) throw new BadRequestError("One or more users are not members of the workspace.")
+
+        const gdmMembers = [...new Set([...gdm.memberIds, userId])].map((userId) => ({ userId }))
+
+        if (gdmMembers.length > await workspaceRepository.countMembers(workspaceId)) {
+            throw new BadRequestError("A group cannot have more members than the workspace.")
+        }
+
         const existing = await conversationRepository.getGDMByKey(gdm.idempotencyKey)
 
         if (existing) throw new ConfilctError("Group already exists")
-
-
-        const gdmMembers = [...new Set([...gdm.memberIds, userId])].map((userId) => ({ userId }))
 
         try {
             return await conversationRepository.createGDM(gdm.name, gdmMembers, gdm.idempotencyKey, workspaceId)

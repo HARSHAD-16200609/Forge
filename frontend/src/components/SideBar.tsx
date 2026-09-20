@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useCallback, useEffect, useMemo } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search as SearchIcon, Settings as SettingsIcon, AddLarge } from "@carbon/icons-react";
@@ -37,6 +37,7 @@ import { CreateWorkspaceForm } from "@/features/Workspaces/components/CreateWork
 import { useDms } from "@/features/Messages/hooks/useDms";
 import { usePresenceStore } from "@/realtime/presenceStore";
 import type { Conversation } from "@/features/Messages/types";
+import { NewConversationModal } from "@/features/Messages/components/NewConversationModal";
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -569,7 +570,7 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
                 isActive ? "bg-white" : "hover:bg-sidebar-accent",
             )}
         >
-            <AvatarDot avatar={gdm.avatar} online={true} name={gdm.groupName} type="gdm" />
+            <AvatarDot online={true} name={gdm.groupName} type="gdm" />
             <span
                 className={cn(
                     "text-[14px] truncate ml-2 transition-colors",
@@ -756,6 +757,7 @@ function DetailSidebar({
     const toggleSection = useUIStore((s) => s.toggleSection);
     const setActiveSection = useUIStore((s) => s.setActiveSection);
     const setSelectedConversation = useUIStore((s) => s.setSelectedConversation);
+    const [showNewConversation, setShowNewConversation] = useState(false);
     const conversations = chats.data?.conversations ?? [];
     const dms = conversations.filter((convo) => convo.type === "DM");
     const gdms = conversations.filter((convo) => convo.type === "GDM");
@@ -793,7 +795,14 @@ function DetailSidebar({
                         key={row.label}
                         icon={row.icon}
                         label={row.label}
-                        onClick={row.to ? () => navigate(row.to!) : undefined}
+                        onClick={
+                            row.to
+                                ? () => navigate(row.to!)
+                                : row.label === "Compose new message" ||
+                                  row.label === "Create group"
+                                ? () => setShowNewConversation(true)
+                                : undefined
+                        }
                     />
                 );
             case "activity":
@@ -835,17 +844,26 @@ function DetailSidebar({
                 ));
             case "groups":
                 if (collapsed) return null;
-                return gdms?.map((g) => (
-                    <GroupDMRow
-                        key={g.id}
-                        gdm={g}
-                        onSelect={() => {
-                            setSelectedConversation(g.id, "GDM");
-                            setActiveSection("dms");
-                            navigate("/app/dms");
-                        }}
-                    />
-                ));
+                return (
+                    <>
+                        <QuickLink
+                            onClick={() => setShowNewConversation(true)}
+                            icon={<Plus size={16} />}
+                            label="Create group"
+                        />
+                        {gdms?.map((g) => (
+                            <GroupDMRow
+                                key={g.id}
+                                gdm={g}
+                                onSelect={() => {
+                                    setSelectedConversation(g.id, "GDM");
+                                    setActiveSection("dms");
+                                    navigate("/app/dms");
+                                }}
+                            />
+                        ))}
+                    </>
+                );
             case "members":
                 if (collapsed) return null;
                 return (
@@ -959,6 +977,13 @@ function DetailSidebar({
                     <CreateWorkspaceForm
                         onDone={() => setShowCreateWorkspaceForm(false)}
                         onClose={() => setShowCreateWorkspaceForm(false)}
+                    />
+                )}
+                {showNewConversation && (
+                    <NewConversationModal
+                        open={showNewConversation}
+                        workspaceId={activeWorkspaceId ?? ""}
+                        onClose={() => setShowNewConversation(false)}
                     />
                 )}
             </div>

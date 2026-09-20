@@ -94,6 +94,7 @@ export class AuthRepository {
         id: true,
         username: true,
         name: true,
+        email: true,
       }
 
     })

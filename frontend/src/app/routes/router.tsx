@@ -15,7 +15,7 @@ import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Settings from "../pages/Settings";
-import { AppNotFound, NotFoundPage } from "@/app/pages/NotFoundPage";
+import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { NotFound } from "@/components/404-page";
 
 export const router = createBrowserRouter([

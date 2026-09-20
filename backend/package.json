@@ -11,7 +11,9 @@
     "clean": "rm -rf dist",
     "test": "vitest run --exclude 'tests/e2e/**'",
     "test:watch": "vitest",
-    "test:e2e": "vitest run tests/e2e --fileParallelism=false"
+    "test:e2e": "vitest run tests/e2e --fileParallelism=false",
+    "seed": "tsx prisma/seed.ts",
+    "db:reset": "npm run seed"
   },
   "devDependencies": {
     "@types/bun": "latest",

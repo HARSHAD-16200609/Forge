@@ -7,7 +7,7 @@ import StatusCodes from "http-status-codes"
 import { inviteService } from "./invitation.service"
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler"
 import { inviteTypeSchema } from "../../db/invitation.schema"
-import { ChannelInviteSchema, ChannelParamsSchema } from "../../db/channel.schema"
+import { ChannelInviteSchema, ChannelParamsSchema, createChannelInviteSchema } from "../../db/channel.schema"
 
 
 
@@ -132,13 +132,13 @@ export const cancelWsInvite = asyncHandler(async (req, res) => {
 export const createChannelInvite = asyncHandler(async (req, res) => {
     const User = reqUserSchema.safeParse(req.user)
     const Channel = ChannelParamsSchema.safeParse(req.params)
-    const Email = emailSchema.safeParse(req.body)
+    const InviteBody = createChannelInviteSchema.safeParse(req.body)
     if (!User.success) throw new UserInputValidationError("Invalid Token", User.error.flatten().fieldErrors)
     if (!Channel.success) throw new UserInputValidationError("Invalid UserID", Channel.error.flatten().fieldErrors)
-    if (!Email.success) throw new UserInputValidationError("Invalid Credentials", Email.error.flatten().fieldErrors)
+    if (!InviteBody.success) throw new UserInputValidationError("Invalid Credentials", InviteBody.error.flatten().fieldErrors)
 
 
-    const invite = await inviteService.createChannelInvite(User.data.userId, Channel.data, Email.data.email)
+    const invite = await inviteService.createChannelInvite(User.data.userId, Channel.data, InviteBody.data)
 
     loggers.db.info("User Accepted the Invite", {
         ip: req.ip,

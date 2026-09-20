@@ -22,6 +22,16 @@ export const ChannelInviteSchema = z.object({
     workspaceId : z.uuid(),
 })
 
+export const createChannelInviteSchema = z.object({
+    email: z.string().trim().optional(),
+    receiverId: z.uuid().optional(),
+}).refine(
+    (data) => data.email !== undefined || data.receiverId !== undefined,
+    {
+        message: "Either email or receiverId is required",
+    }
+);
+
 export const updateChannelSchema = z
   .object({
     channelName: z
@@ -56,4 +66,5 @@ export type createChannelDTO = z.infer<typeof createChannelSchema>
 export type channelParamsDTO = z.infer<typeof ChannelParamsSchema>
 export type updateChannelDTO = z.infer<typeof updateChannelSchema>
 export type channelInviteDTO = z.infer<typeof ChannelInviteSchema>
+export type createChannelInviteDTO = z.infer<typeof createChannelInviteSchema>
 export type conversationParamsDTO = z.infer<typeof ConversationParamsSchema>

@@ -22,12 +22,13 @@ import { ErrorScreen } from "@/components/access/ErrorScreen";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bell, Hash, Info, Search, Star, TriangleAlert, Users, X } from "lucide-react";
+import { Bell, Eye, Hash, Info, Search, Star, TriangleAlert, Users, X } from "lucide-react";
 import { Conversations } from "./Conversations";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
 import type { Message } from "@/features/Messages/types";
 import { MessageDateDivider } from "@/features/Messages/components/MessageDateDivider";
 import { getDayKey, getMessageDayLabel } from "@/features/Messages/utils/format";
+import { JoinChannelBar } from "@/features/Channel/components/JoinChannelBar";
 
 export function ChannelHome() {
     const activeSection = useUIStore((s) => s.activeSection);
@@ -55,6 +56,9 @@ function ChannelHomeInner() {
     const activeChannel = WorkspaceDetails.data?.channels.find(
         (channel) => channel.id === selectedChannelId,
     );
+    const isMember = activeChannel?.isMember ?? true;
+    const canMessage = isMember;
+    const isPreview = !canMessage && activeChannel?.visibility === "PUBLIC";
 
     const workspaceMembers = useMemo(
         () =>
@@ -191,13 +195,19 @@ function ChannelHomeInner() {
     if (isError) {
         const { status, message } = getApiError(error);
 
-        if (status === 403) {
+        if (status === 403 ) {
             return <ChannelAccessDenied />;
         }
 
         if (status === 404 && message === "No Messages Found") {
             return (
-                <div className="flex h-full flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+                <div className="relative flex h-full flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+                    {isPreview && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand ring-1 ring-brand/15">
+                            <Eye className="size-3.5" />
+                            Preview
+                        </span>
+                    )}
                     <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/15">
                         <Hash className="size-5" />
                     </span>
@@ -205,8 +215,17 @@ function ChannelHomeInner() {
                         No messages in #{activeChannel?.channelName ?? "this channel"} yet
                     </h3>
                     <p className="max-w-xs text-sm text-muted-foreground">
-                        Be the first to post something and start the conversation.
+                        {isPreview
+                            ? "Join this channel to start the conversation."
+                            : "Be the first to post something and start the conversation."}
                     </p>
+                    {isPreview && selectedWorkspaceId && selectedChannelId && (
+                        <JoinChannelBar
+                            workspaceId={selectedWorkspaceId}
+                            channelId={selectedChannelId}
+                            channelName={activeChannel?.channelName ?? "this channel"}
+                        />
+                    )}
                 </div>
             );
         }
@@ -256,6 +275,12 @@ function ChannelHomeInner() {
                                 <span className="truncate text-[15px] font-bold leading-tight">
                                     {activeChannel && activeChannel.channelName}
                                 </span>
+                                {isPreview && (
+                                    <span className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-medium text-brand ring-1 ring-brand/15">
+                                        <Eye className="size-3" />
+                                        Preview
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -293,11 +318,12 @@ function ChannelHomeInner() {
             {/* Messages + Thread */}
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-w-0 flex-1 flex-col">
-                    <div
-                        ref={scrollRef}
-                        onScroll={handleScroll}
-                        className="min-h-0 flex-1 overflow-y-auto px-4 py-6"
-                    >
+                    <div className="relative min-h-0 flex-1">
+                        <div
+                            ref={scrollRef}
+                            onScroll={handleScroll}
+                            className="h-full overflow-y-auto px-4 py-6"
+                        >
                         {/* Channel intro banner */}
                         <div className="mb-6"></div>
 
@@ -343,25 +369,41 @@ function ChannelHomeInner() {
                                                         workspaceId={
                                                             selectedWorkspaceId ?? undefined
                                                         }
-                                                        onOpenThread={(m) => setThread(m)}
-                                                        onReply={(m) => setReplyingTo(m)}
-                                                        onEdit={setEditingMessage}
-                                                        onDelete={(m) => {
-                                                            if (
-                                                                window.confirm(
-                                                                    "Delete this message?",
-                                                                )
-                                                            ) {
-                                                                deleteMessage.mutate({
-                                                                    messageId: m.id,
-                                                                });
-                                                            }
-                                                        }}
-                                                        onReact={(m, emoji) =>
-                                                            react.mutate({
-                                                                messageId: m.id,
-                                                                reaction: emoji,
-                                                            })
+                                                        hideActions={!canMessage}
+                                                        onOpenThread={
+                                                            canMessage ? (m) => setThread(m) : undefined
+                                                        }
+                                                        onReply={
+                                                            canMessage
+                                                                ? (m) => setReplyingTo(m)
+                                                                : undefined
+                                                        }
+                                                        onEdit={
+                                                            canMessage ? setEditingMessage : undefined
+                                                        }
+                                                        onDelete={
+                                                            canMessage
+                                                                ? (m) => {
+                                                                      if (
+                                                                          window.confirm(
+                                                                              "Delete this message?",
+                                                                          )
+                                                                      ) {
+                                                                          deleteMessage.mutate({
+                                                                              messageId: m.id,
+                                                                          });
+                                                                      }
+                                                                  }
+                                                                : undefined
+                                                        }
+                                                        onReact={
+                                                            canMessage
+                                                                ? (m, emoji) =>
+                                                                      react.mutate({
+                                                                          messageId: m.id,
+                                                                          reaction: emoji,
+                                                                      })
+                                                                : undefined
                                                         }
                                                         threadSummary={
                                                             lastReply
@@ -388,50 +430,60 @@ function ChannelHomeInner() {
                                 </div>
                             </motion.div>
                         </AnimatePresence>
+                        </div>
+
+                        {isPreview && selectedWorkspaceId && selectedChannelId && (
+                            <JoinChannelBar
+                                workspaceId={selectedWorkspaceId}
+                                channelId={selectedChannelId}
+                                channelName={activeChannel?.channelName ?? "this channel"}
+                            />
+                        )}
                     </div>
 
-                    {/* Composer */}
-                    <div className="shrink-0 px-4 pb-4">
-                        <TypingIndicator
-                            entityId={selectedChannelId}
-                            workspaceId={selectedWorkspaceId}
-                        />
-                        <MessageComposer
-                            key={selectedChannelId}
-                            channelId={selectedChannelId}
-                            channelName={activeChannel?.channelName ?? "new-channel"}
-                            disabled={sendMessage.isPending || sendReply.isPending}
-                            typingTarget={
-                                selectedWorkspaceId
-                                    ? {
-                                          workspaceId: selectedWorkspaceId,
-                                          entityId: selectedChannelId,
-                                          entityType: "channel",
-                                      }
-                                    : undefined
-                            }
-                            replyTo={
-                                replyingTo
-                                    ? { id: replyingTo.id, sender: replyingTo.sender.username }
-                                    : null
-                            }
-                            onCancelReply={() => setReplyingTo(null)}
-                            members={workspaceMembers}
-                            onSend={(content, files, replyToId, mentions) => {
-                                if (replyToId) {
-                                    return sendReply.mutateAsync(
-                                        { messageId: replyToId, content, files, mentions },
-                                        { onSuccess: () => setReplyingTo(null) },
-                                    );
+                    {canMessage && (
+                        <div className="shrink-0 px-4 pb-4">
+                            <TypingIndicator
+                                entityId={selectedChannelId}
+                                workspaceId={selectedWorkspaceId}
+                            />
+                            <MessageComposer
+                                key={selectedChannelId}
+                                channelId={selectedChannelId}
+                                channelName={activeChannel?.channelName ?? "new-channel"}
+                                disabled={sendMessage.isPending || sendReply.isPending}
+                                typingTarget={
+                                    selectedWorkspaceId
+                                        ? {
+                                              workspaceId: selectedWorkspaceId,
+                                              entityId: selectedChannelId,
+                                              entityType: "channel",
+                                          }
+                                        : undefined
                                 }
-                                return sendMessage.mutateAsync({ content, files, mentions });
-                            }}
-                        />
-                    </div>
+                                replyTo={
+                                    replyingTo
+                                        ? { id: replyingTo.id, sender: replyingTo.sender.username }
+                                        : null
+                                }
+                                onCancelReply={() => setReplyingTo(null)}
+                                members={workspaceMembers}
+                                onSend={(content, files, replyToId, mentions) => {
+                                    if (replyToId) {
+                                        return sendReply.mutateAsync(
+                                            { messageId: replyToId, content, files, mentions },
+                                            { onSuccess: () => setReplyingTo(null) },
+                                        );
+                                    }
+                                    return sendMessage.mutateAsync({ content, files, mentions });
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <AnimatePresence initial={false}>
-                    {activeThread && (
+                    {canMessage && activeThread && (
                         <ThreadPanel
                             parent={Messages.find((m) => m.id === activeThread.id) ?? activeThread}
                             replies={repliesOf(Messages, activeThread.id)}
@@ -487,6 +539,7 @@ function ChannelHomeInner() {
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

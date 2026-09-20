@@ -37,21 +37,18 @@ export function ChannelAccessDenied() {
             icon={<Lock aria-hidden="true" />}
             title="You're not a member of this channel"
             highlight="member"
-            description="This channel is private or isn't on your list anymore. Ask a workspace admin for access, then check your channel list."
+            description="This channel is private. Ask a workspace admin for an invite, then check your channel list."
             actions={
-                <>
-                    <Button
-                        className="group"
-                        onClick={() => {
-                            clearSelectedChannelId();
-                            navigate("/app/home");
-                        }}
-                    >
-                        Back to #general
-                        <KineticArrow />
-                    </Button>
-                  
-                </>
+                <Button
+                    className="group"
+                    onClick={() => {
+                        clearSelectedChannelId();
+                        navigate("/app/home");
+                    }}
+                >
+                    Back to #general
+                    <KineticArrow />
+                </Button>
             }
         />
     );

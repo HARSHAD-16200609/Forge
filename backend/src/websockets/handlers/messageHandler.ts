@@ -12,8 +12,14 @@ import { messageRepository } from "../../modules/Messages/message.repository";
 import { ChannelMessageDTO } from "../../types/message";
 import { formatValidationError } from "../utility/error";
 import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
+import { Visibility } from "../../../generated/prisma/enums";
 
 
+
+async function isPublicChannel(channelId: string, workspaceId: string): Promise<boolean> {
+    const channel = await channelRepository.channelExists(channelId, workspaceId);
+    return channel?.visibility === Visibility.PUBLIC;
+}
 
 class MessageHandler {
 
@@ -61,16 +67,19 @@ class MessageHandler {
 
         const channelMember = await channelRepository.memberExists(workspaceMember?.id, channelId)
         if (!channelMember) {
-            sendWs(
-                ws,
-                WsResponse.fail(
-                    WsEvent.ChannelSubscribe,
-                    StatusCodes.FORBIDDEN,
-                    "FORBIDDEN",
-                    "You are not a member of this channel"
+            const isPublic = await isPublicChannel(channelId, messagePayload.data.workspaceId)
+            if (!isPublic) {
+                sendWs(
+                    ws,
+                    WsResponse.fail(
+                        WsEvent.ChannelSubscribe,
+                        StatusCodes.FORBIDDEN,
+                        "FORBIDDEN",
+                        "You are not a member of this channel"
+                    )
                 )
-            )
-            return
+                return
+            }
         }
 
         subscriptionManager.subscribe(channelId, ws);
@@ -114,9 +123,12 @@ class MessageHandler {
 
         const channelMember = await channelRepository.memberExists(workspaceMember?.id, messagePayload.data.channelId)
         if (!channelMember) {
-            sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
+            const isPublic = await isPublicChannel(messagePayload.data.channelId, messagePayload.data.workspaceId)
+            if (!isPublic) {
+                sendWs(ws, WsResponse.fail(WsEvent.ChannelUnsubscribe, StatusCodes.FORBIDDEN, "FORBIDDEN", "You are not a member of the channel"))
 
-            return
+                return
+            }
         }
 
         subscriptionManager.unsubscribe(messagePayload.data.channelId, ws)

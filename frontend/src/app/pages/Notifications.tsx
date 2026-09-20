@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AtSign, Bell, CheckCheck, Inbox, Link2, Loader2 } from "lucide-react";
+import { AtSign, Bell, CheckCheck, Inbox, Link2, Loader2, Check, X } from "lucide-react";
 import {
     useInfiniteQuery,
     useMutation,
@@ -13,6 +13,7 @@ import { useWorkspace } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useDms } from "@/features/Messages/hooks/useDms";
 import { useUIStore } from "@/stores/uiStore";
 import { notificationsService } from "@/features/Notifications/notifications.service";
+import { invitationService } from "@/features/Invitations/invitation.service";
 import type {
     AppNotification,
     MentionMetadata,
@@ -32,6 +33,13 @@ const tabs: {
     { id: "activity", label: "Activity", icon: Bell, filter: "activity" },
     { id: "invites", label: "Invites", icon: Link2, filter: "invites" },
 ];
+
+interface InviteMetadata {
+    kind: "channel";
+    workspaceId: string;
+    channelId?: string;
+    inviteId?: string;
+}
 
 function timeAgo(iso: string): string {
     const date = new Date(iso);
@@ -68,15 +76,24 @@ function NotificationRow({
     notification,
     onOpen,
     highlight,
+    action,
+    busy,
 }: {
     notification: AppNotification;
     onOpen: (notification: AppNotification) => void;
     highlight: boolean;
+    action: (notification: AppNotification, action: "accept" | "reject") => void;
+    busy: boolean;
 }) {
     const metadata = (notification.metadata ?? null) as MentionMetadata | null;
     const targetName = useTargetName(metadata);
     const actor = notification.actor;
     const snippet = metadata?.snippet;
+
+    const inviteInfo = (notification.metadata ?? null) as InviteMetadata | null;
+    const isChannelInvite = notification.type === "CHANNEL_INVITE";
+    const canRespond =
+        isChannelInvite && !!(inviteInfo?.inviteId && inviteInfo?.workspaceId);
 
     const label =
         notification.type === "MENTION"
@@ -91,16 +108,27 @@ function NotificationRow({
                 ? `${actor?.username ?? "Someone"} replied to your message`
                 : notification.type === "DIRECT_MESSAGE"
                   ? `${actor?.username ?? "Someone"} sent you a message`
-                  : notification.type === "CHANNEL_INVITE" || notification.type === "WORKSPACE_INVITE"
-                    ? "You received a workspace invitation"
-                    : "New notification";
+                  : notification.type === "CHANNEL_INVITE"
+                    ? targetName
+                        ? `${actor?.username ?? "Someone"} invited you to #${targetName}`
+                        : `${actor?.username ?? "Someone"} invited you to a channel`
+                    : notification.type === "WORKSPACE_INVITE"
+                      ? "You received a workspace invitation"
+                      : "New notification";
 
     return (
-        <button
-            type="button"
+        <div
+            role="button"
+            tabIndex={0}
             onClick={() => onOpen(notification)}
+            onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpen(notification);
+                }
+            }}
             className={cn(
-                "flex w-full items-start gap-3 rounded-xl border border-border/60 bg-card p-3 text-left transition-colors hover:bg-accent/60",
+                "flex w-full cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-card p-3 text-left transition-colors hover:bg-accent/60",
                 highlight && !notification.read && "ring-1 ring-brand/30",
             )}
         >
@@ -135,6 +163,33 @@ function NotificationRow({
                     <p className="mt-0.5 line-clamp-2 text-[13px] text-muted-foreground">{snippet}</p>
                 )}
 
+                {canRespond && (
+                    <div className="mt-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => action(notification, "accept")}
+                            className="inline-flex h-7 items-center gap-1 rounded-lg bg-brand px-2.5 text-[12px] font-semibold text-brand-foreground transition-colors hover:bg-brand/90 disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            {busy ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                                <Check className="size-3.5" />
+                            )}
+                            Accept
+                        </button>
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => action(notification, "reject")}
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            <X className="size-3.5" />
+                            Decline
+                        </button>
+                    </div>
+                )}
+
                 {!notification.read && (
                     <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
                         <span className="size-1.5 rounded-full bg-brand" />
@@ -142,7 +197,7 @@ function NotificationRow({
                     </span>
                 )}
             </div>
-        </button>
+        </div>
     );
 }
 
@@ -154,6 +209,7 @@ export function Notifications() {
     const setActiveSection = useUIStore((s) => s.setActiveSection);
 
     const [tab, setTab] = useState<TabId>("unread");
+    const [actingOn, setActingOn] = useState<string | null>(null);
 
     const filter: NotificationFilter = tabs.find((t) => t.id === tab)?.filter ?? "unread";
 
@@ -195,6 +251,48 @@ export function Notifications() {
             queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
         },
     });
+
+    const respondToInvite = useMutation({
+        mutationFn: ({
+            action,
+            workspaceId,
+            inviteId,
+        }: {
+            action: "accept" | "reject";
+            workspaceId: string;
+            inviteId: string;
+            notificationId: string;
+        }) =>
+            action === "accept"
+                ? invitationService.acceptChannelInvite(workspaceId, inviteId)
+                : invitationService.rejectChannelInvite(workspaceId, inviteId),
+        onMutate: (_vars) => {
+            setActingOn((current) => current ?? _vars.notificationId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+            queryClient.invalidateQueries({ queryKey: ["workspace"] });
+            queryClient.invalidateQueries({ queryKey: ["dms"] });
+        },
+        onSettled: () => setActingOn(null),
+    });
+
+    function respondToInviteAction(notification: AppNotification, action: "accept" | "reject") {
+        const info = (notification.metadata ?? null) as InviteMetadata | null;
+        if (!info?.inviteId || !info?.workspaceId) return;
+
+        if (!notification.read) {
+            markRead.mutate(notification.id);
+        }
+
+        respondToInvite.mutate({
+            action,
+            workspaceId: info.workspaceId,
+            inviteId: info.inviteId,
+            notificationId: notification.id,
+        });
+    }
 
     function openNotification(notification: AppNotification) {
         if (!notification.read) {
@@ -314,6 +412,8 @@ export function Notifications() {
                             notification={notification}
                             onOpen={openNotification}
                             highlight={tab === "unread"}
+                            action={respondToInviteAction}
+                            busy={actingOn === notification.id}
                         />
                     ))}
 

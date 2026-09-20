@@ -9,7 +9,7 @@ import { channelRepository } from "../../../src/modules/Channel/channel.reposito
 import { messageRepository } from "../../../src/modules/Messages/message.repository";
 import { WsEvent } from "../../../src/websockets/types/events";
 import { ConnectionMetadata } from "../../../src/websockets/types/auth";
-import { Role } from "../../../generated/prisma/enums";
+import { Role, Visibility } from "../../../generated/prisma/enums";
 
 const WS_MEMBER = { id: "wm-1", role: Role.MEMBER };
 
@@ -22,6 +22,7 @@ vi.mock("../../../src/modules/Workspace/workspace.repository", () => ({
 vi.mock("../../../src/modules/Channel/channel.repository", () => ({
     channelRepository: {
         memberExists: vi.fn(),
+        channelExists: vi.fn(),
     },
 }));
 
@@ -148,10 +149,13 @@ describe("messageHandler.channel.subscribe", () => {
         expect(subscriptionManager.getSubscribers(CHANNEL_ID)).toBeUndefined();
     });
 
-    it("rejects with FORBIDDEN when user is not a channel member", async () => {
+    it("rejects with FORBIDDEN when user is not a channel member of a PRIVATE channel", async () => {
         vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
         vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
         vi.mocked(channelRepository.memberExists).mockResolvedValue(null);
+        vi.mocked(channelRepository.channelExists).mockResolvedValue({
+            visibility: Visibility.PRIVATE,
+        } as never);
 
         const message = {
             type: WsEvent.ChannelSubscribe,
@@ -166,6 +170,28 @@ describe("messageHandler.channel.subscribe", () => {
         expect(response.statusCode).toBe(StatusCodes.FORBIDDEN);
         expect(response.error?.code).toBe("FORBIDDEN");
         expect(subscriptionManager.getSubscribers(CHANNEL_ID)).toBeUndefined();
+    });
+
+    it("allows a non-member to subscribe to a PUBLIC channel", async () => {
+        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
+        vi.mocked(channelRepository.memberExists).mockResolvedValue(null);
+        vi.mocked(channelRepository.channelExists).mockResolvedValue({
+            visibility: Visibility.PUBLIC,
+        } as never);
+
+        const message = {
+            type: WsEvent.ChannelSubscribe,
+            payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID },
+        };
+
+        await messageHandler.subscribe(ws, message);
+
+        expect(sentFrames).toHaveLength(1);
+        const response = sentFrames[0]!.response as { success: boolean; statusCode: number };
+        expect(response.success).toBe(true);
+        expect(response.statusCode).toBe(StatusCodes.OK);
+        expect(subscriptionManager.getSubscribers(CHANNEL_ID)?.has(ws)).toBe(true);
     });
 
     it("is idempotent when the same socket re-subscribes", async () => {

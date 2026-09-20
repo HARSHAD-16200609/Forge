@@ -4,11 +4,13 @@ import { prisma } from "../../config/prisma";
 class ConversationRepository {
     async findDMBetweenUsers(
         senderId: string,
-        receiverId: string
+        receiverId: string,
+        workspaceId: string
     ) {
         return prisma.conversation.findFirst({
             where: {
                 type: ConvoType.DM,
+                workspaceId,
                 AND: [
                     {
                         members: {

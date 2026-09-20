@@ -1,10 +1,24 @@
 import { api } from "@/lib/api";
 import type {
+    Conversation,
     ConversationDetail,
     Conversations,
     dmParams,
     paginatedMessages,
 } from "./types";
+
+export interface createDMServiceParams {
+    workspaceId: string;
+    receiverId: string;
+    idempotencyKey: string;
+}
+
+export interface createGDMServiceParams {
+    workspaceId: string;
+    name: string;
+    memberIds: string[];
+    idempotencyKey: string;
+}
 
 export interface getMessageParams {
     workspaceId: string;
@@ -46,6 +60,33 @@ class MessageService {
     async getDM(params: dmParams): Promise<ConversationDetail> {
         const conversation = await api.get(
             `/workspaces/${params.workspaceId}/conversations/${params.conversationId}`,
+        );
+
+        return conversation.data.data;
+    }
+
+    async createDM(
+        params: createDMServiceParams,
+    ): Promise<ConversationDetail | Conversation> {
+        const conversation = await api.post(
+            `/workspaces/${params.workspaceId}/conversations`,
+            {
+                receiverId: params.receiverId,
+                idempotencyKey: params.idempotencyKey,
+            },
+        );
+
+        return conversation.data.data as ConversationDetail | Conversation;
+    }
+
+    async createGDM(params: createGDMServiceParams): Promise<Conversation> {
+        const conversation = await api.post(
+            `/workspaces/${params.workspaceId}/conversations/groups`,
+            {
+                name: params.name,
+                memberIds: params.memberIds,
+                idempotencyKey: params.idempotencyKey,
+            },
         );
 
         return conversation.data.data;

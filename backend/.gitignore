@@ -82,6 +82,7 @@ web_modules/
 .next
 out
 
+prisma/seed.ts
 # Nuxt.js build / generate output
 .nuxt
 dist

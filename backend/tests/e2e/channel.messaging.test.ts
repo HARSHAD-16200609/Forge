@@ -9,6 +9,8 @@ let url: string;
 let scene: ChannelScene;
 const sockets: WebSocket[] = [];
 
+const httpBase = () => url.replace(/^ws:\/\//, "http://");
+
 beforeAll(async () => {
   ({ url } = await startTestServer());
 });
@@ -225,17 +227,128 @@ describe("channel messaging over websockets", () => {
     });
   });
 
-  it("rejects subscription for a workspace member who is not a channel member", async () => {
+  it("lets a workspace member who is not a channel member subscribe to a PUBLIC channel and receive messages", async () => {
+    const [ownerWs] = await memberSockets();
     const outsiderWs = await connect(url, scene.outsider.accessToken);
     sockets.push(outsiderWs);
+    await subscribeToChannel(ownerWs);
 
     send(outsiderWs, WsEvent.ChannelSubscribe, {
       workspaceId: scene.workspace.id,
       channelId: scene.channel.id,
     });
+    const ack = await waitForType(outsiderWs, WsEvent.ChannelSubscribe);
+    expect(ack.success).toBe(true);
+    expect(ack.statusCode).toBe(200);
+
+    send(ownerWs, WsEvent.ChannelMessage, {
+      workspaceId: scene.workspace.id,
+      channelId: scene.channel.id,
+      content: "public hello",
+    });
+
+    const created = await waitForType(outsiderWs, WsEvent.ChannelMessageCreated);
+    expect(created.success).toBe(true);
+    expect((created.data as { content: string }).content).toBe("public hello");
+  });
+
+  it("still rejects message creation from a non-member on a PUBLIC channel", async () => {
+    const outsiderWs = await connect(url, scene.outsider.accessToken);
+    sockets.push(outsiderWs);
+
+    send(outsiderWs, WsEvent.ChannelMessage, {
+      workspaceId: scene.workspace.id,
+      channelId: scene.channel.id,
+      content: "should not post",
+    });
+
+    const rejected = await waitForType(outsiderWs, WsEvent.ChannelMessage);
+    expect(rejected.success).toBe(false);
+    expect(rejected.statusCode).toBe(403);
+    expect(rejected.error?.code).toBe("FORBIDDEN");
+  });
+
+  it("rejects subscription for a workspace member who is not a member of a PRIVATE channel", async () => {
+    const outsiderWs = await connect(url, scene.outsider.accessToken);
+    sockets.push(outsiderWs);
+
+    const ownerMember = await prisma.workspaceMember.findUniqueOrThrow({
+      where: {
+        userId_workspaceId: { userId: scene.owner.user.id, workspaceId: scene.workspace.id },
+      },
+    });
+    const privateChannel = await prisma.channel.create({
+      data: {
+        workspaceId: scene.workspace.id,
+        channelName: "private",
+        createdByWorkspaceMemberId: ownerMember.id,
+        visibility: "PRIVATE",
+      },
+    });
+
+    send(outsiderWs, WsEvent.ChannelSubscribe, {
+      workspaceId: scene.workspace.id,
+      channelId: privateChannel.id,
+    });
     const rejected = await waitForType(outsiderWs, WsEvent.ChannelSubscribe);
     expect(rejected.success).toBe(false);
     expect(rejected.statusCode).toBe(403);
     expect(rejected.error?.code).toBe("FORBIDDEN");
+  });
+
+  it("allows a non-member to fetch messages from a PUBLIC channel over REST", async () => {
+    const [ownerWs] = await memberSockets();
+    send(ownerWs, WsEvent.ChannelMessage, {
+      workspaceId: scene.workspace.id,
+      channelId: scene.channel.id,
+      content: "rest public message",
+    });
+    await waitForType(ownerWs, WsEvent.ChannelMessageCreated);
+
+    const res = await fetch(
+      `${httpBase()}/api/v1/workspace/${scene.workspace.id}/channel/${scene.channel.id}/messages`,
+      {
+        headers: { Cookie: `accessToken=${scene.outsider.accessToken}` },
+      }
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      statusCode: number;
+      data: { messages: unknown[]; nextCursor: string | null };
+    };
+    expect(body.statusCode).toBe(200);
+    expect(Array.isArray(body.data.messages)).toBe(true);
+    expect(body.data.messages.length).toBeGreaterThan(0);
+  });
+
+  it("rejects fetching messages from a PRIVATE channel for a non-member over REST", async () => {
+    const ownerMember = await prisma.workspaceMember.findUniqueOrThrow({
+      where: {
+        userId_workspaceId: { userId: scene.owner.user.id, workspaceId: scene.workspace.id },
+      },
+    });
+    const privateChannel = await prisma.channel.create({
+      data: {
+        workspaceId: scene.workspace.id,
+        channelName: "private",
+        createdByWorkspaceMemberId: ownerMember.id,
+        visibility: "PRIVATE",
+      },
+    });
+    await prisma.message.create({
+      data: {
+        channelId: privateChannel.id,
+        senderId: scene.owner.user.id,
+        content: "private message",
+      },
+    });
+
+    const res = await fetch(
+      `${httpBase()}/api/v1/workspace/${scene.workspace.id}/channel/${privateChannel.id}/messages`,
+      {
+        headers: { Cookie: `accessToken=${scene.outsider.accessToken}` },
+      }
+    );
+    expect(res.status).toBe(403);
   });
 });

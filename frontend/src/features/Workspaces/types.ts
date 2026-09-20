@@ -25,7 +25,9 @@ export interface WorkspaceDetails {
 }
 export interface Channel {
   channelName: string;
-  id:string
+  id:string,
+  visibility?: "PUBLIC" | "PRIVATE"
+  isMember?: boolean
 }
 
 export interface WorkspaceListProps {

@@ -74,7 +74,7 @@ class WorkspaceRepository {
     return workspace
 
   }
-  async getWorkspace(workspaceId: string) {
+  async getWorkspace(workspaceId: string, workspaceMemberId?: string) {
 
     const workspace = await prisma.workspace.findFirst({
       where: {
@@ -82,8 +82,22 @@ class WorkspaceRepository {
       }, include: {
         channels: {
           select: {
-            id:true,
+            id: true,
             channelName: true,
+            visibility: true,
+            ...(workspaceMemberId
+              ? {
+                  _count: {
+                    select: {
+                      members: {
+                        where: {
+                          workspaceMemberId,
+                        },
+                      },
+                    },
+                  },
+                }
+              : {}),
           }
         },
         members: {
@@ -115,6 +129,15 @@ class WorkspaceRepository {
     };
 
     delete response._count;
+
+    if (response.channels) {
+      response.channels = response.channels.map((channel: any) => ({
+        id: channel.id,
+        channelName: channel.channelName,
+        visibility: channel.visibility,
+        isMember: workspaceMemberId ? (channel._count?.members ?? 0) > 0 : false,
+      })) as any;
+    }
 
     return response
 
@@ -280,6 +303,11 @@ class WorkspaceRepository {
 
     return members
 
+  }
+  async countMembers(workspaceId: string) {
+    return prisma.workspaceMember.count({
+      where: { workspaceId }
+    })
   }
   async nonMembers(invalidMemberIds: string[]) {
     return await prisma.user.findMany({

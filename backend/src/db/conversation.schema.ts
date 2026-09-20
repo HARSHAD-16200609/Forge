@@ -30,7 +30,6 @@ export const createGDMSchema = z.object({
     memberIds: z
         .array(z.uuid())
         .min(1, "At least one member is required.")
-        .max(98, "A group can have at most 99 members.")
         .refine(
             (ids) => new Set(ids).size === ids.length,
             "Duplicate members are not allowed."
@@ -41,7 +40,6 @@ export const GDMMembers = z.object({
     memberIds: z
         .array(z.uuid())
         .min(1, "At least one member is required.")
-        .max(98, "A group can have at most 99 members.")
         .refine(
             (ids) => new Set(ids).size === ids.length,
             "Duplicate members are not allowed."

@@ -1,7 +1,6 @@
 import { MessageComposer } from "@/features/Messages/components/MessageComposer";
 import { MessageBubble } from "@/features/Messages/components/MessageBubble";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
-import { ConvoMembers } from "@/features/Messages/components/ConvoMembers";
 import { EmptyConversation } from "@/features/Messages/components/EmptyConversation";
 import { TypingIndicator } from "@/features/Messages/components/TypingIndicator";
 import { ThreadPanel } from "@/features/Messages/components/ThreadPanel";
@@ -287,8 +286,8 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                             )}
 
                             {selectedConversationType === "GDM" ? (
-                                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20">
-                                    <Users className="size-3.5 text-emerald-500" />
+                                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-semibold text-emerald-500">
+                                    {headerName.charAt(0).toUpperCase()}
                                 </span>
                             ) : peerMember?.user.avatar ? (
                                 <img
@@ -301,8 +300,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                     {headerName.charAt(0).toUpperCase()}
                                 </span>
                             )}
-
-                            <button
+<button
                                 type="button"
                                 onClick={() => setShowMembers((prev) => !prev)}
                                 className="group/mini flex cursor-pointer items-center gap-2 rounded-md py-0.5 pr-1 pl-0"
@@ -323,7 +321,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                 className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                                 aria-label="Members"
                             >
-                                <Users className="size-[18px]" />
+                               { selectedConversationType === "GDM" && <Users className="size-[18px]" />}
                             </button>
                         </PopoverTrigger>
                         <PopoverContent
@@ -334,20 +332,12 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                 selectedConversationType === "GDM" ? "w-[24rem]" : "w-[22rem]",
                             )}
                         >
-                            {selectedConversationType === "GDM" ? (
+                            {selectedConversationType === "GDM" && (
                                 <GroupMembersCard
                                     key={selectedConversationId}
                                     detail={detail}
                                     workspaceId={selectedWorkspaceId ?? undefined}
                                     headerName={headerName}
-                                />
-                            ) : (
-                                <ConvoMembers
-                                    detail={detail}
-                                    title={headerName}
-                                    type={selectedConversationType ?? "DM"}
-                                    workspaceId={selectedWorkspaceId ?? ""}
-                                    onClose={() => setShowMembers(false)}
                                 />
                             )}
                         </PopoverContent>

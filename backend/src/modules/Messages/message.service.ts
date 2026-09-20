@@ -1,4 +1,5 @@
 import { channelParamsDTO, conversationParamsDTO } from "../../db/channel.schema";
+import { Visibility } from "../../../generated/prisma/enums";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { channelRepository } from "../Channel/channel.repository";
 import { conversationRepository } from "../Conversations/conversations.repository";
@@ -13,8 +14,13 @@ class MessageService {
         const workspaceMember = await workspaceRepository.memberExists(User.userId, Channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
+        const channel = await channelRepository.channelExists(Channel.channelId, Channel.workspaceId)
+        if (!channel) throw new NotFoundError("Channel Not Found")
+
         const channelMember = await channelRepository.memberExists(workspaceMember.id, Channel.channelId)
-        if (!channelMember) throw new ForbiddenError("You are not an member of this channel")
+        if (!channelMember && channel.visibility === Visibility.PRIVATE) {
+            throw new ForbiddenError("You are not a member of this channel")
+        }
 
 
         const channelMessages = await messageRepository.getMessages(Channel.channelId, pagination)
@@ -65,14 +71,16 @@ class MessageService {
         if (message.entity.type !== "channel") {
             throw new BadRequestError("Message does not belong to a channel");
         }
-        const channel = await channelRepository.getWorkspaceId(message.entity.id)
+        const channel = await channelRepository.getChannelVisibility(message.entity.id)
         if (!channel) throw new NotFoundError("Channel not found")
 
         const workspaceMember = await workspaceRepository.memberExists(userId, channel.workspaceId)
         if (!workspaceMember) throw new ForbiddenError("You are not a member of this workspace")
 
         const channelMember = await channelRepository.memberExists(workspaceMember.id, message.entity.id)
-        if (!channelMember) throw new ForbiddenError("You are not an member of this channel")
+        if (!channelMember && channel.visibility === Visibility.PRIVATE) {
+            throw new ForbiddenError("You are not a member of this channel")
+        }
 
         return {
             message

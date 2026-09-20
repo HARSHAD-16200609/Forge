@@ -124,12 +124,12 @@ export function ConvoMembers({
                 )}
             </div>
 
-            <div className="mt-4 border-t border-border pt-4">
+           {  <div className="mt-4 border-t border-border pt-4">
                 <Button onClick={() => navigate("/app/invites")}>
                     <UserPlus className="size-4" />
                     Add people
                 </Button>
-            </div>
+            </div>}
         </div>
     );
 }
