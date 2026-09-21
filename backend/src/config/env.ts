@@ -56,7 +56,8 @@ const envSchema = z.object({
 
   CLIENT_URL: z.url(),
 
-  SESSION_SECRET: z.string().min(32),
+  COOKIE_SECRET: z.string().min(32)
+
 
 });
 

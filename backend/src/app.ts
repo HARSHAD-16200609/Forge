@@ -4,14 +4,13 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import { env } from "./config/env"
-import session from "express-session"
 import { globalErrorMiddleware } from "./middlewares/globalErrorHandler";
-const app = express();
 import { stream } from "./utility/logger/stream";
 import { loggerMiddleware } from "./middlewares/logger.middleware";
 import "./jobs/cron-schedule"
 import { apiRouter } from "./routes/routes";
 
+const app = express();
 
 app.use(
   helmet({
@@ -27,22 +26,6 @@ if (env.NODE_ENV !== "production") {
 }
 
 
-app.use(
-  session({
-    secret: env.SESSION_SECRET,
-
-    resave: false,
-
-    saveUninitialized: false,
-
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-    },
-  })
-);
-
 
 app.use(
   cors({
@@ -54,7 +37,7 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieParser(env.COOKIE_SECRET));
 app.use(loggerMiddleware)
 
 app.get("/health", (req, res) => {

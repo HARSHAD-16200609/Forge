@@ -10,6 +10,7 @@ import { UserInputValidationError } from "../../utility/errorHandling/customErro
 import * as oidc from "openid-client"
 import { oidcConfig } from "../../config/oidc";
 import axios from "axios"
+import { clearOAuthTransactionCookie, readOAuthTransactionCookie, setOAuthTransactionCookie } from "../../config/oauthTransaction";
 
 
 
@@ -157,10 +158,7 @@ export const handleGoogleLogin = asyncHandler(async (req, res) => {
       codeVerifier
     );
 
-  const state = oidc.randomState();
-
-  req.session.state = state;
-  req.session.codeVerifier = codeVerifier
+const state = oidc.randomState();
 
   const authorizationUrl =
     oidc.buildAuthorizationUrl(
@@ -184,7 +182,7 @@ export const handleGoogleLogin = asyncHandler(async (req, res) => {
         state,
       }
     );
-
+  setOAuthTransactionCookie(res, { codeVerifier, state })
   res.redirect(authorizationUrl.href)
 
 
@@ -193,7 +191,9 @@ export const handleGoogleLogin = asyncHandler(async (req, res) => {
 export const handleGoogleCallBack = asyncHandler(async (req, res) => {
   try {
 
-    if (!req.session.codeVerifier || !req.session.state) {
+    const txn = readOAuthTransactionCookie(req)
+    if (!txn || !("codeVerifier" in txn)) {
+      clearOAuthTransactionCookie(res)
       return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_oauth_session`);
     }
 
@@ -203,13 +203,14 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
         `${req.protocol}://${req.get("host")}${req.originalUrl}`
       ),
       {
-        pkceCodeVerifier: req.session.codeVerifier,
-        expectedState: req.session.state,
+        pkceCodeVerifier: txn.codeVerifier,
+        expectedState: txn.state,
       }
     );
     const claims = tokens.claims();
 
     if (!claims?.sub) {
+      clearOAuthTransactionCookie(res)
       return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=missing_subject`);
     }
 
@@ -228,6 +229,7 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
     });
 
     if (!result.success) {
+      clearOAuthTransactionCookie(res)
       return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_profile`);
     }
 
@@ -238,12 +240,12 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
 
     const sessionInfo = await authService.oauthLogin(result.data, userMetaData)
 
-    delete req.session.state;
-    delete req.session.codeVerifier;
-
     if (!sessionInfo) {
+      clearOAuthTransactionCookie(res)
       return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=session_creation_failed`);
     }
+
+    clearOAuthTransactionCookie(res)
 
     res.cookie("accessToken", sessionInfo.accessToken, accessCookieOptions)
       .cookie("refreshToken", sessionInfo.refreshToken, refreshCookieOptions)
@@ -260,8 +262,7 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
     console.error("OAuth callback error:");
     console.dir(error, { depth: null });
 
-    delete req.session.state;
-    delete req.session.codeVerifier;
+    clearOAuthTransactionCookie(res)
 
     return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=oauth_callback_failed`);
   }
@@ -269,8 +270,7 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
 
 export const handleGithubLogin = asyncHandler(async (req, res) => {
 
-  const state = oidc.randomState()
-  req.session.state = state;
+const state = oidc.randomState()
 
   const githubUrl = new URL(
     "https://github.com/login/oauth/authorize"
@@ -295,6 +295,7 @@ export const handleGithubLogin = asyncHandler(async (req, res) => {
     state
   );
 
+  setOAuthTransactionCookie(res, { state })
   res.redirect(githubUrl.toString())
 })
 
@@ -303,20 +304,23 @@ export const handleGithubLogin = asyncHandler(async (req, res) => {
 export const handleGithubCallback = asyncHandler(
   async (req, res) => {
     const { code, state } = req.query;
+    const storedState = readOAuthTransactionCookie(req)?.state
 
     if (
       typeof code !== "string" ||
       typeof state !== "string"
     ) {
+      clearOAuthTransactionCookie(res)
       return res.status(400).json({
         message: "Invalid GitHub OAuth callback",
       });
     }
 
     if (
-      !req.session.state ||
-      state !== req.session.state
+      !storedState ||
+      state !== storedState
     ) {
+      clearOAuthTransactionCookie(res)
       return res.status(400).json({
         message: "Invalid OAuth state",
       });
@@ -341,6 +345,7 @@ export const handleGithubCallback = asyncHandler(
       const tokenData = tokenResponse.data;
 
       if (!tokenData.access_token) {
+        clearOAuthTransactionCookie(res)
         return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=token_exchange_failed`);
       }
 
@@ -384,6 +389,7 @@ export const handleGithubCallback = asyncHandler(
       });
 
       if (!result.success) {
+        clearOAuthTransactionCookie(res)
         return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=invalid_profile`);
       }
 
@@ -394,7 +400,7 @@ export const handleGithubCallback = asyncHandler(
 
       const sessionInfo = await authService.oauthLogin(result.data, userMetaData)
 
-      delete req.session.state;
+      clearOAuthTransactionCookie(res)
 
       if (!sessionInfo) {
         return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=session_creation_failed`);
@@ -415,7 +421,7 @@ export const handleGithubCallback = asyncHandler(
       console.error("GitHub OAuth callback error:");
       console.dir(error, { depth: null });
 
-      delete req.session.state;
+      clearOAuthTransactionCookie(res)
 
       return res.redirect(`${env.CLIENT_URL}/auth/callback?oauth=error&error=oauth_callback_failed`);
     }
