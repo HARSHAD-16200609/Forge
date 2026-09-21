@@ -1,4 +1,3 @@
-import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
 import { WebSocket } from "ws";
 import { sendWs, WsResponse } from "../utility/wsResponse";
@@ -9,6 +8,7 @@ import { formatValidationError } from "../utility/error";
 import { workspaceRepository } from "../../modules/Workspace/workspace.repository";
 import { channelRepository } from "../../modules/Channel/channel.repository";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
+import { relayBroadcast } from "../relay";
 
 async function forwardTyping(
     ws: WebSocket,
@@ -61,21 +61,12 @@ async function forwardTyping(
         }
     }
 
-    const subscribers = subscriptionManager.getSubscribers(entityId)
-    if (!subscribers) {
-        return
-    }
-
-    const response = WsResponse.ok(message.type, "OK", StatusCodes.OK, {
+    const data = {
         userId: userMetadata.userId,
         entityId,
-    })
+    }
 
-    subscribers.forEach((subscriber) => {
-        if (subscriber !== ws) {
-            sendWs(subscriber, response)
-        }
-    })
+    relayBroadcast(message.type, ws, entityId, data)
 }
 
 class TypingHandler {

@@ -131,3 +131,4 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
     })),
   };
 }
+

@@ -39,6 +39,16 @@ export const channelIdSchema = z.object({
 })
 
 
+export const relayEnvelopeSchema = z.object({
+  eventType: z.enum(WsEvent),
+  entityId: z.string().min(1),
+  message: z.unknown(),
+  excludeSessionId: z.string().optional(),
+});
+
+
+
+export type RelayEnvelope = z.infer<typeof relayEnvelopeSchema>;
 export type Envelope = z.infer<typeof envelopeSchema>;
 export type convoId = z.infer<typeof conversationIdSchema>
 export type MessagePayload = z.infer<typeof messageEnvelopeSchema>

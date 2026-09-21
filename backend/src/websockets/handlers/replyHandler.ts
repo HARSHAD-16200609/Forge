@@ -1,6 +1,5 @@
 import { WebSocket } from "ws";
 import { StatusCodes } from "http-status-codes";
-import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
 import { connectionManager } from "../connectionManager";
 import { sendWs, WsResponse } from "../utility/wsResponse";
@@ -11,6 +10,7 @@ import { workspaceRepository } from "../../modules/Workspace/workspace.repositor
 import { channelRepository } from "../../modules/Channel/channel.repository";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
 import { ChannelMessageDTO, ConversationMessageDTO } from "../../types/message";
+import { relayBroadcast } from "../relay";
 import {
   notificationService,
   mentionSnippet,
@@ -204,15 +204,10 @@ async function reply(ws: WebSocket, message: WebSocketMessage): Promise<void> {
     StatusCodes.OK,
     createdReply,
   );
-  const subscribers = subscriptionManager.getSubscribers(entityId);
 
   sendWs(ws, response);
 
-  subscribers?.forEach((subscriber) => {
-    if (subscriber !== ws) {
-      sendWs(subscriber, response);
-    }
-  });
+  relayBroadcast(message.type, ws, entityId, createdReply);
 }
 
 export const replyHandler = { reply };

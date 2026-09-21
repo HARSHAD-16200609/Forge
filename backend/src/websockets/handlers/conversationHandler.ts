@@ -14,6 +14,7 @@ import { workspaceRepository } from "../../modules/Workspace/workspace.repositor
 import { ConversationMessageDTO } from "../../types/message";
 import { messageRepository } from "../../modules/Messages/message.repository";
 import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
+import { relayBroadcast } from "../relay";
 
 class ConversationHandler {
     async subscribe(
@@ -194,20 +195,9 @@ class ConversationHandler {
             }
         )
 
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
-
-
-
         sendWs(ws, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, createdMessage))
 
-
-
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, WsResponse.ok(WsEvent.ConversationMessageCreated, "OK", StatusCodes.OK, createdMessage))
-            }
-        })
+        relayBroadcast(WsEvent.ConversationMessageCreated, ws, messagePayload.data.conversationId, createdMessage)
     }
 
     async updateMessage(ws: WebSocket,
@@ -273,16 +263,9 @@ class ConversationHandler {
 
         const updatedPost = await messageRepository.editMessage(content, messageId)
 
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
-
         sendWs(ws, WsResponse.ok(WsEvent.ConversationMessageUpdated, "OK", StatusCodes.OK, updatedPost))
 
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, WsResponse.ok(WsEvent.ConversationMessageUpdated, "OK", StatusCodes.OK, updatedPost))
-            }
-        })
+        relayBroadcast(WsEvent.ConversationMessageUpdated, ws, messagePayload.data.conversationId, updatedPost)
 
     }
 
@@ -346,18 +329,11 @@ class ConversationHandler {
         }
         const deletedMessage = await messageRepository.deleteMessage(messageId)
 
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.conversationId)
-
         const response = WsResponse.ok(WsEvent.ConversationMessageDeleted, "OK", StatusCodes.OK, deletedMessage)
 
         sendWs(ws, response)
 
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, response)
-            }
-        })
+        relayBroadcast(WsEvent.ConversationMessageDeleted, ws, messagePayload.data.conversationId, deletedMessage)
 
     }
 

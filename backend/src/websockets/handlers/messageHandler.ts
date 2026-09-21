@@ -13,6 +13,8 @@ import { ChannelMessageDTO } from "../../types/message";
 import { formatValidationError } from "../utility/error";
 import { notificationService, mentionSnippet } from "../../modules/Notifications/notifications.service";
 import { Visibility } from "../../../generated/prisma/enums";
+import { WsMessageDTO } from "../types/wsMessageDTO";
+import { relayBroadcast } from "../relay";
 
 
 
@@ -148,6 +150,7 @@ class MessageHandler {
             sendWs(ws, WsResponse.fail(WsEvent.ChannelMessage, StatusCodes.UNAUTHORIZED, "UNAUTHORIZED", "Unauthenticated User login first"))
             return
         }
+
         if (!messagePayload.success) {
             sendWs(
                 ws,
@@ -179,7 +182,7 @@ class MessageHandler {
             senderId: userMetadata.userId
 
         }
-        const createdMessage = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
+        const createdMessage: WsMessageDTO = await messageRepository.postMessage(messageObj, messagePayload.data.uploadIds, userMetadata.userId)
 
         await notificationService.createMentions(
             createdMessage.id,
@@ -192,23 +195,11 @@ class MessageHandler {
                 snippet: mentionSnippet(messagePayload.data.content),
             }
         )
-
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
-
-
-
         sendWs(ws, WsResponse.ok(WsEvent.ChannelMessageCreated, "OK", StatusCodes.OK, createdMessage))
-
-
-
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, WsResponse.ok(WsEvent.ChannelMessageCreated, "OK", StatusCodes.OK, createdMessage))
-            }
-        })
+        relayBroadcast(WsEvent.ChannelMessageCreated, ws, messagePayload.data.channelId, createdMessage)
 
     }
+
     async updateMessage(ws: WebSocket,
         message: WebSocketMessage
     ): Promise<void> {
@@ -272,16 +263,9 @@ class MessageHandler {
 
         const updatedPost = await messageRepository.editMessage(content, messageId)
 
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
-
         sendWs(ws, WsResponse.ok(WsEvent.ChannelMessageUpdated, "OK", StatusCodes.OK, updatedPost))
 
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, WsResponse.ok(WsEvent.ChannelMessageUpdated, "OK", StatusCodes.OK, updatedPost))
-            }
-        })
+        relayBroadcast(WsEvent.ChannelMessageUpdated, ws, messagePayload.data.channelId, updatedPost)
 
     }
 
@@ -346,22 +330,16 @@ class MessageHandler {
 
         const deletedMessage = await messageRepository.deleteMessage(messageId)
 
-        let subscribers = subscriptionManager.getSubscribers(messagePayload.data.channelId)
-
         const response = WsResponse.ok(WsEvent.ChannelMessageDeleted, "OK", StatusCodes.OK, deletedMessage)
 
         sendWs(ws, response)
 
-        subscribers?.forEach((subscriber) => {
-            if (subscriber !== ws) {
-
-                sendWs(subscriber, response)
-            }
-        })
+        relayBroadcast(WsEvent.ChannelMessageDeleted, ws, messagePayload.data.channelId, deletedMessage)
 
 
 
-}
+    }
+
 
 }
 

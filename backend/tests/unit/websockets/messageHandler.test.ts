@@ -64,6 +64,11 @@ const metadata: ConnectionMetadata = {
     lastSeenAt: new Date(),
 };
 
+const otherMetadata: ConnectionMetadata = {
+    ...metadata,
+    sessionId: "session-2",
+};
+
 const CHANNEL_ID = "f5f63127-9f69-446d-b5a1-82d25fc45a96";
 const WORKSPACE_ID = "30a3aa89-92bc-4ecf-97d2-a642bc445c74";
 
@@ -248,13 +253,13 @@ describe("messageHandler.channel.message.create", () => {
     });
 
     it("forwards uploadIds and broadcasts to other subscribers but not the sender", async () => {
-        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
         vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
         const posts = { message: { id: "m-2" }, uploads: [] };
         vi.mocked(messageRepository.postMessage).mockResolvedValue(posts as never);
 
-        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
 
         const uploadIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"];
@@ -277,6 +282,34 @@ describe("messageHandler.channel.message.create", () => {
         expect(senderFrame).toBeDefined();
         expect(otherFrame).toBeDefined();
         expect(sent.filter((f) => f.ws === ws)).toHaveLength(1);
+        subscriptionManager.unsubscribe(CHANNEL_ID, otherWs);
+    });
+
+    it("does not broadcast to another socket on the sender's session but reaches a different session", async () => {
+        const sameSessionWs = { readyState: WebSocket.OPEN } as WebSocket;
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => {
+            if (socket === otherWs) return otherMetadata;
+            return metadata;
+        });
+        vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
+        vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
+        const posts = { message: { id: "m-sess" }, uploads: [] };
+        vi.mocked(messageRepository.postMessage).mockResolvedValue(posts as never);
+
+        subscriptionManager.subscribe(CHANNEL_ID, sameSessionWs);
+        subscriptionManager.subscribe(CHANNEL_ID, otherWs);
+
+        await messageHandler.createMessage(ws, {
+            type: WsEvent.ChannelMessage,
+            payload: { workspaceId: WORKSPACE_ID, channelId: CHANNEL_ID, content: "hello", uploadIds: [] },
+        });
+
+        const sent = sentFrames;
+        expect(sent.filter((f) => f.ws === ws)).toHaveLength(1);
+        expect(sent.filter((f) => f.ws === otherWs)).toHaveLength(1);
+        expect(sent.some((f) => f.ws === sameSessionWs)).toBe(false);
+        subscriptionManager.unsubscribe(CHANNEL_ID, sameSessionWs);
         subscriptionManager.unsubscribe(CHANNEL_ID, otherWs);
     });
 
@@ -404,14 +437,14 @@ describe("messageHandler.channel.message.update", () => {
     };
 
     it("edits the message and replies + broadcasts channel.message.updated with the post in data", async () => {
-        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
         vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
         vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
         const updated = { ...channelPost, content: "edited" };
         vi.mocked(messageRepository.editMessage).mockResolvedValue(updated as never);
 
-        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
 
         await messageHandler.updateMessage(ws, updateMessage);
@@ -574,7 +607,8 @@ describe("messageHandler.channel.message.delete", () => {
     };
 
     it("deletes the message and replies + broadcasts channel.message.deleted with the tombstone in data", async () => {
-        vi.mocked(connectionManager.getMetadata).mockReturnValue(metadata);
+        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         vi.mocked(workspaceRepository.memberExists).mockResolvedValue(WS_MEMBER);
         vi.mocked(channelRepository.memberExists).mockResolvedValue({ id: "cm-1" } as never);
         vi.mocked(messageRepository.messageExists).mockResolvedValue(channelPost as never);
@@ -591,7 +625,6 @@ describe("messageHandler.channel.message.delete", () => {
         };
         vi.mocked(messageRepository.deleteMessage).mockResolvedValue(deletedMessage as never);
 
-        const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
 
         await messageHandler.deleteMessage(ws, deleteMessage);

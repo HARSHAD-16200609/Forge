@@ -71,6 +71,11 @@ const metadata: ConnectionMetadata = {
     lastSeenAt: new Date(),
 };
 
+const otherMetadata: ConnectionMetadata = {
+    ...metadata,
+    sessionId: "session-2",
+};
+
 const WORKSPACE_ID = "30a3aa89-92bc-4ecf-97d2-a642bc445c74";
 const CHANNEL_ID = "f5f63127-9f69-446d-b5a1-82d25fc45a96";
 const CONVO_ID = "8b6e0b64-2c1f-4d2a-9a3c-7f9e2d1c4b5a";
@@ -124,6 +129,7 @@ describe("reactionHandler.react", () => {
         vi.mocked(messageRepository.reactionExists).mockResolvedValue(null);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CHANNEL_ID, ws);
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
 
@@ -164,6 +170,7 @@ describe("reactionHandler.react", () => {
         vi.mocked(messageRepository.reactionExists).mockResolvedValue(null);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CONVO_ID, ws);
         subscriptionManager.subscribe(CONVO_ID, otherWs);
 
@@ -364,6 +371,7 @@ describe("eventRouter.dispatch reaction path", () => {
         vi.mocked(messageRepository.reactionExists).mockResolvedValue(null);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CHANNEL_ID, otherWs);
 
         await expect(
@@ -396,6 +404,7 @@ describe("eventRouter.dispatch reaction path", () => {
         vi.mocked(messageRepository.reactionExists).mockResolvedValue(null);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CONVO_ID, otherWs);
 
         await expect(

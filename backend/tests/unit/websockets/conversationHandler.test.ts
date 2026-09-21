@@ -63,6 +63,11 @@ const metadata: ConnectionMetadata = {
     lastSeenAt: new Date(),
 };
 
+const otherMetadata: ConnectionMetadata = {
+    ...metadata,
+    sessionId: "session-2",
+};
+
 const CONVO_ID = "8b6e0b64-2c1f-4d2a-9a3c-7f9e2d1c4b5a";
 const WORKSPACE_ID = "30a3aa89-92bc-4ecf-97d2-a642bc445c74";
 
@@ -187,6 +192,7 @@ describe("conversationHandler.createMessage", () => {
         vi.mocked(messageRepository.postMessage).mockResolvedValue(posts as never);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CONVO_ID, otherWs);
 
         const uploadIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"];
@@ -330,6 +336,7 @@ describe("conversationHandler.updateMessage", () => {
         vi.mocked(messageRepository.editMessage).mockResolvedValue(updated as never);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CONVO_ID, otherWs);
 
         await conversationHandler.updateMessage(ws, updateMessage);
@@ -495,6 +502,7 @@ describe("conversationHandler.deleteMessage", () => {
         vi.mocked(messageRepository.deleteMessage).mockResolvedValue(deletedMessage as never);
 
         const otherWs = { readyState: WebSocket.OPEN } as WebSocket;
+        vi.mocked(connectionManager.getMetadata).mockImplementation((socket) => (socket === otherWs ? otherMetadata : metadata));
         subscriptionManager.subscribe(CONVO_ID, otherWs);
 
         await conversationHandler.deleteMessage(ws, deleteMessage);

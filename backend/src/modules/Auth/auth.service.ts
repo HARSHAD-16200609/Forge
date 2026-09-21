@@ -120,7 +120,7 @@ class AuthService {
             let user = await authRepository.findUserByEmail(email);
 
             if (!user) {
-                const generatedUsername = await this.generateUniqueUsername(name);
+                const generatedUsername = await this.generateUniqueUsername(email);
                 user = await authRepository.createOAuthUserWithAccount({
                     username: generatedUsername,
                     name,
@@ -146,9 +146,9 @@ class AuthService {
         return this.createUserSession(userId, username, email, userMetaData)
     }
 
-    private async generateUniqueUsername(email: string) {
+    private async generateUniqueUsername(name: string) {
 
-        const prefix = email.split("@")[0] ?? "";
+        const prefix = name.split("@")[0] ?? "";
         const raw = prefix.toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 15) || "user";
         const base = raw.length < 6 ? raw.padEnd(6, "_") : raw;
 

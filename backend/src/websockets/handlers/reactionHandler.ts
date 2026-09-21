@@ -1,6 +1,5 @@
 import { WebSocket } from "ws";
 import { StatusCodes } from "http-status-codes";
-import { subscriptionManager } from "../subscriptionManager";
 import { WebSocketMessage } from "../types/websocketMessage";
 import { connectionManager } from "../connectionManager";
 import { sendWs, WsResponse } from "../utility/wsResponse";
@@ -10,6 +9,7 @@ import { messageRepository } from "../../modules/Messages/message.repository";
 import { workspaceRepository } from "../../modules/Workspace/workspace.repository";
 import { channelRepository } from "../../modules/Channel/channel.repository";
 import { conversationRepository } from "../../modules/Conversations/conversations.repository";
+import { relayBroadcast } from "../relay";
 
 async function react(
     ws: WebSocket,
@@ -100,15 +100,10 @@ async function react(
     }
 
     const response = WsResponse.ok(message.type, "OK", StatusCodes.OK, data)
-    const subscribers = subscriptionManager.getSubscribers(entityId)
 
     sendWs(ws, response)
 
-    subscribers?.forEach((subscriber) => {
-        if (subscriber !== ws) {
-            sendWs(subscriber, response)
-        }
-    })
+    relayBroadcast(message.type, ws, entityId, data)
 }
 
 export const reactionHandler = { react }
