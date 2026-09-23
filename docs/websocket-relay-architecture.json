@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "WebSocket Relay — Multi-Instance",
+    "output": "websocket-relay-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1300, 640],
+    "views": [
+      { "id": "send-path", "label": "Laptop sends → mobile sees", "focus": ["laptop", "nodea", "redis", "nodeb", "mobile"], "note": "Session A sends on node A; the envelope lands on node B so session B receives." },
+      { "id": "publish", "label": "Publish path", "focus": ["nodea", "nodeb", "redis"], "note": "relayBroadcast publishes one envelope to the forge:relay channel." },
+      { "id": "exclusion", "label": "Sender-session exclusion", "focus": ["nodea", "redis", "laptop", "mobile"], "note": "Session A is skipped on every node; session B receives the event." }
+    ]
+  },
+  "components": [
+    { "id": "laptop", "type": "external", "label": "Laptop Client", "sublabel": "session A · sender", "tag": "ws client", "pos": [30, 140], "size": [140, 84] },
+    { "id": "mobile", "type": "external", "label": "Mobile Client", "sublabel": "session B · receiver", "tag": "ws client", "pos": [30, 470], "size": [140, 84] },
+    { "id": "nodea", "type": "backend", "label": "Backend Node A", "sublabel": "gateway · WS layer · handlers", "pos": [350, 140], "size": [190, 96] },
+    { "id": "nodeb", "type": "backend", "label": "Backend Node B", "sublabel": "gateway · WS layer · handlers", "pos": [350, 470], "size": [190, 96] },
+    { "id": "redis", "type": "messagebus", "label": "Redis Pub/Sub", "sublabel": "channel: forge:relay", "pos": [720, 305], "size": [180, 100] },
+    { "id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "Prisma · adapter-pg", "pos": [1060, 470], "size": [140, 84] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "WorkSphere backend fleet", "wraps": ["nodea", "nodeb"] }
+  ],
+  "connections": [
+    { "id": "laptop-ws", "from": "laptop", "to": "nodea", "label": "WS upgrade · ws://", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [190, 240] },
+    { "id": "mobile-ws", "from": "mobile", "to": "nodeb", "label": "WS upgrade · ws://", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [190, 458] },
+    { "id": "bus-a", "from": "nodea", "to": "redis", "label": "relayBroadcast · publish / fan-out", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "bus-b", "from": "nodeb", "to": "redis", "label": "relayBroadcast · publish / fan-out", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "exclude", "from": "nodea", "to": "laptop", "label": "excluded · same session A", "variant": "security", "fromSide": "top", "toSide": "top" },
+    { "id": "deliver-b", "from": "nodeb", "to": "mobile", "label": "deliverEnvelope · session B", "variant": "emphasis", "fromSide": "left", "toSide": "right", "labelAt": [260, 590] },
+    { "id": "persist-b", "from": "nodeb", "to": "pg", "label": "Prisma · SQL", "variant": "emphasis", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Sender-session exclusion", "items": ["Laptop (session A) sends on node A; its own session receives only the ack", "Mobile (session B, separate login) receives the event across nodes", "The same session-skip rule runs in deliverLocally and deliverEnvelope"] },
+    { "dot": "emerald", "title": "Single delivery path", "items": ["Handlers call relayBroadcast once: enabled → publish only, disabled/degraded → deliverLocally", "No handler both publishes and locally fans out — exactly one path per frame", "Typing, reactions, replies, and message + conversation CRUD all ride the bus"] },
+    { "dot": "rose", "title": "Resilience and lifecycle", "items": ["Lazy ioredis clients; Redis down degrades gracefully to single-node", "Boot: connectRedis → startRelay gated; shutdown: stopRelay before stopRedis", "Envelopes are zod-validated; malformed or untyped events are dropped, never dispatched"] }
+  ]
+}
