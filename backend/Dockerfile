@@ -6,10 +6,8 @@ COPY backend/package*.json ./
 
 RUN npm ci
 
-
 COPY backend/ ./
 
-RUN npm install
 
 RUN npx prisma generate
 

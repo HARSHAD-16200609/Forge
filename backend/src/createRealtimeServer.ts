@@ -5,10 +5,18 @@ import { validateSession, verifyAccessToken } from "./utility/auth/jwt";
 import { AuthenticatedUpgradeRequest } from "./websockets/types/auth";
 import { websocketServer } from "./websockets/websocketServer";
 
+export const WS_PATH = "/socket";
+
 export function createRealtimeServer(): http.Server {
   const server = http.createServer(app);
 
   server.on("upgrade", async (req, socket, head) => {
+    const { pathname } = new URL(req.url ?? "/", "http://localhost");
+    if (pathname !== WS_PATH) {
+      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+      socket.destroy();
+      return;
+    }
     try {
       const cookie = req.headers.cookie;
       if (!cookie || cookie === undefined) {

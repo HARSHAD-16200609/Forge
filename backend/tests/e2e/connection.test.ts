@@ -4,6 +4,7 @@ import { env } from "../../src/config/env";
 import { prisma, resetDb } from "../support/db";
 import { createConfirmedUser } from "../support/fixtures";
 import { connect, expectConnectRejected, startTestServer, stopTestServer, waitForClose, waitForType } from "../support/realtime";
+import { WS_PATH } from "../../src/createRealtimeServer";
 
 let url: string;
 let wsSocket: import("ws").WebSocket | undefined;
@@ -68,6 +69,34 @@ describe("connection upgrade security", () => {
     const hello = await waitForType(wsSocket, "pong");
     expect(hello.success).toBe(true);
     expect(hello.message).toContain("Connected to server");
+
+    wsSocket.close();
+    await waitForClose(wsSocket);
+  });
+});
+
+describe("upgrade path enforcement", () => {
+  it("rejects the handshake on any path other than the socket path", async () => {
+    const { accessToken } = await createConfirmedUser();
+    const wrongPath = url.replace(WS_PATH, "/not-the-socket");
+    expect(await expectConnectRejected(wrongPath, accessToken)).toBe(404);
+  });
+
+  it("rejects the handshake on a trailing-slash variant of the socket path", async () => {
+    const { accessToken } = await createConfirmedUser();
+    expect(await expectConnectRejected(`${url}/`, accessToken)).toBe(404);
+  });
+
+  it("rejects the handshake without a cookie before checking the path", async () => {
+    expect(await expectConnectRejected(url.replace(WS_PATH, ""))).toBe(404);
+  });
+
+  it("accepts a query string on the socket path", async () => {
+    const { accessToken } = await createConfirmedUser();
+    wsSocket = await connect(`${url}?probe=1`, accessToken);
+
+    const hello = await waitForType(wsSocket, "pong");
+    expect(hello.success).toBe(true);
 
     wsSocket.close();
     await waitForClose(wsSocket);

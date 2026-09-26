@@ -1,6 +1,8 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 const wsUrlOverride = import.meta.env.VITE_WS_URL;
 
+const WS_PATH = "/socket";
+
 if (!apiBaseUrl) {
     throw new Error("VITE_API_BASE_URL is not configured");
 }
@@ -8,7 +10,7 @@ if (!apiBaseUrl) {
 function deriveWsUrl(apiBase: string): string {
     const url = new URL(apiBase);
     const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${url.host}`;
+    return `${protocol}//${url.host}${WS_PATH}`;
 }
 
 export const env = {

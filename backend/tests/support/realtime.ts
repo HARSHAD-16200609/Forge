@@ -1,6 +1,6 @@
 import http from "http";
 import { WebSocket } from "ws";
-import { createRealtimeServer } from "../../src/createRealtimeServer";
+import { createRealtimeServer, WS_PATH } from "../../src/createRealtimeServer";
 
 export interface Frame {
   type: string;
@@ -56,7 +56,7 @@ export async function startTestServer(): Promise<{ url: string }> {
   server = createRealtimeServer();
   await new Promise<void>((resolve) => server!.listen(0, resolve));
   const address = server!.address() as { port: number };
-  return { url: `ws://127.0.0.1:${address.port}` };
+  return { url: `ws://127.0.0.1:${address.port}${WS_PATH}` };
 }
 
 export async function stopTestServer(): Promise<void> {
