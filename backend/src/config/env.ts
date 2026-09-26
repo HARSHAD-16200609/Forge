@@ -58,9 +58,9 @@ const envSchema = z.object({
 
   COOKIE_SECRET: z.string().min(32),
 
-  REDIS_URL:z.url(),
-  REALTIME_RELAY_ENABLED : z.enum(["true","false"])
-
+  REDIS_URL: z.url(),
+  REALTIME_RELAY_ENABLED: z.enum(["true", "false"]),
+  VITE_API_BASE_URL: z.url()
 
 });
 
