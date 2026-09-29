@@ -12,6 +12,8 @@ import { apiRouter } from "./routes/routes";
 
 const app = express();
 
+app.set("trust_proxy",1)
+
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -34,7 +36,6 @@ app.use(
   })
 );
 
-app.set("trust_proxy",1)
 
 
 app.use(express.json({ limit: "10mb" }));

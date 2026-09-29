@@ -200,7 +200,7 @@ export const handleGoogleCallBack = asyncHandler(async (req, res) => {
     const tokens = await oidc.authorizationCodeGrant(
       oidcConfig,
       new URL(
-        `${req.protocol}://${req.get("host")}${req.originalUrl}`
+        req.originalUrl,env.GOOGLE_REDIRECT_URI
       ),
       {
         pkceCodeVerifier: txn.codeVerifier,
