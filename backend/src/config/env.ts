@@ -54,7 +54,7 @@ const envSchema = z.object({
 
   GITHUB_REDIRECT_URI: z.url(),
 
-  CLIENT_URL: z.url(),
+  CLIENT_URL: z.url().transform(v=>v.replace(/\/+$/,"")),
 
   COOKIE_SECRET: z.string().min(32),
 
