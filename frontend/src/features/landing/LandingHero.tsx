@@ -1,136 +1,44 @@
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
-import { useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { DotPattern } from "@/components/ui/dot-pattern";
-import gradientVideo from "@/assets/gradient-21st.mp4";
-import { ProductPreview } from "./product-preview";
+import { ArrowRight } from "@carbon/icons-react";
 
-const EASE_OUT = [0.23, 1, 0.32, 1] as const;
-
-const entranceVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.7, ease: EASE_OUT },
-    },
-};
-
+/**
+ * Typographic hero, no media.
+ *
+ * The first decision worth defending: there is no video, image or product mock
+ * up here. A video in the hero becomes the Largest Contentful Paint candidate,
+ * and LCP is the metric that decides how fast the page feels. A recording of
+ * the product lives one section further down, in `ProductVideo`, and it is
+ * framed as a recording rather than smuggled in as atmosphere.
+ *
+ * The heading also carries the only large type on the page. Everything below
+ * steps down, so this is the single place the serif is allowed to be loud.
+ */
 export function LandingHero() {
-    const reduce = useReducedMotion();
-    const previewRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({
-        target: previewRef,
-        offset: ["start end", "end start"],
-    });
-    const parallaxY = useTransform(scrollYProgress, [0, 1], [48, -48]);
-
     return (
-        <section className="relative isolate overflow-clip">
-            <DotPattern
-                width={26}
-                height={26}
-                cx={1}
-                cy={1}
-                cr={1}
-                className="fill-muted"
-            />
-            <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 -z-10"
-            >
-                <video
-                    className="size-full object-cover opacity-100"
-                    autoPlay={!reduce}
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                    poster={gradientVideo}
-                >
-                    <source src={gradientVideo} type="video/mp4" />
-                </video>
-                <div className="absolute inset-0 bg-gradient-to-b from-background/75 via-background/40 to-background" />
-            </div>
-            <div
-                aria-hidden="true"
-                className="aurora-hero pointer-events-none absolute right-[-20%] top-[-20%] -z-10 size-[42rem] rounded-full"
-            />
+        <section className="border-b border-border">
+            <div className="mx-auto max-w-5xl px-6 py-24 sm:py-32 lg:py-40">
+                <div className="max-w-3xl">
+                    <p className="landing-mono mb-8">For teams that talk a lot</p>
 
-            <div className="mx-auto grid min-h-svh max-w-7xl items-center gap-12 px-6 pb-20 pt-32 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28 lg:pt-36">
-                <div className="max-w-xl">
-                    <motion.div
-                        initial={reduce ? false : { opacity: 0, y: 20 }}
-                        animate={reduce ? undefined : { opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, ease: EASE_OUT }}
-                    >
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-                            Forge · Team communication
-                        </p>
-                    </motion.div>
+                    <h1 className="landing-serif text-[clamp(2rem,5.5vw,4.75rem)] leading-[1.04] tracking-[-0.03em]">
+                        Everything your team says, in one place.
+                    </h1>
 
-                    <motion.div
-                        variants={{
-                            hidden: {},
-                            visible: { transition: { staggerChildren: 0.09, delayChildren: 0.25 } },
-                        }}
-                        initial={reduce ? false : "hidden"}
-                        animate={reduce ? undefined : "visible"}
-                    >
-                        <motion.h1
-                            variants={entranceVariants}
-                            className="mt-5 text-balance text-4xl font-semibold tracking-tight leading-[1.04] sm:text-5xl lg:text-6xl"
-                        >
-                            Every conversation your team ships, in one place.
-                        </motion.h1>
-                        <motion.p
-                            variants={entranceVariants}
-                            className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
-                        >
-                            Channels, threads, and direct messages with live presence and rich
-                            replies — built to keep your whole team in sync.
-                        </motion.p>
-                    </motion.div>
+                    <p className="mt-8 max-w-xl text-[1.0625rem] leading-[1.6] text-muted-foreground sm:text-lg">
+                        Forge gives you channels for everything: projects, support, design review,
+                        and the argument about naming things. Replies stay attached to the message
+                        that started them, so a decision is never buried six scrolls down.
+                    </p>
 
-                    <motion.div
-                        className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-                        initial={reduce ? false : { opacity: 0, y: 20 }}
-                        animate={reduce ? undefined : { opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.55, ease: EASE_OUT }}
-                    >
-                        <Button
-                            asChild
-                            size="lg"
-                            className="h-11 px-6 bg-brand text-brand-foreground transition-transform duration-200 hover:scale-[1.03] hover:bg-brand/90 active:scale-[0.98] motion-reduce:transform-none"
-                        >
-                            <Link to="/auth/register">
-                                <span>Get started free</span>
-                            </Link>
-                        </Button>
-                        <Button
-                            asChild
-                            size="lg"
-                            variant="ghost"
-                            className="h-11 px-6 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] motion-reduce:transform-none"
-                        >
-                            <a href="#product">
-                                <span>See it in action</span>
-                            </a>
-                        </Button>
-                    </motion.div>
-                </div>
-
-                <div className="relative" ref={previewRef}>
-                    <motion.div
-                        className="relative"
-                        style={reduce ? undefined : { y: parallaxY }}
-                        initial={reduce ? false : { opacity: 0, y: 40, scale: 0.98 }}
-                        animate={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.8, delay: 0.35, ease: EASE_OUT }}
-                    >
-                        <ProductPreview />
-                    </motion.div>
+                    <div className="mt-12 flex flex-wrap items-center gap-3">
+                        <Link to="/auth/register" className="landing-cta">
+                            Create a workspace
+                            <ArrowRight size={16} />
+                        </Link>
+                        <Link to="/auth/login" className="landing-cta-secondary">
+                            Sign in
+                        </Link>
+                    </div>
                 </div>
             </div>
         </section>

@@ -1,52 +1,48 @@
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Close, Menu, Moon, Sun } from "@carbon/icons-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useTheme } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/forge.png";
 
 const menuItems = [
-    { name: "Features", href: "#features" },
     { name: "Product", href: "#product" },
+    { name: "Features", href: "#features" },
+    { name: "How it works", href: "#how-it-works" },
 ];
 
+/**
+ * The bar is sticky with a permanent hairline rather than a floating pill that
+ * changes width on scroll. The old version watched scroll position to swap
+ * between `max-w-3xl` and `max-w-5xl`, which reflowed the whole header on the
+ * first pixel of scroll and needed a scroll listener to do it.
+ */
 export function LandingNav() {
-    const [isScrolled, setIsScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const { scrollY } = useScroll();
-
-    useMotionValueEvent(scrollY, "change", (latest) => {
-        setIsScrolled(latest > 24);
-    });
-
     const closeMenu = () => setIsOpen(false);
 
     return (
-        <header className="fixed inset-x-0 top-0 z-40 px-3 sm:px-4">
-            <nav
-                className={cn(
-                    "mx-auto flex items-center justify-between gap-6 px-4 py-2.5 transition-all duration-300",
-                    isScrolled
-                        ? "mt-2 max-w-3xl rounded-2xl border bg-background/70 shadow-sm shadow-zinc-950/5 backdrop-blur-xl lg:max-w-5xl lg:px-6"
-                        : "mt-0 max-w-7xl border border-transparent",
-                )}
-            >
+        <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+            <nav className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-6 px-6">
                 <Link
                     to="/"
-                    className="flex shrink-0 items-center gap-2 font-medium"
+                    className="flex shrink-0 items-center gap-2.5 py-1"
                     aria-label="Forge home"
                 >
-                    <img src={logo} alt="" className="h-11 w-auto object-contain" />
+                    {/* Wordmark only. The mark that used to sit here is a
+                        1024px opaque raster whose corners are #fcfcfc, so at
+                        28px it rendered as a pale square on the bone canvas
+                        and put 485 kB on the critical path to do it. */}
+                    <span className="landing-serif text-[1.375rem] leading-none tracking-[-0.02em]">
+                        Forge
+                    </span>
                 </Link>
 
-                <div className="hidden items-center gap-8 text-sm lg:flex">
+                <div className="hidden items-center gap-7 lg:flex">
                     {menuItems.map((item) => (
                         <a
                             key={item.href}
                             href={item.href}
-                            className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                            className="landing-mono py-2 transition-colors duration-150 hover:text-foreground"
                         >
                             {item.name}
                         </a>
@@ -54,86 +50,70 @@ export function LandingNav() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="hidden transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transform-none sm:inline-flex"
+                    <Link
+                        to="/auth/login"
+                        className="landing-mono hidden px-2 py-2 transition-colors duration-150 hover:text-foreground sm:block"
                     >
-                        <Link to="/auth/login">
-                            <span>Log in</span>
-                        </Link>
-                    </Button>
-                    <Button
-                        asChild
-                        size="sm"
-                        className="bg-brand text-brand-foreground transition-transform duration-200 hover:scale-105 hover:bg-brand/90 active:scale-95 motion-reduce:transform-none"
-                    >
-                        <Link to="/auth/register">
-                            <span>Sign up</span>
-                        </Link>
-                    </Button>
+                        Log in
+                    </Link>
+                    <Link to="/auth/register" className="landing-cta h-9 px-4 text-[0.8125rem]">
+                        Sign up
+                    </Link>
                     <ThemeToggle />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="lg:hidden"
+                    <button
+                        type="button"
                         onClick={() => setIsOpen((open) => !open)}
                         aria-label={isOpen ? "Close menu" : "Open menu"}
                         aria-expanded={isOpen}
+                        className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground lg:hidden"
                     >
-                        {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-                    </Button>
+                        {isOpen ? <Close size={18} /> : <Menu size={18} />}
+                    </button>
                 </div>
             </nav>
 
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="mx-auto mt-2 max-w-3xl rounded-2xl border bg-background/95 p-4 shadow-lg shadow-zinc-950/5 backdrop-blur-xl lg:hidden"
-                    >
-                        <div className="flex flex-col gap-1">
-                            {menuItems.map((item) => (
-                                <a
-                                    key={item.href}
-                                    href={item.href}
-                                    onClick={closeMenu}
-                                    className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
-                                >
-                                    {item.name}
-                                </a>
-                            ))}
-                            <Link
-                                to="/auth/login"
+            {isOpen && (
+                <div className="border-t border-border lg:hidden">
+                    <div className="mx-auto flex max-w-5xl flex-col px-6 py-2">
+                        {menuItems.map((item) => (
+                            <a
+                                key={item.href}
+                                href={item.href}
                                 onClick={closeMenu}
-                                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground sm:hidden"
+                                className="border-b border-border/60 py-3 text-sm text-foreground last:border-b-0"
                             >
-                                Log in
-                            </Link>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                {item.name}
+                            </a>
+                        ))}
+                        <Link
+                            to="/auth/login"
+                            onClick={closeMenu}
+                            className="border-t border-border/60 py-3 text-sm text-foreground sm:hidden"
+                        >
+                            Log in
+                        </Link>
+                    </div>
+                </div>
+            )}
         </header>
     );
 }
 
 function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();
+    const label = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
     return (
-        <Button
-            variant="ghost"
-            size="icon"
+        <button
+            type="button"
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transform-none"
+            aria-label={label}
+            title={label}
+            className={cn(
+                "flex size-9 items-center justify-center rounded-md text-muted-foreground",
+                "transition-colors duration-150 hover:bg-muted hover:text-foreground",
+            )}
         >
-            {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </Button>
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
     );
 }

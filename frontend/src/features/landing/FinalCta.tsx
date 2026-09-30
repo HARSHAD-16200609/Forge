@@ -1,46 +1,34 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Reveal } from "./Reveal";
+import { ArrowRight } from "@carbon/icons-react";
+import { useReveal } from "./useReveal";
 
 export function FinalCta() {
+    const ref = useReveal<HTMLDivElement>();
+
     return (
-        <section className="relative overflow-clip">
-            <div
-                aria-hidden="true"
-                className="aurora-cta pointer-events-none absolute inset-0 -z-10"
-            />
-            <div className="mx-auto max-w-4xl px-6 py-28 text-center">
-                <Reveal className="flex flex-col items-center">
-                    <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl lg:leading-[1.05]">
-                        Put your whole team on one page.
+        <section className="border-b border-border">
+            <div className="mx-auto max-w-5xl px-6 py-24 sm:py-32">
+                <div ref={ref} data-reveal className="max-w-2xl">
+                    <p className="landing-mono mb-6">Next</p>
+                    <h2 className="landing-serif text-[clamp(1.75rem,3.2vw,2.75rem)] tracking-[-0.02em]">
+                        Open a workspace and find out whether it fits
                     </h2>
-                    <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                        Create a workspace in under a minute. No credit card, no setup ritual.
+                    <p className="mt-5 text-[1.0625rem] leading-[1.6] text-muted-foreground">
+                        It takes an email address and a name. If it turns out your team thinks in
+                        threads and channels, you will know within a day, and if not you have lost a
+                        day.
                     </p>
-                    <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-                        <Button
-                            asChild
-                            size="lg"
-                            className="h-11 gap-2 px-7 bg-brand text-brand-foreground transition-transform duration-200 hover:scale-[1.03] hover:bg-brand/90 active:scale-[0.98] motion-reduce:transform-none"
-                        >
-                            <Link to="/auth/register">
-                                <span>Get started free</span>
-                                <ArrowRight className="size-4" />
-                            </Link>
-                        </Button>
-                        <Button
-                            asChild
-                            size="lg"
-                            variant="ghost"
-                            className="h-11 px-6 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] motion-reduce:transform-none"
-                        >
-                            <Link to="/auth/login">
-                                <span>Log in</span>
-                            </Link>
-                        </Button>
+
+                    <div className="mt-10 flex flex-wrap items-center gap-3">
+                        <Link to="/auth/register" className="landing-cta">
+                            Create a workspace
+                            <ArrowRight size={16} />
+                        </Link>
+                        <Link to="/auth/login" className="landing-cta-secondary">
+                            Sign in
+                        </Link>
                     </div>
-                </Reveal>
+                </div>
             </div>
         </section>
     );

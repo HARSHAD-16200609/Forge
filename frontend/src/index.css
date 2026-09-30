@@ -300,22 +300,12 @@
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(
-        90deg,
-        transparent,
-        oklch(1 0 0 / 0.45),
-        transparent
-    );
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.45), transparent);
     animation: skeleton-sweep 1.5s ease-in-out infinite;
 }
 
 .dark .skeleton::after {
-    background: linear-gradient(
-        90deg,
-        transparent,
-        oklch(1 0 0 / 0.08),
-        transparent
-    );
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.08), transparent);
 }
 
 @keyframes skeleton-sweep {
@@ -330,11 +320,297 @@
     }
 }
 
-/* ── Landing page: capability marquee ─────────────────────────────────── */
+/* ══ Landing page: warm monochrome editorial surface ══════════════════════
+   Scoped to `.landing-surface` rather than redefined on `:root`. The marketing
+   page is warm bone and off-black; the workspace app is cool white and gray.
+   Redefining the raw custom properties inside a subtree is enough to retarget
+   every `bg-background`, `text-muted-foreground` and `border-border` utility
+   at once, because `@theme inline` maps each colour to the variable rather than
+   baking in a value. Same mechanism the existing `.force-light` block uses. */
 
-@keyframes marquee {
+.landing-surface {
+    color-scheme: light;
+    /* `body` resolves `color: var(--foreground)` once, against the global
+       cool value, and children inherit that computed result. Re-pointing the
+       variable here would not fix inherited text, so the colour is set
+       explicitly. Same reason `.force-light` does it. */
+    color: var(--foreground);
+
+    --background: #f7f6f3; /* warm bone canvas */
+    --foreground: #111111; /* off-black, never pure #000 */
+    --card: #ffffff;
+    --card-foreground: #111111;
+    --popover: #ffffff;
+    --popover-foreground: #111111;
+    --primary: #111111;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f0ec;
+    --secondary-foreground: #111111;
+    --muted: #f1f0ec;
+    /* Not the #787774 usually paired with a bone canvas: that is 4.14:1 here
+       and fails AA for body text. This is 4.79:1 and still reads as secondary
+       next to #111111. */
+    --muted-foreground: #6e6d6a;
+    --accent: #f1f0ec;
+    --accent-foreground: #111111;
+    --destructive: #9f2f2d;
+    --border: #eaeaea;
+    --input: #e4e3e0;
+    --ring: #b4b2ad;
+
+    /* Colour is spent only on meaning. The product blue is desaturated to a
+       slate so it reads as a label rather than as a call to action. */
+    --brand: #4a6b8a;
+    --brand-foreground: #ffffff;
+    --brand-soft: #e1f3fe;
+
+    --sidebar: #fbfaf8;
+    --sidebar-foreground: #111111;
+    --sidebar-primary: #111111;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f1f0ec;
+    --sidebar-accent-foreground: #111111;
+    --sidebar-border: #eaeaea;
+    --sidebar-ring: #b4b2ad;
+}
+
+.dark .landing-surface {
+    color-scheme: dark;
+
+    --background: #14120f;
+    --foreground: #f5f3f0;
+    --card: #1c1917;
+    --card-foreground: #f5f3f0;
+    --popover: #1c1917;
+    --popover-foreground: #f5f3f0;
+    --primary: #f5f3f0;
+    --primary-foreground: #14120f;
+    --secondary: #26221e;
+    --secondary-foreground: #f5f3f0;
+    --muted: #26221e;
+    --muted-foreground: #a09b94;
+    --accent: #26221e;
+    --accent-foreground: #f5f3f0;
+    --destructive: #e8a5a3;
+    --border: #ffffff14;
+    --input: #ffffff1f;
+    --ring: #6b6760;
+
+    --brand: #9db6c9;
+    --brand-foreground: #14120f;
+    --brand-soft: #1f2933;
+
+    --sidebar: #1a1714;
+    --sidebar-foreground: #f5f3f0;
+    --sidebar-primary: #f5f3f0;
+    --sidebar-primary-foreground: #14120f;
+    --sidebar-accent: #26221e;
+    --sidebar-accent-foreground: #f5f3f0;
+    --sidebar-border: #ffffff14;
+    --sidebar-ring: #6b6760;
+}
+
+/* Washed-out pastels. The only place colour is allowed, and only to mark
+   something as a category, a state, or code. */
+.landing-surface {
+    --pastel-red: #fdebec;
+    --pastel-red-ink: #9f2f2d;
+    --pastel-blue: #e1f3fe;
+    --pastel-blue-ink: #1f6c9f;
+    --pastel-green: #edf3ec;
+    --pastel-green-ink: #346538;
+    --pastel-yellow: #fbf3db;
+    --pastel-yellow-ink: #956400;
+}
+
+.dark .landing-surface {
+    --pastel-red: #2a1a1a;
+    --pastel-red-ink: #e8a5a3;
+    --pastel-blue: #17232c;
+    --pastel-blue-ink: #a8cbe4;
+    --pastel-green: #1a231a;
+    --pastel-green-ink: #a6c9a4;
+    --pastel-yellow: #26200f;
+    --pastel-yellow-ink: #e0c473;
+}
+
+/* ── Landing faces ───────────────────────────────────────────────────────
+   Three voices: an editorial serif for headings, Geist for reading, and a
+   monospace for labels and metadata. The serif is a system stack so the page
+   picks up the reader's own editorial face instead of shipping a webfont. */
+
+.landing-surface {
+    --font-editorial:
+        "Instrument Serif", "Newsreader", "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
+        Georgia, "Times New Roman", serif;
+    --font-mono:
+        "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+/* Component classes live in `@layer components` on purpose. Tailwind v4 emits
+   utilities in a later cascade layer, so `h-9` or `rounded-md` passed alongside
+   one of these classes still wins. Unlayered rules would outrank every utility
+   regardless of specificity and quietly swallow those overrides. */
+
+@layer components {
+    /* ── Landing typography ───────────────────────────────────────────────
+   Three voices: an editorial serif for headings, Geist for reading, and a
+   monospace for labels and metadata. The serif is a system stack so the page
+   picks up the reader's own editorial face instead of shipping a webfont. */
+
+    .landing-serif {
+        font-family: var(--font-editorial);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.08;
+    }
+
+    .landing-mono {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        line-height: 1;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+    }
+
+    /* ── Landing scroll reveals ────────────────────────────────────────────
+   Entrance is opacity plus a 12px rise, and nothing else. Animating width,
+   height, top or left would force layout on every frame of a long page. The
+   per-item delay is read from a custom property so a list can cascade without
+   a stagger library. */
+
+    [data-reveal] {
+        opacity: 0;
+        transform: translateY(12px);
+        transition:
+            opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+            transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+        transition-delay: calc(var(--reveal-index, 0) * 80ms);
+    }
+
+    [data-reveal][data-revealed] {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* ── Landing ambient depth ───────────────────────────────────────────
+   The page should not read as a flat sheet, but a visible glow would break the
+   monochrome. One fixed layer, warm, at 3% opacity, drifting on a 24 second
+   cycle. Fixed rather than absolute so it never becomes a second scrollport. */
+
+    .landing-ambient {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+            radial-gradient(
+                46rem 30rem at 18% 6%,
+                color-mix(in srgb, #c8b89a 26%, transparent),
+                transparent 70%
+            ),
+            radial-gradient(
+                38rem 28rem at 84% 92%,
+                color-mix(in srgb, #b9c4cf 20%, transparent),
+                transparent 70%
+            );
+        opacity: 0.03;
+        animation: landing-drift 24s ease-in-out infinite alternate;
+    }
+}
+
+@keyframes landing-drift {
     to {
-        transform: translateX(-50%);
+        transform: translate3d(0, -2%, 0) scale(1.04);
+    }
+}
+
+@layer components {
+    /* ── Landing cards ─────────────────────────────────────────────────────
+   One hairline, a crisp radius, and a lift so small it reads as paper rather
+   than as a floating panel. */
+
+    .landing-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        transition:
+            box-shadow 200ms ease,
+            border-color 200ms ease;
+    }
+
+    .landing-card:hover {
+        border-color: #d8d6d1;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.04);
+    }
+
+    .dark .landing-card:hover {
+        border-color: #ffffff26;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+    }
+
+    /* ── Landing controls ──────────────────────────────────────────────────
+   Solid near-black, four to six pixels of radius, and a press that shrinks
+   rather than one that grows. Growing reads as a toy; shrinking reads as a
+   physical key. */
+
+    .landing-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 2.75rem;
+        padding-inline: 1.5rem;
+        border-radius: 6px;
+        border: 1px solid #111111;
+        background: #111111;
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition:
+            background-color 150ms ease,
+            transform 150ms ease;
+    }
+
+    .landing-cta:hover {
+        background: #333333;
+    }
+
+    .landing-cta:active {
+        transform: scale(0.98);
+    }
+
+    .landing-cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 2.75rem;
+        padding-inline: 1.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--foreground);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition:
+            background-color 150ms ease,
+            transform 150ms ease;
+    }
+
+    .landing-cta-secondary:hover {
+        background: var(--muted);
+    }
+
+    .landing-cta-secondary:active {
+        transform: scale(0.98);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-ambient {
+        animation: none;
     }
 }
 
@@ -371,7 +647,8 @@
 
 .dark .aurora-hero {
     opacity: 0.35;
-    background-image: radial-gradient(
+    background-image:
+        radial-gradient(
             closest-side,
             color-mix(in oklch, oklch(0.6 0.12 251), transparent 88%),
             transparent 70%
@@ -390,7 +667,8 @@
 
 .dark .aurora-showcase {
     opacity: 0.4;
-    background-image: radial-gradient(
+    background-image:
+        radial-gradient(
             closest-side,
             color-mix(in oklch, oklch(0.58 0.12 251), transparent 90%),
             transparent 70%
@@ -403,7 +681,8 @@
 }
 
 .dark .aurora-cta {
-    background-image: radial-gradient(
+    background-image:
+        radial-gradient(
             60% 60% at 50% 0%,
             color-mix(in oklch, oklch(0.6 0.12 251), transparent 90%),
             transparent
@@ -438,7 +717,8 @@
     --sidebar-selected: oklch(96% 0.03 250);
     --sidebar-selected-foreground: oklch(35% 0.14 251);
     background-color: oklch(50% 0.11 250);
-    background-image: radial-gradient(
+    background-image:
+        radial-gradient(
             closest-side at 0% 0%,
             color-mix(in oklch, oklch(0.68 0.175 251), transparent 84%),
             transparent 65%
@@ -464,11 +744,7 @@
 
 .aurora-sidebar-rail {
     background-color: oklch(42% 0.12 251);
-    background-image: linear-gradient(
-        180deg,
-        oklch(44% 0.13 251),
-        oklch(40% 0.11 250)
-    );
+    background-image: linear-gradient(180deg, oklch(44% 0.13 251), oklch(40% 0.11 250));
 }
 
 .dark .aurora-sidebar-rail {
@@ -502,7 +778,12 @@
 .dark .aurora-header {
     color: oklch(98.5% 0 0);
     background-color: oklch(17% 0.05 250);
-    background-image: linear-gradient(90deg, oklch(18% 0.05 250), oklch(16% 0.04 250), oklch(19% 0.05 250));
+    background-image: linear-gradient(
+        90deg,
+        oklch(18% 0.05 250),
+        oklch(16% 0.04 250),
+        oklch(19% 0.05 250)
+    );
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -515,8 +796,13 @@
         scroll-behavior: auto !important;
     }
 
-    .marquee-track {
-        animation: none !important;
+    /* Reveals are the one landing animation that must not merely be shortened.
+       A 0.01ms opacity fade still hides content for a frame, and the transform
+       is what causes the visible jump, so both are removed outright. */
+    [data-reveal] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
     }
 }
 
