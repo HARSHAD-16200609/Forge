@@ -66,6 +66,8 @@ jobs:
           script: |
             cd /opt/forge/cicdforge/Forge
 
+            export IMAGE_TAG=${GITHUB_SHA::7}
+
             docker compose pull
 
             docker compose up -d
