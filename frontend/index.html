@@ -2,9 +2,29 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>frontend</title>
+
+        <!--
+            Tab icon. The mark is white on the dark plate rather than bare on a
+            transparent background, because white-on-transparent disappears
+            against a light tab. Carrying the plate means one set of files works
+            on both light and dark chrome, so there is no per-scheme variant to
+            keep in step.
+        -->
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+        <title>Forge</title>
+        <meta
+            name="description"
+            content="Channels and threads for a team that would rather talk than email."
+        />
+        <meta name="theme-color" content="#F7F6F3" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#14120F" media="(prefers-color-scheme: dark)" />
         <script>
             (function () {
                 try {
