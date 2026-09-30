@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { CookieOptions } from "express";
 import { z } from "zod";
+import { resolveDatabaseUrl } from "./databaseUrl";
 
 config();
 
@@ -20,7 +21,9 @@ const envSchema = z.object({
 
   PORT: z.coerce.number().int().positive(),
 
-  DATABASE_URL: z.url(),
+  DATABASE_URL: z.url().optional(),
+
+  DATABASE_URL_PROD: z.url().optional(),
 
   JWT_SECRET: z.string().min(32),
 
@@ -75,12 +78,32 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const resolvedDatabase = (() => {
+  try {
+    return resolveDatabaseUrl();
+  } catch (err) {
+    console.error("Environment validation failed:", {
+      DATABASE_URL: [(err as Error).message],
+    });
+
+    process.exit(1);
+  }
+})();
+
+if (!z.url().safeParse(resolvedDatabase.url).success) {
+  console.error("Environment validation failed:", {
+    DATABASE_URL: [`resolved from ${resolvedDatabase.source} is not a valid URL`],
+  });
+
+  process.exit(1);
+}
+
 export const clearCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production"
 }
 
-export const env = parsed.data;
+export const env = { ...parsed.data, DATABASE_URL: resolvedDatabase.url };
 
 
 
