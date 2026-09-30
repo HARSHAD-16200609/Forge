@@ -1,12 +1,7 @@
 services:
-
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-
+    image: harshad000007/forge-backend:latest
     container_name: forge-backend
-
     restart: unless-stopped
 
     env_file:
@@ -14,30 +9,23 @@ services:
 
     ports:
       - "127.0.0.1:3000:3000"
+
     volumes:
       - ./certs/global-bundle.pem:/app/certs/global-bundle.pem:ro
 
     networks:
       - forge-network
-      
+
     extra_hosts:
-        - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
     command: >
       sh -c "npx prisma migrate deploy &&
              npm start"
 
-
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-
+    image: harshad000007/forge-frontend:latest
     container_name: forge-frontend
-
     restart: unless-stopped
 
     ports:
@@ -45,7 +33,6 @@ services:
 
     networks:
       - forge-network
-
 
 networks:
   forge-network:

@@ -56,3 +56,18 @@ jobs:
 
           docker push \
             ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/forge/cicdforge/Forge
+
+            docker compose pull
+
+            docker compose up -d
+
+            docker image prune -f
