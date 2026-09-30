@@ -59,7 +59,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /opt/forge/cicdforge/Forge
+            cd /opt/forge
 
             export IMAGE_TAG="${{ steps.meta.outputs.sha_tag }}"
 
