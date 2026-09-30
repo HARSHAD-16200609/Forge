@@ -28,7 +28,6 @@ jobs:
           docker build \
             -f backend/Dockerfile \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:${{ steps.meta.outputs.sha_tag }} \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:latest \
             .
 
       - name: Build frontend
@@ -38,7 +37,6 @@ jobs:
             --build-arg VITE_API_BASE_URL=https://forrge.tech/api/v1 \
             --build-arg VITE_WS_URL=wss://forrge.tech/socket \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:${{ steps.meta.outputs.sha_tag }} \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:latest \
             .
 
       - name: Push backend
@@ -46,16 +44,13 @@ jobs:
           docker push \
             ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:${{ steps.meta.outputs.sha_tag }}
 
-          docker push \
-            ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:latest
 
       - name: Push frontend
         run: |
           docker push \
             ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:${{ steps.meta.outputs.sha_tag }}
 
-          docker push \
-            ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:latest
+         
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
@@ -66,7 +61,7 @@ jobs:
           script: |
             cd /opt/forge/cicdforge/Forge
 
-            export IMAGE_TAG=${steps.meta.outputs.sha_tag}
+            export IMAGE_TAG="${{ steps.meta.outputs.sha_tag }}"
 
             docker compose pull
 

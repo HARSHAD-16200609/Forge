@@ -12,7 +12,7 @@ export function AuthSplit({
     footer,
     rightHeadline = (
 <>
-  Connect. Collaborateed.
+  Connect. Collaborate.
   <br />
   Your team, in sync.
 </>
