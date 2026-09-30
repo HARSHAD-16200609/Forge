@@ -1,6 +1,6 @@
 services:
   backend:
-    image: harshad000007/forge-backend:${IMAGE_TAG}
+    image: harshad000007/forge-backend:${steps.meta.outputs.sha_tag}
     container_name: forge-backend
     restart: unless-stopped
 
@@ -24,7 +24,7 @@ services:
              npm start"
 
   frontend:
-    image: harshad000007/forge-frontend:${IMAGE_TAG}
+    image: harshad000007/forge-frontend:${steps.meta.outputs.sha_tag}
     container_name: forge-frontend
     restart: unless-stopped
 
