@@ -1,0 +1,58 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set image tag
+        id: meta
+        run: echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend
+        run: |
+          docker build \
+            -f backend/Dockerfile \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:${{ steps.meta.outputs.sha_tag }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:latest \
+            .
+
+      - name: Build frontend
+        run: |
+          docker build \
+            -f frontend/Dockerfile \
+            --build-arg VITE_API_BASE_URL=https://forrge.tech/api/v1 \
+            --build-arg VITE_WS_URL=wss://forrge.tech/socket \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:${{ steps.meta.outputs.sha_tag }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:latest \
+            .
+
+      - name: Push backend
+        run: |
+          docker push \
+            ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:${{ steps.meta.outputs.sha_tag }}
+
+          docker push \
+            ${{ secrets.DOCKERHUB_USERNAME }}/forge-backend:latest
+
+      - name: Push frontend
+        run: |
+          docker push \
+            ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:${{ steps.meta.outputs.sha_tag }}
+
+          docker push \
+            ${{ secrets.DOCKERHUB_USERNAME }}/forge-frontend:latest
