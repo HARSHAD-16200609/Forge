@@ -2,9 +2,21 @@ import z from "zod";
 import { Visibility } from "../../generated/prisma/enums";
 
 
+export const channelNameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, "Channel name is required")
+  .max(80, "Channel name must be 80 characters or less");
+
+export const channelDescriptionSchema = z
+  .string()
+  .trim()
+  .max(500, "Description must be 500 characters or less");
+
 export const createChannelSchema = z.object({
-    channelName : z.string(),
-    description : z.string().min(12),
+    channelName : channelNameSchema,
+    description : channelDescriptionSchema.optional(),
     visibility : z.enum(Visibility)
 })
 export const ChannelParamsSchema = z.object({
@@ -34,18 +46,9 @@ export const createChannelInviteSchema = z.object({
 
 export const updateChannelSchema = z
   .object({
-    channelName: z
-      .string()
-      .trim()
-      .min(1, "Channel name is required")
-      .max(50)
-      .optional(),
+    channelName: channelNameSchema.optional(),
 
-    description: z
-      .string()
-      .trim()
-      .max(500)
-      .optional(),
+    description: channelDescriptionSchema.optional(),
 
     visibility: z
       .enum(["PUBLIC", "PRIVATE"])

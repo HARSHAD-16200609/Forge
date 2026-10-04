@@ -17,8 +17,8 @@ export interface WorkspaceDetails {
     workspaceName: string;
     visibility: "PUBLIC" | "PRIVATE";
     description: string;
-    createdAt: "2026-06-28T13:32:12.894Z",
-    updatedAt: "2026-06-28T13:32:12.894Z",
+    createdAt: string,
+    updatedAt: string,
     channels: Channel[],
     members: ChannelMember[],
     memberCount: number
@@ -26,6 +26,7 @@ export interface WorkspaceDetails {
 export interface Channel {
   channelName: string;
   id:string,
+  description?: string | null
   visibility?: "PUBLIC" | "PRIVATE"
   isMember?: boolean
 }

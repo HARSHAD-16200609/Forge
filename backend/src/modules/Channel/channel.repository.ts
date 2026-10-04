@@ -14,7 +14,7 @@ class ChannelRepository {
             const channel = await tx.channel.create({
                 data: {
                     channelName: dto.channelName,
-                    description: dto.description,
+                    description: dto.description ?? null,
                     visibility: dto.visibility,
                     createdBy: {
                         connect: {

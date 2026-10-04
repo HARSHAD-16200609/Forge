@@ -52,6 +52,7 @@ import {
 } from "@/features/Messages/utils/mentions";
 import { ComposerRecorder } from "./ComposerRecorder";
 import { getVideoThumbnail } from "@/features/Messages/utils/videoThumbnail";
+import useAuth from "@/features/auth/hooks/useAuth";
 
 const inlineTextSanitize = {
     br: true,
@@ -319,13 +320,14 @@ export function MessageComposer({
     const membersRef = useRef<MentionMember[]>(members ?? []);
     const mentionIdsRef = useRef<Set<string>>(new Set());
     const propagateRef = useRef<() => void>(() => {});
+    const {user} = useAuth()
 
     useEffect(() => {
         membersRef.current = members ?? [];
     }, [members]);
 
     const filteredMentions = useMemo(() => {
-        const list = members ?? [];
+        const list = members?.filter((member)=>member.id !== user?.id) ?? [];
         const query = mentionQuery.trim().toLowerCase();
         if (!query) return list;
         return list.filter(

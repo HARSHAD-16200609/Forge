@@ -56,9 +56,10 @@ function ChannelHomeInner() {
     const activeChannel = WorkspaceDetails.data?.channels.find(
         (channel) => channel.id === selectedChannelId,
     );
-    const isMember = activeChannel?.isMember ?? true;
-    const canMessage = isMember;
-    const isPreview = !canMessage && activeChannel?.visibility === "PUBLIC";
+    const isMember = activeChannel?.isMember ?? false;
+    const channelsLoading = WorkspaceDetails.isPending;
+    const canMessage = isMember || channelsLoading;
+    const isPreview = !isMember && activeChannel?.visibility === "PUBLIC";
 
     const workspaceMembers = useMemo(
         () =>
@@ -178,6 +179,9 @@ function ChannelHomeInner() {
         setEditingMessage(null);
     };
 
+    const backendSaysEmpty = isError && getApiError(error).message === "No Messages Found";
+    const isEmpty = !isPending && !isError && ((Messages?.length ?? 0) === 0);
+
     if (!selectedChannelId) {
         return (
             <div className="flex h-full items-center justify-center bg-background">
@@ -192,43 +196,13 @@ function ChannelHomeInner() {
         return <MessageSkeleton rows={6} />;
     }
 
-    if (isError) {
+    if (isError && !backendSaysEmpty) {
         const { status, message } = getApiError(error);
 
         if (status === 403 ) {
             return <ChannelAccessDenied />;
         }
 
-        if (status === 404 && message === "No Messages Found") {
-            return (
-                <div className="relative flex h-full flex-col items-center justify-center gap-3 bg-background px-4 text-center">
-                    {isPreview && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand ring-1 ring-brand/15">
-                            <Eye className="size-3.5" />
-                            Preview
-                        </span>
-                    )}
-                    <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/15">
-                        <Hash className="size-5" />
-                    </span>
-                    <h3 className="text-[15px] font-semibold">
-                        No messages in #{activeChannel?.channelName ?? "this channel"} yet
-                    </h3>
-                    <p className="max-w-xs text-sm text-muted-foreground">
-                        {isPreview
-                            ? "Join this channel to start the conversation."
-                            : "Be the first to post something and start the conversation."}
-                    </p>
-                    {isPreview && selectedWorkspaceId && selectedChannelId && (
-                        <JoinChannelBar
-                            workspaceId={selectedWorkspaceId}
-                            channelId={selectedChannelId}
-                            channelName={activeChannel?.channelName ?? "this channel"}
-                        />
-                    )}
-                </div>
-            );
-        }
 
         if (status === 404) {
             return <ChannelNotFound />;
@@ -335,7 +309,36 @@ function ChannelHomeInner() {
                                 exit={reduce ? undefined : { opacity: 0, y: -6 }}
                                 transition={{ duration: 0.16, ease: APP_EASE }}
                             >
-                                {topLevel.length === 0 && (
+                                {isEmpty && (
+                                    <div className="relative flex h-full flex-col items-center justify-center gap-3 px-4 py-10 text-center">
+                                        {isPreview && (
+                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand ring-1 ring-brand/15">
+                                                <Eye className="size-3.5" />
+                                                Preview
+                                            </span>
+                                        )}
+                                        <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/15">
+                                            <Hash className="size-5" />
+                                        </span>
+                                        <h3 className="text-[15px] font-semibold">
+                                            No messages in #{activeChannel?.channelName ?? "this channel"} yet
+                                        </h3>
+                                        <p className="max-w-xs text-sm text-muted-foreground">
+                                            {isPreview
+                                                ? "Join this channel to start the conversation."
+                                                : "Be the first to post something and start the conversation."}
+                                        </p>
+                                        {isPreview && selectedWorkspaceId && selectedChannelId && (
+                                            <JoinChannelBar
+                                                workspaceId={selectedWorkspaceId}
+                                                channelId={selectedChannelId}
+                                                channelName={activeChannel?.channelName ?? "this channel"}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                {!isEmpty && topLevel.length === 0 && (
                                     <div className="py-10 text-center text-sm text-muted-foreground">
                                         No messages in #{activeChannel?.channelName ?? "channel"}{" "}
                                         yet. Start the conversation!

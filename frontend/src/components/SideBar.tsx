@@ -38,6 +38,7 @@ import { useDms } from "@/features/Messages/hooks/useDms";
 import { usePresenceStore } from "@/realtime/presenceStore";
 import type { Conversation } from "@/features/Messages/types";
 import { NewConversationModal } from "@/features/Messages/components/NewConversationModal";
+import { CreateChannelModal } from "@/features/Channel/components/CreateChannelModal";
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -758,6 +759,7 @@ function DetailSidebar({
     const setActiveSection = useUIStore((s) => s.setActiveSection);
     const setSelectedConversation = useUIStore((s) => s.setSelectedConversation);
     const [showNewConversation, setShowNewConversation] = useState(false);
+    const [showCreateChannel, setShowCreateChannel] = useState(false);
     const conversations = chats.data?.conversations ?? [];
     const dms = conversations.filter((convo) => convo.type === "DM");
     const gdms = conversations.filter((convo) => convo.type === "GDM");
@@ -825,9 +827,20 @@ function DetailSidebar({
         switch (section.kind) {
             case "channels":
                 if (collapsed) return null;
-                return (WorkspaceDetails.data?.channels ?? []).map((c) => (
-                    <ChannelRow key={c.id} name={c.channelName} channelId={c.id} />
-                ));
+                return (
+                    <>
+                        {activeWorkspaceId && (
+                            <QuickLink
+                                onClick={() => setShowCreateChannel(true)}
+                                icon={<Plus size={16} />}
+                                label="Create channel"
+                            />
+                        )}
+                        {(WorkspaceDetails.data?.channels ?? []).map((c) => (
+                            <ChannelRow key={c.id} name={c.channelName} channelId={c.id} />
+                        ))}
+                    </>
+                );
             case "dms":
                 if (collapsed) return null;
                 return dms?.map((d) => (
@@ -984,6 +997,13 @@ function DetailSidebar({
                         open={showNewConversation}
                         workspaceId={activeWorkspaceId ?? ""}
                         onClose={() => setShowNewConversation(false)}
+                    />
+                )}
+                {showCreateChannel && (
+                    <CreateChannelModal
+                        open={showCreateChannel}
+                        workspaceId={activeWorkspaceId ?? ""}
+                        onClose={() => setShowCreateChannel(false)}
                     />
                 )}
             </div>
