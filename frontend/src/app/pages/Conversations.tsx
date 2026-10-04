@@ -70,7 +70,7 @@ function GroupMembersCard({
             id: (members.length + 1).toString(),
             name: email.split("@")[0] || email,
             email,
-            avatar: null,
+            avatar: undefined,
             role,
         };
         setLocal([...members, next]);

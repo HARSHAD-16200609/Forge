@@ -191,7 +191,7 @@ export function Members() {
                         >
                             <UserAvatar
                                 id={user.id}
-                                name={user.name}
+                                name={user.username}
                                 username={user.username}
                                 avatarUrl={user.avatar}
                                 avatarSeed={(user as any).avatarSeed ?? null}

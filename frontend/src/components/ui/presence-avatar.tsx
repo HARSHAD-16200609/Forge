@@ -37,13 +37,6 @@ export function PresenceAvatar({
     );
     const showDot = dot === "show" || (dot === "auto" && online);
 
-    const initials = (name ?? "")
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join("");
-
     const dotClass =
         size === "sm"
             ? "size-2 ring-1"
