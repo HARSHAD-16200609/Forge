@@ -14,6 +14,7 @@ import { useDms } from "@/features/Messages/hooks/useDms";
 import { useUIStore } from "@/stores/uiStore";
 import { notificationsService } from "@/features/Notifications/notifications.service";
 import { invitationService } from "@/features/Invitations/invitation.service";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type {
     AppNotification,
     MentionMetadata,
@@ -132,17 +133,16 @@ function NotificationRow({
                 highlight && !notification.read && "ring-1 ring-brand/30",
             )}
         >
-            {actor?.avatar ? (
-                <img
-                    src={actor.avatar}
-                    alt={actor.username}
-                    className="size-10 shrink-0 rounded-lg object-cover"
-                />
-            ) : (
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-sm font-bold text-brand">
-                    {(actor?.name || actor?.username || "?").charAt(0).toUpperCase()}
-                </div>
-            )}
+            <UserAvatar
+                id={actor?.id ?? null}
+                name={actor?.name ?? actor?.username}
+                username={actor?.username}
+                avatarUrl={actor?.avatar}
+                avatarSeed={(actor as any)?.avatarSeed ?? null}
+                size="lg"
+                shape="rounded"
+                className="shrink-0"
+            />
 
             <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">

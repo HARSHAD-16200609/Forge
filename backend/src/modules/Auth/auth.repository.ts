@@ -254,6 +254,41 @@ export class AuthRepository {
     })
   }
 
+  async getAvatarFields(userId: string) {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        avatar: true,
+        avatarPublicId: true,
+        avatarSeed: true,
+      }
+    })
+  }
+
+  async updateAvatarSeed(userId: string, avatarSeed: string) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { avatarSeed },
+      select: { avatarSeed: true }
+    })
+  }
+
+  async updateAvatar(userId: string, avatar: string, avatarPublicId: string) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { avatar, avatarPublicId },
+      select: { avatar: true, avatarPublicId: true }
+    })
+  }
+
+  async clearAvatar(userId: string) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { avatar: null, avatarPublicId: null },
+      select: { avatar: true, avatarPublicId: true }
+    })
+  }
+
   async createOAuthAccount(data: { provider: "Google" | "Github", providerId: string, userId: string }) {
     return await prisma.oAuthAccount.create({
       data,

@@ -39,6 +39,7 @@ import { usePresenceStore } from "@/realtime/presenceStore";
 import type { Conversation } from "@/features/Messages/types";
 import { NewConversationModal } from "@/features/Messages/components/NewConversationModal";
 import { CreateChannelModal } from "@/features/Channel/components/CreateChannelModal";
+import UserAvatar from "./ui/user-avatar";
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -511,23 +512,25 @@ export function AvatarDot({
 
     return (
         <span className="relative flex size-6 shrink-0 items-center justify-center overflow-visible rounded-full">
-            {avatar ? (
-                <img
-                    src={avatar}
-                    alt={name ?? "avatar"}
-                    className="size-6 rounded-full object-cover"
-                />
-            ) : (
+            {type === "gdm" && !avatar ? (
                 <span
                     className={cn(
                         "flex size-6 items-center justify-center rounded-full text-[10px] font-semibold",
-                        type === "gdm"
-                            ? "bg-emerald-500/20 text-emerald-500"
-                            : "bg-brand/20 text-brand",
+                        "bg-emerald-500/20 text-emerald-500",
                     )}
                 >
-                    {type === "gdm" && !initials ? <Users className="size-3.5" /> : initials}
+                    <Users className="size-3.5" />
                 </span>
+            ) : (
+                <UserAvatar
+                    id={type === "dm" ? undefined : null}
+                    name={name}
+                    username={name}
+                    avatarUrl={avatar}
+                    avatarSeed={null}
+                    size="sm"
+                    shape="circle"
+                />
             )}
 
             <span

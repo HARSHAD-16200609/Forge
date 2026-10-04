@@ -2,6 +2,7 @@ import multer from "multer"
 import path from "path"
 import { BadRequestError } from "../utility/errorHandling/customErrors";
 import { MIME_TO_RESOURCE_TYPE } from "../db/message.schema"
+import { AVATAR_MAX_BYTES, AVATAR_MIME_TYPES } from "../db/auth-schema"
 
 const normalizeMimeType = (mimetype?: string) => {
     const raw = (mimetype ?? "").trim().toLowerCase();
@@ -40,3 +41,23 @@ export const upload = multer({
 
 
 export default upload;
+
+const avatarMimeTypes = new Set<string>(AVATAR_MIME_TYPES);
+
+/** Single image, image types only, 5MB. Rejects SVG so a hostile upload can never be scripted. */
+export const avatarUpload = multer({
+    storage,
+    limits: {
+        fileSize: AVATAR_MAX_BYTES,
+        files: 1,
+    },
+    fileFilter(req, file, cb) {
+        const mimetype = normalizeMimeType(file.mimetype);
+        if (!avatarMimeTypes.has(mimetype)) {
+            return cb(new BadRequestError("Avatar must be a JPEG, PNG, WebP or GIF image"));
+        }
+
+        file.mimetype = mimetype;
+        cb(null, true);
+    },
+});

@@ -15,7 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageEmptyState } from "@/components/ui/page-empty-state";
-import { PresenceAvatar } from "@/components/ui/presence-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Swirling } from "@/components/ui/Swirling";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
@@ -189,12 +189,13 @@ export function Members() {
                             key={user.id}
                             className="relative flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 transition-colors hover:border-border"
                         >
-                            <PresenceAvatar
-                                name={user.username}
+                            <UserAvatar
+                                id={user.id}
+                                name={user.name}
+                                username={user.username}
                                 avatarUrl={user.avatar}
+                                avatarSeed={(user as any).avatarSeed ?? null}
                                 size="md"
-                                workspaceId={activeWorkspaceId}
-                                userId={user.id}
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-foreground">

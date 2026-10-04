@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
 import type { ConversationDetail } from "@/features/Messages/types";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function EmptyConversation({
     detail,
@@ -26,14 +27,16 @@ export function EmptyConversation({
             >
                 {type === "GDM" ? (
                     <Users className="size-9" />
-                ) : peerAvatar ? (
-                    <img
-                        src={peerAvatar}
-                        alt={peerName}
-                        className="size-20 rounded-full object-cover"
-                    />
                 ) : (
-                    <span className="text-3xl font-bold">{peerName.charAt(0).toUpperCase()}</span>
+                    <UserAvatar
+                        id={undefined}
+                        name={peerName}
+                        username={peerName}
+                        avatarUrl={peerAvatar}
+                        avatarSeed={null}
+                        size="2xl"
+                        shape="circle"
+                    />
                 )}
             </div>
 

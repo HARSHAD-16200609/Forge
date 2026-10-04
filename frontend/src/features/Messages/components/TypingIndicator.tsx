@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useTypingStore } from "@/realtime/typingStore";
 import { useWorkspace } from "@/features/Workspaces/hooks/useWorkspaces";
 import { APP_EASE } from "@/components/ui/app-motion";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const dotVariants = {
     hidden: { opacity: 0.35, y: 0 },
@@ -71,17 +72,15 @@ export function TypingIndicator({
         <div className="flex items-center gap-2 px-4 pb-1.5 text-xs text-muted-foreground">
             {names.length === 1 ? (
                 <span className="flex shrink-0 items-center gap-1.5">
-                    {firstTyper?.avatar ? (
-                        <img
-                            src={firstTyper.avatar}
-                            alt={firstTyper.username}
-                            className="size-7 rounded-full object-cover"
-                        />
-                    ) : (
-                        <span className="flex size-7 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
-                            {names[0].charAt(0).toUpperCase()}
-                        </span>
-                    )}
+                    <UserAvatar
+                        id={firstTyper?.id ?? null}
+                        name={names[0]}
+                        username={names[0]}
+                        avatarUrl={firstTyper?.avatar ?? null}
+                        avatarSeed={(firstTyper as any)?.avatarSeed ?? null}
+                        size="sm"
+                        shape="circle"
+                    />
                     <TypingDots reduce={reduce} />
                 </span>
             ) : (

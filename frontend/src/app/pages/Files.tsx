@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageEmptyState } from "@/components/ui/page-empty-state";
-import { PresenceAvatar } from "@/components/ui/presence-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Swirling } from "@/components/ui/Swirling";
 import { APP_EASE } from "@/components/ui/app-motion";
 import { useWorkspace, useWorkspaces } from "@/features/Workspaces/hooks/useWorkspaces";
@@ -119,13 +119,13 @@ function FileCard({ file, workspaceId }: { file: WorkspaceFile; workspaceId: str
                     <span className="truncate">{file.source.label}</span>
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5">
-                    <PresenceAvatar
+                    <UserAvatar
+                        id={file.uploader?.id ?? null}
                         name={file.uploader?.name ?? file.uploader?.username ?? "Unknown"}
+                        username={file.uploader?.username ?? undefined}
                         avatarUrl={file.uploader?.avatar ?? null}
+                        avatarSeed={(file.uploader as any)?.avatarSeed ?? null}
                         size="sm"
-                        workspaceId={workspaceId}
-                        userId={file.uploader?.id}
-                        dot="hidden"
                     />
                     <span className="truncate text-xs text-muted-foreground">
                         {file.uploader?.name ?? file.uploader?.username ?? "Unknown"}

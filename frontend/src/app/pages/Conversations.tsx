@@ -27,6 +27,7 @@ import type { Member } from "@/components/ui/health-stat-card";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Bell, Search, ShieldCheck, TriangleAlert, Users, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_EASE, FadeIn } from "@/components/ui/app-motion";
@@ -69,7 +70,7 @@ function GroupMembersCard({
             id: (members.length + 1).toString(),
             name: email.split("@")[0] || email,
             email,
-            avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
+            avatar: null,
             role,
         };
         setLocal([...members, next]);
@@ -289,18 +290,17 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                 <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-semibold text-emerald-500">
                                     {headerName.charAt(0).toUpperCase()}
                                 </span>
-                            ) : peerMember?.user.avatar ? (
-                                <img
-                                    src={peerMember.user.avatar}
-                                    alt={peerMember.user.username}
-                                    className="size-6 rounded-full object-cover"
-                                />
                             ) : (
-                                <span className="flex size-6 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
-                                    {headerName.charAt(0).toUpperCase()}
-                                </span>
+                                <UserAvatar
+                                    id={peerMember?.user.id ?? null}
+                                    name={headerName}
+                                    username={peerMember?.user.username ?? headerName}
+                                    avatarUrl={peerMember?.user.avatar}
+                                    avatarSeed={(peerMember?.user as any)?.avatarSeed ?? null}
+                                    size="sm"
+                                />
                             )}
-<button
+                            <button
                                 type="button"
                                 onClick={() => setShowMembers((prev) => !prev)}
                                 className="group/mini flex cursor-pointer items-center gap-2 rounded-md py-0.5 pr-1 pl-0"

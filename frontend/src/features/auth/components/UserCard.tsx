@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import useAuth from "../hooks/useAuth";
 // import {  useNavigate } from "react-router-dom";
 import {  isAxiosError } from "axios";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 
 type UserCardProps = {
@@ -37,10 +38,15 @@ export function UserCard({ user }: UserCardProps) {
 
         <Card className="w-full max-w-sm">
             <CardHeader className="items-center text-center">
-                <img
-                    src={user.avatar ?? undefined}
-                    alt={`${user.avatar}'s avatar`}
-                    className="size-20 self-center rounded-full object-cover ring-1 ring-foreground/10"
+                <UserAvatar
+                    id={user.id}
+                    name={user.name}
+                    username={user.username}
+                    avatarUrl={user.avatar}
+                    avatarSeed={user.avatarSeed ?? null}
+                    size="2xl"
+                    shape="circle"
+                    className="self-center ring-1 ring-foreground/10"
                 />
                 <CardTitle>{user.name}</CardTitle>
                 <CardDescription>@{user.username}</CardDescription>

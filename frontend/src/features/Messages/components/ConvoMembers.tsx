@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { UserPlus, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton";
-import { PresenceAvatar } from "@/components/ui/presence-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import useAuth from "@/features/auth/hooks/useAuth";
 import { usePresenceStore } from "@/realtime/presenceStore";
@@ -84,12 +84,13 @@ export function ConvoMembers({
                                         variants={itemVariants}
                                         className="flex items-center gap-3 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-muted/60"
                                     >
-                                        <PresenceAvatar
+                                        <UserAvatar
+                                            id={member.user.id}
                                             name={member.user.username}
+                                            username={member.user.username}
                                             avatarUrl={member.user.avatar}
+                                            avatarSeed={(member.user as any).avatarSeed ?? null}
                                             size="md"
-                                            workspaceId={workspaceId}
-                                            userId={member.user.id}
                                         />
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-medium text-foreground">

@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePresenceStore } from "@/realtime/presenceStore";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const sizeClasses = {
     sm: "size-6 text-[11px]",
@@ -58,17 +59,15 @@ export function PresenceAvatar({
                 className,
             )}
         >
-            {avatarUrl ? (
-                <img
-                    src={avatarUrl}
-                    alt={name ?? "avatar"}
-                    className="size-full rounded-full object-cover"
-                />
-            ) : (
-                <span className="flex size-full items-center justify-center rounded-full bg-brand-soft font-semibold text-brand">
-                    {initials || "?"}
-                </span>
-            )}
+            <UserAvatar
+                id={userId ?? null}
+                name={name}
+                username={name}
+                avatarUrl={avatarUrl}
+                avatarSeed={null}
+                size={size}
+                shape="circle"
+            />
 
             {showDot && (
                 <motion.span

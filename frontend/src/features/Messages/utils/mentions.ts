@@ -3,6 +3,7 @@ export interface MentionMember {
     username: string;
     name?: string | null;
     avatar?: string | null;
+    avatarSeed?: string | null;
 }
 
 const MENTION_ANCHOR_REGEX = /<a\s+[^>]*data-mention-id="([a-f0-9-]+)"[^>]*>@([^<]+)<\/a>/gi;

@@ -5,7 +5,9 @@ import { authRepository } from "./auth.repository"
 import bcrypt from "bcryptjs";
 import { ApiError } from "../../utility/errorHandling/ApiError";
 import { prisma } from "../../config/prisma";
-import { BadRequestError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
+import { BadRequestError, ConflictError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
+import { loggers } from "../../utility/logger/serviceLoggers";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../../config/cloudinary";
 import type { loginInput, OAuthProfile } from "../../types/auth"
 import { genJwtToken, hashToken } from "../../utility/auth/jwt";
 import { env } from "../../config/env";
@@ -221,6 +223,68 @@ class AuthService {
         return user
     }
 
+    async rerollAvatarSeed(userId: string, requestedSeed?: string) {
+        const existing = await authRepository.getAvatarFields(userId)
+
+        if (existing?.avatar) {
+            throw new ConflictError("Remove your uploaded photo before rolling a new generated avatar")
+        }
+
+        return authRepository.updateAvatarSeed(userId, requestedSeed ?? randomAvatarSeed())
+    }
+
+    async uploadAvatar(userId: string, filepath: string) {
+        const previous = await authRepository.getAvatarFields(userId)
+
+        let uploaded
+        try {
+            uploaded = await uploadOnCloudinary(filepath, "image")
+        } catch (err) {
+            throw new ApiError(StatusCodes.BAD_GATEWAY, "Could not upload avatar, please try again")
+        }
+
+        if (!uploaded.secure_url || !uploaded.public_id) {
+            throw new ApiError(StatusCodes.BAD_GATEWAY, "Could not upload avatar, please try again")
+        }
+
+        const saved = await authRepository.updateAvatar(userId, uploaded.secure_url, uploaded.public_id)
+
+        if (previous?.avatarPublicId && previous.avatarPublicId !== uploaded.public_id) {
+            try {
+                await deleteFromCloudinary(previous.avatarPublicId, "image")
+            } catch (err) {
+                loggers.avatar.warn("Stale avatar could not be removed from Cloudinary", {
+                    publicId: previous.avatarPublicId,
+                })
+            }
+        }
+
+        return saved
+    }
+
+    async removeAvatar(userId: string) {
+        const existing = await authRepository.getAvatarFields(userId)
+
+        if (existing?.avatarPublicId) {
+            try {
+                await deleteFromCloudinary(existing.avatarPublicId, "image")
+            } catch (err) {
+                loggers.avatar.warn("Avatar could not be removed from Cloudinary", {
+                    publicId: existing.avatarPublicId,
+                })
+            }
+        }
+
+        await authRepository.clearAvatar(userId)
+
+        return {
+            avatar: null,
+            avatarSeed: existing?.avatarSeed ?? null,
+        }
+    }
+
 }
+
+const randomAvatarSeed = () => crypto.randomUUID()
 
 export const authService = new AuthService()

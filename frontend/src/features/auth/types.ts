@@ -24,5 +24,7 @@ export interface UserProfile {
     email: string;
     name: string;
     avatar: string | null;
+    avatarPublicId?: string | null;
+    avatarSeed: string | null;
     timezone: string | null;
 }

@@ -16,6 +16,11 @@
     },
     "dependencies": {
         "@carbon/icons-react": "^11.87.0",
+        "@dicebear/avataaars": "^9.4.2",
+        "@dicebear/bottts": "^9.4.2",
+        "@dicebear/core": "^9.4.3",
+        "@dicebear/fun-emoji": "^9.4.2",
+        "@dicebear/micah": "^9.4.2",
         "@editorjs/code": "^2.9.4",
         "@editorjs/editorjs": "^2.31.6",
         "@editorjs/header": "^2.8.9",

@@ -7,6 +7,7 @@ import { formatMessageTime } from "../utils/format";
 import useAuth from "@/features/auth/hooks/useAuth";
 import { APP_EASE } from "@/components/ui/app-motion";
 import type { Message, MessageSender } from "../types";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "✅"];
 
@@ -90,18 +91,16 @@ export function MessageBubble({
             onMouseEnter={hideActions ? undefined : () => setShowActions(true)}
             onMouseLeave={hideActions ? undefined : () => setShowActions(false)}
         >
-            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
-                {message.sender.avatar ? (
-                    <img
-                        src={message.sender.avatar}
-                        alt={message.sender.username}
-                        className="size-10 rounded-lg object-cover"
-                    />
-                ) : (
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-brand">
-                        {initialsOf(message.sender)}
-                    </div>
-                )}
+            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center text-sm font-bold text-white">
+                <UserAvatar
+                    id={message.sender.id}
+                    name={message.sender.name}
+                    username={message.sender.username}
+                    avatarUrl={message.sender.avatar}
+                    avatarSeed={(message.sender as any).avatarSeed ?? null}
+                    size="lg"
+                    shape="rounded"
+                />
             </div>
 
             <div className="min-w-0 flex-1">

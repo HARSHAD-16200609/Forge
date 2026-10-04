@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Send, Users, X } from "lucide-react";
 import { messageService } from "../message.service";
 import { useWorkspace } from "@/features/Workspaces/hooks/useWorkspaces";
-import { PresenceAvatar } from "@/components/ui/presence-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useUIStore } from "@/stores/uiStore";
 import { cn } from "@/lib/utils";
 import useAuth from "@/features/auth/hooks/useAuth";
@@ -161,10 +161,13 @@ export function NewConversationModal({ open, workspaceId, onClose }: NewConversa
                                         title={`Remove ${m.user.username}`}
                                         className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 py-1 pr-2 pl-1 text-[12px] font-medium text-brand-foreground transition-colors hover:bg-brand/20"
                                     >
-                                        <PresenceAvatar
+                                        <UserAvatar
+                                            id={m.user.id}
                                             name={m.user.username}
+                                            username={m.user.username}
                                             avatarUrl={m.user.avatar}
-                                            size={"sm"}
+                                            avatarSeed={(m.user as any).avatarSeed ?? null}
+                                            size="sm"
                                         />
                                         {m.user.username}
                                     </button>
@@ -197,9 +200,12 @@ export function NewConversationModal({ open, workspaceId, onClose }: NewConversa
                                 onClick={() => setSelectedIds((ids) => [...ids, m.user.id])}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
                             >
-                                <PresenceAvatar
+                                <UserAvatar
+                                    id={m.user.id}
                                     name={m.user.username}
+                                    username={m.user.username}
                                     avatarUrl={m.user.avatar}
+                                    avatarSeed={(m.user as any).avatarSeed ?? null}
                                     size="sm"
                                 />
                                 <span className="min-w-0 flex-1 truncate text-sm">

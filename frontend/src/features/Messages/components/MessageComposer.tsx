@@ -50,6 +50,7 @@ import {
     extractMentionIds,
     type MentionMember,
 } from "@/features/Messages/utils/mentions";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { ComposerRecorder } from "./ComposerRecorder";
 import { getVideoThumbnail } from "@/features/Messages/utils/videoThumbnail";
 import useAuth from "@/features/auth/hooks/useAuth";
@@ -145,19 +146,17 @@ function getMentionCaret(
 }
 
 function MentionAvatar({ member }: { member: MentionMember }) {
-    if (member.avatar) {
-        return (
-            <img
-                src={member.avatar}
-                alt={member.username}
-                className="size-5 shrink-0 rounded-full object-cover"
-            />
-        );
-    }
     return (
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/20 text-[10px] font-bold text-brand">
-            {(member.name || member.username).charAt(0).toUpperCase()}
-        </span>
+        <UserAvatar
+            id={member.id}
+            name={member.name ?? member.username}
+            username={member.username}
+            avatarUrl={member.avatar}
+            avatarSeed={(member as any).avatarSeed ?? null}
+            size="sm"
+            shape="circle"
+            className="shrink-0"
+        />
     );
 }
 

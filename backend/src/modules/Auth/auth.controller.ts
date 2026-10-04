@@ -5,8 +5,8 @@ import { loggers } from "../../utility/logger/serviceLoggers";
 import { clearCookieOptions, accessCookieOptions, refreshCookieOptions, env } from "../../config/env";
 import { authService } from "./auth.service";
 import { authRepository } from "./auth.repository";
-import { cookieTokens, loginSchema, oAuthProfileSchema, refreshToken, registerSchema, reqUserSchema } from "../../db/auth-schema";
-import { UserInputValidationError } from "../../utility/errorHandling/customErrors";
+import { avatarUploadSchema, cookieTokens, loginSchema, oAuthProfileSchema, refreshToken, registerSchema, rerollAvatarSchema, reqUserSchema } from "../../db/auth-schema";
+import { BadRequestError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import * as oidc from "openid-client"
 import { oidcConfig } from "../../config/oidc";
 import axios from "axios"
@@ -147,6 +147,63 @@ export const getUser = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(StatusCodes.OK, response ?? {}, "User Details Fetched"))
 
+})
+
+export const rerollAvatar = asyncHandler(async (req, res) => {
+
+  const user = reqUserSchema.safeParse(req.user)
+  if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
+
+  const body = rerollAvatarSchema.safeParse(req.body ?? {})
+  if (!body.success) throw new UserInputValidationError("Invalid Input", body.error.flatten().fieldErrors)
+
+  const result = await authService.rerollAvatarSeed(user.data.userId, body.data.seed)
+
+  loggers.avatar.info("Generated Avatar Rerolled", {
+    userId: user.data.userId,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  })
+
+  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, { avatarSeed: result.avatarSeed }, "Avatar Rerolled"))
+})
+
+export const uploadAvatar = asyncHandler(async (req, res) => {
+
+  const user = reqUserSchema.safeParse(req.user)
+  if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
+
+  const file = req.file
+  if (!file) throw new BadRequestError("Please add an image to upload")
+
+  const validated = avatarUploadSchema.safeParse({ mimetype: file.mimetype, size: file.size })
+  if (!validated.success) throw new UserInputValidationError("Unsupported image", validated.error.flatten().fieldErrors)
+
+  const result = await authService.uploadAvatar(user.data.userId, file.path)
+
+  loggers.avatar.info("Avatar Uploaded", {
+    userId: user.data.userId,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  })
+
+  res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, result, "Avatar Uploaded"))
+})
+
+export const removeAvatar = asyncHandler(async (req, res) => {
+
+  const user = reqUserSchema.safeParse(req.user)
+  if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
+
+  const result = await authService.removeAvatar(user.data.userId)
+
+  loggers.avatar.info("Avatar Removed", {
+    userId: user.data.userId,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  })
+
+  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, result, "Avatar Removed"))
 })
 
 export const handleGoogleLogin = asyncHandler(async (req, res) => {

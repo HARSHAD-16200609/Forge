@@ -9,21 +9,21 @@ const initialMembers: Member[] = [
     id: "1",
     name: "Walter White",
     email: "heisenberg@methlab.com",
-    avatar: "https://cdn.21st.dev/assets/mirror/56/5619d988d9e8795f57f23caeac425062a8b972984cbe75e5a3fe3370e4dd60b9.jpg",
+    avatar: null,
     role: "Owner",
   },
   {
     id: "2",
     name: "Jesse Pinkman",
     email: "yo@bitch.com",
-    avatar: "https://cdn.21st.dev/assets/mirror/4f/4fcf7f925f8c23881f850d2c242e643915c1141e6e23e8cace997c603267198c.jpg",
+    avatar: null,
     role: "Viewer",
   },
   {
     id: "3",
     name: "Saul Goodman",
     email: "legal@bettercallsaul.com",
-    avatar: "https://cdn.21st.dev/assets/mirror/9a/9a3f3f88dac2ceb807e98d4cbe99acc9813da6d0ce2859b1cf026747727e1667.jpg",
+    avatar: null,
     role: "Editor",
   },
 ];
@@ -43,7 +43,7 @@ export default function AccessManagerDemo() {
       id: (members.length + 1).toString(),
       name: email.split("@")[0],
       email,
-      avatar: `https://i.pravatar.cc/150?u=${email}`,
+      avatar: null,
       role,
     };
     setMembers((prev) => [...prev, newMember]);

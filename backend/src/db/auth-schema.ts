@@ -63,6 +63,19 @@ export const loginSchema = z.object({
     picture: z.url().optional().nullable(),
   })
 
+  export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+
+export const AVATAR_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+
+export const avatarUploadSchema = z.object({
+    mimetype: z.enum(AVATAR_MIME_TYPES),
+    size: z.number().positive().max(AVATAR_MAX_BYTES)
+  })
+
+  export const rerollAvatarSchema = z.object({
+    seed: z.string().min(8).max(64).optional()
+  })
+
   export type oAuthProfileData = z.infer<typeof oAuthProfileSchema>;
   export type registerUserInput = z.infer<typeof registerSchema>;
   export type loginUserInput = z.infer<typeof loginSchema>;

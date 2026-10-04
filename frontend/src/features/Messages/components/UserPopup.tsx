@@ -11,6 +11,7 @@ import { usePresenceStore } from "@/realtime/presenceStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useDms } from "@/features/Messages/hooks/useDms";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface UserPopupProps {
     userId: string;
@@ -55,17 +56,16 @@ export function UserPopup({ userId, workspaceId, children }: UserPopupProps) {
             <PopoverContent className="w-80 p-0" align="start" side="top">
                 <div className="rounded-t-lg bg-gradient-to-b from-brand/15 to-transparent p-4">
                     <div className="flex items-start gap-3">
-                        {user.avatar ? (
-                            <img
-                                src={user.avatar}
-                                alt={user.username}
-                                className="size-14 shrink-0 rounded-xl object-cover"
-                            />
-                        ) : (
-                            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-bold text-brand-foreground">
-                                {displayName.charAt(0).toUpperCase()}
-                            </div>
-                        )}
+                        <UserAvatar
+                            id={user.id}
+                            name={displayName}
+                            username={user.username}
+                            avatarUrl={user.avatar}
+                            avatarSeed={(user as any).avatarSeed ?? null}
+                            size="xl"
+                            shape="rounded"
+                            className="shrink-0"
+                        />
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-base font-bold">{displayName}</p>
                             <p className="flex items-center gap-1 truncate text-sm text-muted-foreground">

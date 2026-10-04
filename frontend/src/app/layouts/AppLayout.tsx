@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 
 import logoUrl from "@/assets/forge.png";
 import Frame760 from "@/components/SideBar";
-import { PresenceAvatar } from "@/components/ui/presence-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorScreen } from "@/components/access/ErrorScreen";
 import { WorkspaceAccessDenied, WorkspaceNotFound } from "@/components/access/AccessDeniedScreens";
@@ -126,12 +126,13 @@ export function AppLayout() {
                                 aria-label="Account"
                                 className="size-8 rounded-full transition-transform hover:scale-105 active:scale-95"
                             >
-                                <PresenceAvatar
+                                <UserAvatar
+                                    id={user.id}
                                     name={user.username}
+                                    username={user.username}
                                     avatarUrl={user.avatar}
+                                    avatarSeed={user.avatarSeed ?? null}
                                     size="sm"
-                                    workspaceId={activeWorkspaceId}
-                                    userId={user.id}
                                 />
                             </button>
                         </UserMenu>
