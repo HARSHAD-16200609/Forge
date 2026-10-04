@@ -9,21 +9,21 @@ const initialMembers: Member[] = [
     id: "1",
     name: "Walter White",
     email: "heisenberg@methlab.com",
-    avatar: null,
+    avatar: undefined,
     role: "Owner",
   },
   {
     id: "2",
     name: "Jesse Pinkman",
     email: "yo@bitch.com",
-    avatar: null,
+    avatar: undefined,
     role: "Viewer",
   },
   {
     id: "3",
     name: "Saul Goodman",
     email: "legal@bettercallsaul.com",
-    avatar: null,
+    avatar: undefined,
     role: "Editor",
   },
 ];
@@ -43,7 +43,7 @@ export default function AccessManagerDemo() {
       id: (members.length + 1).toString(),
       name: email.split("@")[0],
       email,
-      avatar: null,
+      avatar: undefined,
       role,
     };
     setMembers((prev) => [...prev, newMember]);

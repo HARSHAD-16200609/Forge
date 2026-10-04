@@ -503,13 +503,6 @@ export function AvatarDot({
     name?: string;
     type?: "dm" | "gdm";
 }) {
-    const initials = (name ?? "")
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase() ?? "")
-        .join("");
-
     return (
         <span className="relative flex size-6 shrink-0 items-center justify-center overflow-visible rounded-full">
             {type === "gdm" && !avatar ? (

@@ -13,7 +13,7 @@ const sizeClasses = {
 
 export type UserAvatarSize = keyof typeof sizeClasses
 
-export interface UserAvatarProps extends React.ComponentProps<"span"> {
+export interface UserAvatarProps extends Omit<React.ComponentProps<"span">, "id"> {
     id?: string | null
     name?: string | null
     username?: string | null

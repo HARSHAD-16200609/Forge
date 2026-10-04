@@ -64,7 +64,7 @@ function formatUploadedAt(iso: string): string {
     }).format(date);
 }
 
-function FileCard({ file, workspaceId }: { file: WorkspaceFile; workspaceId: string }) {
+function FileCard({ file }: { file: WorkspaceFile }) {
     const isImage = file.fileType === "IMAGE";
     const isMedia = file.fileType === "VIDEO" || file.fileType === "AUDIO";
     const [open, setOpen] = useState(false);
@@ -305,7 +305,7 @@ export function Files() {
             ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                     {files.map((file) => (
-                        <FileCard key={file.id} file={file} workspaceId={activeWorkspaceId} />
+                        <FileCard key={file.id} file={file} />
                     ))}
                 </div>
             )}

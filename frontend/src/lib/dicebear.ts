@@ -1,15 +1,19 @@
-import { createAvatar } from "@dicebear/core"
+import { createAvatar, type Style } from "@dicebear/core"
 import * as avataaars from "@dicebear/avataaars"
 import * as micah from "@dicebear/micah"
 import * as bottts from "@dicebear/bottts"
 import * as funEmoji from "@dicebear/fun-emoji"
 
-export const DICEBEAR_STYLES = [avataaars, micah, bottts, funEmoji] as const
+type DicebearStyle = Style<Record<string, unknown>>
 
-type DicebearStyle = (typeof DICEBEAR_STYLES)[number]
+export const DICEBEAR_STYLES = [
+    avataaars as DicebearStyle,
+    micah as DicebearStyle,
+    bottts as DicebearStyle,
+    funEmoji as DicebearStyle,
+] as const
 
-const FNV_OFFSET_BASIS = BigInt("2166136261")
-const FNV_PRIME = BigInt(16777619)
+type DicebearStyleFromList = (typeof DICEBEAR_STYLES)[number]
 
 function fnv1a32(seed: string): number {
     let hash = 0x811c9dc5
@@ -21,7 +25,7 @@ function fnv1a32(seed: string): number {
     return hash
 }
 
-function pickStyle(seed: string): DicebearStyle {
+function pickStyle(seed: string): DicebearStyleFromList {
     const h = fnv1a32(seed)
     const index = h % DICEBEAR_STYLES.length
     return DICEBEAR_STYLES[index]
