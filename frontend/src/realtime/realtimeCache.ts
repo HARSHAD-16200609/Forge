@@ -29,6 +29,65 @@ export function upsertMessage(
     return [{ ...newest, messages: [...newest.messages, message] }, ...pages.slice(1)];
 }
 
+/**
+ * `upsertMessage` cannot append to an empty page array, which is exactly the state of a freshly
+ * loaded channel that has no messages yet — i.e. the "first message in a channel" case. This seeds
+ * the first page when one is needed and otherwise defers to `upsertMessage`.
+ */
+export function ensureMessage(
+    pages: paginatedMessages[],
+    message: Message,
+): paginatedMessages[] {
+    if (pages.length === 0) {
+        return [{ messages: [message], hasMore: false }];
+    }
+
+    return upsertMessage(pages, message) ?? pages;
+}
+
+export interface PendingMessageBuffer {
+    push(key: string, message: Message): void;
+    take(key: string): Message[];
+    size(key: string): number;
+    clear(): void;
+}
+
+const MAX_PENDING_PER_KEY = 100;
+
+/**
+ * Holds realtime message frames that arrive before their query has any cached page. Without this
+ * the frame is dropped on the floor (see `upsertMessage`'s `if (!pages) return pages` guard) and the
+ * message never renders until a manual refetch.
+ */
+export function createPendingMessageBuffer(): PendingMessageBuffer {
+    const store = new Map<string, Message[]>();
+
+    return {
+        push(key, message) {
+            const list = store.get(key);
+            if (!list) {
+                store.set(key, [message]);
+                return;
+            }
+            if (list.some((existing) => existing.id === message.id)) return;
+            if (list.length >= MAX_PENDING_PER_KEY) return;
+            list.push(message);
+        },
+        take(key) {
+            const list = store.get(key);
+            if (!list) return [];
+            store.delete(key);
+            return list;
+        },
+        size(key) {
+            return store.get(key)?.length ?? 0;
+        },
+        clear() {
+            store.clear();
+        },
+    };
+}
+
 function reactionKey(reaction: MessageReaction): string {
     return `${reaction.emoji}:${reaction.reactedBy.id}`;
 }

@@ -24,7 +24,6 @@ class MessageService {
 
 
         const channelMessages = await messageRepository.getMessages(Channel.channelId, pagination)
-        if (channelMessages.length === 0) throw new NotFoundError("No Messages Found")
         const hasMore = channelMessages.length > pagination.limit
 
 
@@ -47,7 +46,6 @@ class MessageService {
 
 
         const channelMessages = await messageRepository.getConversationMessages(Conversation.conversationId, pagination)
-        if (channelMessages.length === 0) throw new NotFoundError("No Messages Found")
         const hasMore = channelMessages.length > pagination.limit
 
 

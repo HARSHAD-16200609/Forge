@@ -7,16 +7,7 @@ export function useDms(workspaceId: string) {
     return useQuery({
         queryKey: ["dms", workspaceId],
         enabled: !!workspaceId,
-        queryFn: async () => {
-            try {
-                return await messageService.getDMs(workspaceId);
-            } catch (err) {
-                if (err instanceof AxiosError && err.status === 404) {
-                    return { conversations: [] };
-                }
-                throw err;
-            }
-        },
+        queryFn: () => messageService.getDMs(workspaceId),
         staleTime: 5 * 60 * 1000,
         retry: (failureCount, error) => {
             if (error instanceof AxiosError && error.status === 401) {

@@ -1,5 +1,5 @@
 import { QueryClient, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import useAuth from "@/features/auth/hooks/useAuth";
 import {
     WsEvent,
@@ -14,7 +14,8 @@ import {
 } from "@/features/Messages/types";
 import { useWorkspaceStore } from "@/features/Workspaces/store/workspaceStore";
 import { useUIStore } from "@/stores/uiStore";
-import { applyReactionDelta, updateConversationLastMessage, upsertMessage } from "./realtimeCache";
+import { applyReactionDelta, updateConversationLastMessage } from "./realtimeCache";
+import { createMessageWriteQueue, type MessageWriteQueue } from "./messageWriteQueue";
 import { realtimeActions } from "./realtimeActions";
 import { realtimeSocket } from "./socket";
 import { usePresenceStore } from "./presenceStore";
@@ -46,20 +47,21 @@ function updateInfinitePages(
     return { ...infinite, pages };
 }
 
-function applyMessageFrame(queryClient: QueryClient, message: Message, type: string): void {
+function applyMessageFrame(
+    messageWrites: MessageWriteQueue,
+    queryClient: QueryClient,
+    message: Message,
+    type: string,
+): void {
+    const workspaceId = useWorkspaceStore.getState().selectedWorkspaceId;
+
     if (message.entity.type === "channel") {
-        queryClient.setQueryData(
-            ["messages", useWorkspaceStore.getState().selectedWorkspaceId, message.entity.id],
-            (data) => updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
-        );
+        messageWrites.write(queryClient, ["messages", workspaceId, message.entity.id], message);
     } else {
-        queryClient.setQueryData(
-            [
-                "conversation-messages",
-                useWorkspaceStore.getState().selectedWorkspaceId,
-                message.entity.id,
-            ],
-            (data) => updateInfinitePages(data, (pages) => upsertMessage(pages, message) ?? pages),
+        messageWrites.write(
+            queryClient,
+            ["conversation-messages", workspaceId, message.entity.id],
+            message,
         );
 
         if (
@@ -81,6 +83,21 @@ function applyMessageFrame(queryClient: QueryClient, message: Message, type: str
     }
 }
 
+/**
+ * `handleFrame` historically only branched on successful payloads, so a server-side rejection was
+ * discarded silently while the composer had already cleared the draft. Resync instead: only the
+ * active message queries refetch (`refetchType` defaults to "active"), so this stays cheap.
+ */
+function reportFrameError(queryClient: QueryClient, frame: WsResponse): void {
+    const code = frame.error?.code ?? "UNKNOWN_ERROR";
+    const detail = frame.error?.errorMessage ?? frame.message ?? "";
+
+    console.warn(`[realtime] ${frame.type} rejected (${code})`, detail);
+
+    void queryClient.invalidateQueries({ queryKey: ["messages"] });
+    void queryClient.invalidateQueries({ queryKey: ["conversation-messages"] });
+}
+
 export function RealtimeProvider({ children }: { children: ReactNode }) {
     const user = useAuth().user;
     const queryClient = useQueryClient();
@@ -90,14 +107,20 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
     const prevChannelRef = useRef<string | null>(null);
     const prevConversationRef = useRef<string | null>(null);
+    const [messageWrites] = useState(createMessageWriteQueue);
 
     const handleFrame = useCallback(
         (frame: WsResponse) => {
             const type = frame.type;
             const data = frame.data;
 
+            if (frame.success === false) {
+                reportFrameError(queryClient, frame);
+                return;
+            }
+
             if (isMessageFrame(type) && data && typeof (data as Message).id === "string") {
-                applyMessageFrame(queryClient, data as Message, type);
+                applyMessageFrame(messageWrites, queryClient, data as Message, type);
                 return;
             }
 
@@ -151,13 +174,28 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
                 return;
             }
         },
-        [queryClient],
+        [queryClient, messageWrites],
     );
 
     useEffect(() => {
         const unsubscribe = realtimeSocket.onFrame(handleFrame);
         return unsubscribe;
     }, [handleFrame]);
+
+    /**
+     * Replays frames that arrived before their query had a cached page. Draining is a no-op once the
+     * buffer is empty, so the `setQueryData` this triggers cannot loop.
+     */
+    useEffect(() => {
+        return queryClient.getQueryCache().subscribe((event) => {
+            if (event.type !== "updated") return;
+
+            const queryKey = event.query.queryKey;
+            if (queryKey[0] !== "messages" && queryKey[0] !== "conversation-messages") return;
+
+            messageWrites.drain(queryClient, queryKey);
+        });
+    }, [queryClient, messageWrites]);
 
     useEffect(() => {
         if (!user) {
@@ -230,8 +268,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         return () => {
             prevChannelRef.current = null;
             prevConversationRef.current = null;
+            messageWrites.clearPending();
         };
-    }, []);
+    }, [messageWrites]);
 
     return children;
 }

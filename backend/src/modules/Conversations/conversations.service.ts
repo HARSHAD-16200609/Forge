@@ -31,7 +31,6 @@ class ConversationService {
 
         if (!workspaceMember) throw new ForbiddenError("You are not an member of this Workspace")
         const conversations = await conversationRepository.getConversations(userId,workspaceId)
-        if (conversations.length === 0) throw new NotFoundError("No Conversations Found")
         const conversationList = conversations.map(({ conversation }) => {
 
             const { members, messages, ...rest } = conversation;
@@ -86,7 +85,6 @@ class ConversationService {
         if (conversation.userId !== userId) throw new ForbiddenError("You are not allowed to perform this action")
         if (!conversation) throw new NotFoundError("Conversation Not Found")
         const conversationMessages = await messageRepository.getConversationMessages(conversationId, pagination)
-        if (conversationMessages.length === 0) throw new NotFoundError("No Messages Found")
         const hasMore = conversationMessages.length > pagination.limit
 
 
