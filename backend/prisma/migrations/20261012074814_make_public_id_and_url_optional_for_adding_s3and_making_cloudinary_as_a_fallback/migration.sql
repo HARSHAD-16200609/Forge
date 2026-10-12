@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "upload" ALTER COLUMN "publicId" DROP NOT NULL,
+ALTER COLUMN "url" DROP NOT NULL;

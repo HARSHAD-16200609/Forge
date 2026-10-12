@@ -5,7 +5,7 @@ import { realtimeActions } from "@/realtime/realtimeActions";
 export function useSendConversationMessage(workspaceId: string, conversationId: string) {
     return useMutation({
         mutationFn: async ({ content, files, mentions }: { content: string; files: File[]; mentions?: string[] }) => {
-            const uploadIds = await messageService.uploadFiles(files);
+            const uploadIds = await messageService.uploadFiles(files, { workspaceId, conversationId });
             realtimeActions.sendConversationMessage(
                 workspaceId,
                 conversationId,

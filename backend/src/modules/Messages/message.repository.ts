@@ -1,8 +1,10 @@
 import { prisma } from "../../config/prisma";
+import { UploadStatus } from "../../../generated/prisma/enums";
 import { MessageDTO } from "../../types/message";
 import { BadRequestError } from "../../utility/errorHandling/customErrors";
 import {
   messageDetailsInclude,
+  resolveUploadReadUrls,
   toWsMessageDTO,
   WsMessageDTO,
 } from "../../websockets/types/wsMessageDTO";
@@ -27,6 +29,7 @@ class MessageRepository {
           channelId: "channelId" in messageObj ? messageObj.channelId : null,
           conversationId:
             "conversationId" in messageObj ? messageObj.conversationId : null,
+          status: UploadStatus.ATTACHED,
         },
         where: {
           id: {
@@ -34,6 +37,7 @@ class MessageRepository {
           },
           messageId: null,
           uploaderId: uploaderId,
+          status: { in: [UploadStatus.PENDING, UploadStatus.UPLOADED] },
         },
       });
       if (attachments.count !== uploadIds.length)
@@ -46,7 +50,7 @@ class MessageRepository {
         include: messageDetailsInclude,
       });
 
-      return toWsMessageDTO(created!);
+      return toWsMessageDTO(await resolveUploadReadUrls(created!));
     });
   }
 
@@ -70,8 +74,10 @@ class MessageRepository {
       },
       include: messageDetailsInclude,
     });
-    return messages.map(toWsMessageDTO);
+    const signedMessages = await Promise.all(messages.map((message) => resolveUploadReadUrls(message)));
+    return signedMessages.map(toWsMessageDTO);
   }
+
   async getById(messageId: string): Promise<WsMessageDTO | null> {
     const message = await prisma.message.findUnique({
       where: {
@@ -83,7 +89,7 @@ class MessageRepository {
       },
     });
 
-    return message ? toWsMessageDTO(message) : null;
+    return message ? toWsMessageDTO(await resolveUploadReadUrls(message)) : null;
   }
 
   async editMessage(content: string, messageId: string): Promise<WsMessageDTO> {
@@ -100,7 +106,7 @@ class MessageRepository {
       where: { id: messageId },
       include: messageDetailsInclude,
     });
-    return toWsMessageDTO(edited!);
+    return toWsMessageDTO(await resolveUploadReadUrls(edited!));
   }
 
   async deleteMessage(messageId: string): Promise<WsMessageDTO> {
@@ -118,7 +124,7 @@ class MessageRepository {
       where: { id: messageId },
       include: messageDetailsInclude,
     });
-    return toWsMessageDTO(tombstone!);
+    return toWsMessageDTO(await resolveUploadReadUrls(tombstone!));
   }
 
   async createReply(
@@ -143,6 +149,7 @@ class MessageRepository {
             channelId: "channelId" in message ? message.channelId : null,
             conversationId:
               "conversationId" in message ? message.conversationId : null,
+            status: UploadStatus.ATTACHED,
           },
           where: {
             id: {
@@ -150,6 +157,7 @@ class MessageRepository {
             },
             messageId: null,
             uploaderId: uploaderId,
+            status: { in: [UploadStatus.PENDING, UploadStatus.UPLOADED] },
           },
         });
         if (attachments.count !== uploadIds.length)
@@ -162,7 +170,7 @@ class MessageRepository {
         where: { id: reply.id },
         include: messageDetailsInclude,
       });
-      return toWsMessageDTO(created!);
+      return toWsMessageDTO(await resolveUploadReadUrls(created!));
     });
   }
   async addReaction(userId: string, messageId: string, emoji: string) {
@@ -251,6 +259,8 @@ class MessageRepository {
           select: {
             id: true,
             publicId: true,
+            storageProvider: true,
+            storageKey: true,
             mimeType: true,
           },
         },
@@ -289,7 +299,8 @@ class MessageRepository {
       },
       include: messageDetailsInclude,
     });
-    return messages.map(toWsMessageDTO);
+    const signedMessages = await Promise.all(messages.map((message) => resolveUploadReadUrls(message)));
+    return signedMessages.map(toWsMessageDTO);
   }
   async messageExists(messageId: string) {
     return await prisma.message.findUnique({

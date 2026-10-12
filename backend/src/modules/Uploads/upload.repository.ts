@@ -1,5 +1,19 @@
-import { fType, Prisma, Visibility } from "../../../generated/prisma/client"
+import { fType, Prisma, StorageProvider, UploadStatus, Visibility } from "../../../generated/prisma/client"
 import { prisma } from "../../config/prisma"
+
+export interface PendingUploadInsert {
+    filename: string;
+    url?: string | null;
+    publicId?: string | null;
+    mimeType: string;
+    fileSize: number;
+    fileType: fType;
+    uploaderId: string;
+    channelId?: string | null;
+    conversationId?: string | null;
+    storageProvider: StorageProvider;
+    storageKey: string;
+}
 
 class UploadRepository {
 
@@ -10,11 +24,23 @@ class UploadRepository {
         mimeType: string,
         fileSize: number,
         fileType: fType,
-        uploaderId :string
+        uploaderId: string,
+        storageProvider: StorageProvider,
+        storageKey?: string | null,
+        status?: UploadStatus,
+        channelId?: string | null,
+        conversationId?: string | null
 
     }[]) {
         const uploads = await prisma.upload.createManyAndReturn({
-            data: attachments,
+            data: attachments.map((attachment) => ({
+                ...attachment,
+                storageProvider: attachment.storageProvider ?? StorageProvider.CLOUDINARY,
+                storageKey: attachment.storageKey ?? attachment.publicId,
+                status: attachment.status ?? UploadStatus.UPLOADED,
+                channelId: attachment.channelId ?? null,
+                conversationId: attachment.conversationId ?? null,
+            })),
             select: {
                 id: true,
                 url: true,
@@ -22,14 +48,72 @@ class UploadRepository {
                 mimeType: true,
                 fileSize: true,
                 fileType: true,
-                publicId:true
-                
+                publicId: true,
             }
 
         }
         )
         return uploads
     }
+
+    async createPendingUploads(attachments: PendingUploadInsert[]) {
+        const uploads = await prisma.upload.createManyAndReturn({
+            data: attachments.map((attachment) => ({
+                ...attachment,
+                url: attachment.url ?? null,
+                publicId: attachment.publicId ?? null,
+                channelId: attachment.channelId ?? null,
+                conversationId: attachment.conversationId ?? null,
+                status: UploadStatus.PENDING,
+            })),
+            select: {
+                id: true,
+                status: true,
+                storageProvider: true,
+                storageKey: true,
+            }
+        })
+        return uploads
+    }
+
+    async getUploadByIdForUser(uploadId: string, userId: string) {
+        return prisma.upload.findFirst({
+            where: {
+                id: uploadId,
+                uploaderId: userId,
+            },
+            select: {
+                id: true,
+                uploaderId: true,
+                messageId: true,
+                status: true,
+                storageProvider: true,
+                storageKey: true,
+                mimeType: true,
+                fileType: true,
+                url: true,
+                publicId: true,
+            },
+        })
+    }
+
+    async markUploaded(uploadId: string, userId: string, data: { url?: string | null, publicId?: string | null, storageKey?: string | null }) {
+        return prisma.upload.updateMany({
+            where: {
+                id: uploadId,
+                uploaderId: userId,
+                messageId: null,
+                status: UploadStatus.PENDING,
+            },
+            data: {
+                ...(data.url !== undefined && { url: data.url }),
+                ...(data.publicId !== undefined && { publicId: data.publicId }),
+                ...(data.storageKey !== undefined && { storageKey: data.storageKey }),
+                status: UploadStatus.UPLOADED,
+            },
+        })
+    }
+
     async deleteAttachments(uploadIds: string[]) {
         await prisma.upload.updateMany({
             where: {

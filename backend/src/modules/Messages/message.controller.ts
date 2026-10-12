@@ -8,7 +8,7 @@ import { messageService } from "./message.service";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { reqUserSchema } from "../../db/auth-schema";
 import { idSchema } from "../../db/workspace";
-import { uploadService } from "./upload.service";
+import { uploadService } from "../Uploads/upload.service";
 
 
 export const getMessages = asyncHandler(async (req, res) => {

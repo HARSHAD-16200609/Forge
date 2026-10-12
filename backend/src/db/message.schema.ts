@@ -83,4 +83,31 @@ export const getWorkspaceFilesSchema = z.object({
   search: z.string().trim().max(100).optional(),
 })
 
+export const uploadFileMetaSchema = z.object({
+  filename: z.string().min(1).max(255),
+  mimeType: z.string().min(1),
+  fileSize: z.number().int().positive(),
+})
+
+export const createUploadIntentsSchema = z.object({
+  workspaceId: z.uuid(),
+  files: z.array(uploadFileMetaSchema).min(1).max(10),
+  channelId: z.uuid().optional(),
+  conversationId: z.uuid().optional(),
+}).refine(
+  (data) => Boolean(data.channelId) !== Boolean(data.conversationId),
+  { message: "Provide exactly one of channelId or conversationId", path: ["channelId"] },
+)
+
+export const completeUploadSchema = z.object({
+  publicId: z.string().min(1).optional(),
+  secureUrl: z.string().url().optional(),
+})
+
+export const uploadIdParamsSchema = z.object({
+  uploadId: z.uuid(),
+})
+
+
+
 export type getMessagesDTO = z.infer<typeof getMessagesSchema> 

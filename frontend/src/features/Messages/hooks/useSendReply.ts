@@ -20,7 +20,12 @@ export function useSendReply(
             files: File[];
             mentions?: string[];
         }) => {
-            const uploadIds = await messageService.uploadFiles(files);
+            const uploadIds = await messageService.uploadFiles(
+                files,
+                entityType === "channel"
+                    ? { workspaceId, channelId: entityId }
+                    : { workspaceId, conversationId: entityId },
+            );
             realtimeActions.sendReply(
                 workspaceId,
                 messageId,

@@ -63,8 +63,19 @@ const envSchema = z.object({
 
   REDIS_URL: z.url(),
   REALTIME_RELAY_ENABLED: z.enum(["true", "false"]),
-  VITE_API_BASE_URL: z.url()
+  VITE_API_BASE_URL: z.url(),
 
+  AWS_REGION: z.string().optional(),
+  AWS_ACCESS_KEY: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_ENDPOINT: z.union([z.string().url(), z.literal("")]).optional(),
+  AWS_FORCE_PATH_STYLE: z.enum(["true", "false"]).optional(),
+
+  STORAGE_PRIMARY: z.enum(["S3", "CLOUDINARY"]).default("S3"),
+  STORAGE_FALLBACK_ENABLED: z.enum(["true", "false"]).default("true"),
+  SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
+  CLOUDFRONT_DOMAIN: z.union([z.string().url(), z.literal("")]).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
