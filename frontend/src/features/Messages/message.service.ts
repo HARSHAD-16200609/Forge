@@ -1,3 +1,4 @@
+import axios from "axios";
 import { api } from "@/lib/api";
 import type {
     Conversation,
@@ -32,6 +33,21 @@ export interface getConversationMessagesParams {
     conversationId: string;
     limit?: number;
     cursor?: string;
+}
+
+export interface UploadScope {
+    workspaceId: string;
+    channelId?: string;
+    conversationId?: string;
+}
+
+interface UploadIntent {
+    uploadId: string;
+    provider: "S3" | "CLOUDINARY";
+    uploadUrl: string;
+    method: "PUT" | "POST";
+    headers?: Record<string, string>;
+    fields?: Record<string, string>;
 }
 
 class MessageService {
@@ -92,39 +108,64 @@ class MessageService {
         return conversation.data.data;
     }
 
-    async uploadFiles(files: File[]): Promise<string[]> {
+    async uploadFiles(files: File[], scope: UploadScope): Promise<string[]> {
         if (files.length === 0) return [];
 
-        const formData = new FormData();
-        files.forEach((file) => formData.append("attachments", file));
+        const intentsResponse = await api.post<{ data: UploadIntent[] }>(
+            "/uploads/intents",
+            {
+                workspaceId: scope.workspaceId,
+                files: files.map((file) => ({
+                    filename: file.name,
+                    mimeType: file.type || "application/octet-stream",
+                    fileSize: file.size,
+                })),
+                ...(scope.channelId ? { channelId: scope.channelId } : {}),
+                ...(scope.conversationId
+                    ? { conversationId: scope.conversationId }
+                    : {}),
+            },
+        );
 
-        const response = await api.post("/uploads", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-        });
+        const intents = intentsResponse.data.data;
 
-        const uploads = response.data.data as { id: string }[];
-        return uploads.map((upload) => upload.id);
-    }
-    async uploadFilesOnS3(files: File[], conversationId: string): Promise<string[]> {
-        if (files.length === 0) return [];
+        const uploadResults = await Promise.all(
+            intents.map(async (intent, index) => {
+                const file = files[index]!;
+                const contentType = file.type || "application/octet-stream";
 
-        const filenames = files.map((file) => file.name)
+                if (intent.method === "PUT") {
+                    await axios.put(intent.uploadUrl, file, {
+                        headers: { "Content-Type": contentType },
+                    });
+                    return {};
+                }
 
-        const response = await api.post("/uploads/getPresignedUrl", { filenames, conversationId }, {
-            headers: { "Content-Type": "application/json" },
-        });
+                const formData = new FormData();
+                Object.entries(intent.fields ?? {}).forEach(([key, value]) =>
+                    formData.append(key, String(value)),
+                );
+                formData.append("file", file);
+                const response = await axios.post(intent.uploadUrl, formData);
+                return {
+                    publicId: response.data?.public_id,
+                    secureUrl: response.data?.secure_url,
+                };
+            }),
+        );
 
-        const uploads: string[] = response.data.data.uploadUrls
+        const uploadIds: string[] = [];
+        await Promise.all(
+            intents.map(async (intent, index) => {
+                await api.post(
+                    `/uploads/${intent.uploadId}/complete`,
+                    uploadResults[index] ?? {},
+                );
+                uploadIds.push(intent.uploadId);
+            }),
+        );
 
-        const uploadPromises = uploads.map((uploadUrl, index) => {
-            api.put(uploadUrl, files[index], {
-                headers: { "Content-Type": "multipart/form-data" },
-            })
-        })
-
-        await Promise.all(uploadPromises)
-
-        return ["s;ldkfks;ogf", "lgjl;dasjgvl"];
+        return uploadIds;
     }
     async getConversationMessages(
         params: getConversationMessagesParams,

@@ -1,17 +1,11 @@
 import { StatusCodes } from "http-status-codes";
 import { reqUserSchema } from "../../db/auth-schema";
-import { getWorkspaceFilesSchema, uploadMetadataSchema, workspaceFilesParamsSchema } from "../../db/message.schema";
+import { completeUploadSchema, createUploadIntentsSchema, getWorkspaceFilesSchema, uploadIdParamsSchema, workspaceFilesParamsSchema } from "../../db/message.schema";
 import { ApiResponse } from "../../utility/ApiResponse/ApiResponse";
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler";
 import { BadRequestError, UnauthorizedAccessError, UserInputValidationError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { uploadService } from "./upload.service";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import {
-    getSignedUrl,
-} from "@aws-sdk/s3-request-presigner";
-
-import s3 from "../../config/S3";
 
 
 export const uploadAttachments = asyncHandler(async (req, res) => {
@@ -40,6 +34,55 @@ export const uploadAttachments = asyncHandler(async (req, res) => {
 )
 
 
+export const createUploadIntents = asyncHandler(async (req, res) => {
+    const user = reqUserSchema.safeParse(req.user)
+    if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
+
+    const body = createUploadIntentsSchema.safeParse(req.body)
+    if (!body.success) {
+        throw new UserInputValidationError("Invalid upload request", body.error.flatten().fieldErrors)
+    }
+
+    const intents = await uploadService.createUploadIntents(body.data, user.data.userId)
+
+    loggers.audit.info("Upload Intents Created", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        fileCount: body.data.files.length,
+        createdAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, intents, "Upload intents created"))
+})
+
+
+export const completeUpload = asyncHandler(async (req, res) => {
+    const user = reqUserSchema.safeParse(req.user)
+    if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
+
+    const params = uploadIdParamsSchema.safeParse(req.params)
+    if (!params.success) throw new UserInputValidationError("Invalid Upload ID", params.error.flatten().fieldErrors)
+
+    const body = completeUploadSchema.safeParse(req.body)
+    if (!body.success) throw new UserInputValidationError("Invalid completion payload", body.error.flatten().fieldErrors)
+
+    const upload = await uploadService.completeUpload(params.data.uploadId, user.data.userId, body.data)
+
+    loggers.audit.info("Upload Confirmed", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        uploadId: params.data.uploadId,
+        confirmedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, upload, "Upload confirmed"))
+})
+
+
 export const getWorkspaceFiles = asyncHandler(async (req, res) => {
     const Params = workspaceFilesParamsSchema.safeParse(req.params)
     const User = reqUserSchema.safeParse(req.user)
@@ -60,29 +103,3 @@ export const getWorkspaceFiles = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, result, "Workspace files fetched sucessfully"))
 })
-
-
-export const getUploadUrl = asyncHandler(async (req, res) => {
-    // const user = reqUserSchema.safeParse(req.user)
-    // if (!user.success) throw new UnauthorizedAccessError("Unauthenticated User , Login First")
-    const uploads = uploadMetadataSchema.safeParse(req.body)
-
-    if (!uploads.success) {
-        throw new UserInputValidationError("Please add some Attachments to upload",uploads.error?.flatten().fieldErrors)
-    }
-
-
-    const uploadUrls = await  uploadService.uploadOnS3(uploads.data.filenames)
-
-     loggers.db.info("Upload Urls generated sucessfully", {
-        ip: req.ip,
-        userAgent: req.get("user-agent"),
-        fetchedAt: new Date().toLocaleString("en-IN", {
-            timeZone: "Asia/Kolkata",
-        })
-    })
-
-    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, uploadUrls, "Upload Urls generated sucessfully"))
-
-})
-

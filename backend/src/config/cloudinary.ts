@@ -5,7 +5,8 @@ import { env } from "./env"
 export type rType = "raw" | "image" | "video" | "auto"
 
 let isConfigured = false;
-export const uploadOnCloudinary = async (filepath: string, resourceType: rType) => {
+
+export const configureCloudinary = () => {
     if (!isConfigured) {
         cloudinary.config({
             cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -14,6 +15,13 @@ export const uploadOnCloudinary = async (filepath: string, resourceType: rType) 
         })
         isConfigured = true
     }
+    return cloudinary
+}
+
+export const cloudinaryInstance = configureCloudinary();
+
+export const uploadOnCloudinary = async (filepath: string, resourceType: rType) => {
+    configureCloudinary()
     try {
 
 
@@ -46,14 +54,7 @@ export const uploadOnCloudinary = async (filepath: string, resourceType: rType) 
 
 export const deleteFromCloudinary = async (publicId: string, resource_type: rType) => {
 
-    if (!isConfigured) {
-        cloudinary.config({
-            cloud_name: env.CLOUDINARY_CLOUD_NAME,
-            api_key: env.CLOUDINARY_API_KEY,
-            api_secret: env.CLOUDINARY_API_SECRET,
-        })
-        isConfigured = true;
-    }
+    configureCloudinary()
 
 
     try {

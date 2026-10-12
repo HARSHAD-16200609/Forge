@@ -4,7 +4,7 @@ import { MessageSkeleton } from "@/features/Messages/components/MessageSkeleton"
 import { TypingIndicator } from "@/features/Messages/components/TypingIndicator";
 import { ThreadPanel } from "@/features/Messages/components/ThreadPanel";
 import { useMessages } from "@/features/Messages/hooks/useMessages";
-import { useSendMessage, useSendMessageS3 } from "@/features/Messages/hooks/useSendMessage";
+import { useSendMessage } from "@/features/Messages/hooks/useSendMessage";
 import { useSendReply } from "@/features/Messages/hooks/useSendReply";
 import { useEditMessage } from "@/features/Messages/hooks/useEditMessage";
 import { useDeleteMessage } from "@/features/Messages/hooks/useDeleteMessage";
@@ -87,7 +87,6 @@ function ChannelHomeInner() {
             limit: 30,
         });
     const sendMessage = useSendMessage(selectedWorkspaceId ?? "", selectedChannelId ?? "");
-    const s3Message = useSendMessageS3(selectedWorkspaceId ?? "",selectedChannelId ?? "")
     const sendReply = useSendReply(selectedWorkspaceId ?? "", selectedChannelId ?? "", "channel");
     const editMessage = useEditMessage(
         "channel",
@@ -479,7 +478,7 @@ function ChannelHomeInner() {
                                             { onSuccess: () => setReplyingTo(null) },
                                         );
                                     }
-                                    return s3Message.mutateAsync({ content, files, mentions });
+                                    return sendMessage.mutateAsync({ content, files, mentions });
                                 }}
                             />
                         </div>

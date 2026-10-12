@@ -5,16 +5,7 @@ import { realtimeActions } from "@/realtime/realtimeActions";
 export function useSendMessage(workspaceId: string, channelId: string) {
     return useMutation({
         mutationFn: async ({ content, files, mentions }: { content: string; files: File[]; mentions?: string[] }) => {
-            const uploadIds = await messageService.uploadFiles(files);
-            realtimeActions.sendChannelMessage(workspaceId, channelId, content, uploadIds, mentions ?? []);
-        },
-    });
-}
-
-export function useSendMessageS3(workspaceId: string, channelId: string){
-      return useMutation({
-        mutationFn: async ({ content, files, mentions }: { content: string; files: File[]; mentions?: string[] }) => {
-           const uploadIds = await messageService.uploadFilesOnS3(files,channelId);
+            const uploadIds = await messageService.uploadFiles(files, { workspaceId, channelId });
             realtimeActions.sendChannelMessage(workspaceId, channelId, content, uploadIds, mentions ?? []);
         },
     });

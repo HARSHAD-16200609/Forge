@@ -1,4 +1,5 @@
-import { Prisma } from "../../../generated/prisma/client";
+import { Prisma, StorageProvider } from "../../../generated/prisma/client";
+import { storageStrategy } from "../../storage";
 
 export type WsMessageEntityType = "channel" | "conversation";
 
@@ -56,6 +57,8 @@ export const messageDetailsInclude = {
       mimeType: true,
       fileSize: true,
       fileType: true,
+      storageProvider: true,
+      storageKey: true,
     },
   },
   reactions: {
@@ -103,7 +106,7 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
     },
     uploads: row.uploads.map((upload) => ({
       id: upload.id,
-      url: upload.url,
+      url: upload.url ?? "",
       filename: upload.filename,
       mimeType: upload.mimeType,
       fileSize: upload.fileSize,
@@ -130,5 +133,31 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
       },
     })),
   };
+}
+
+/**
+ * Undecorates the uploaded-object metadata (provider/keys) from the DTO, but
+ * first resolves a short-lived read URL for objects that do not expose a
+ * permanent one (private S3 buckets). Cloudinary rows already carry a
+ * permanent `url`, so they are returned as-is.
+ */
+export async function resolveUploadReadUrls<T extends { uploads: MessageDetailsRow["uploads"] }>(
+  row: T,
+): Promise<T> {
+  await Promise.all(
+    row.uploads.map(async (upload) => {
+      if (upload.url || upload.storageProvider !== StorageProvider.S3 || !upload.storageKey) {
+        return;
+      }
+      try {
+        upload.url = await storageStrategy.getReadUrl(upload.storageProvider, upload.storageKey, {
+          mimeType: upload.mimeType,
+        });
+      } catch (err) {
+        upload.url = null;
+      }
+    }),
+  );
+  return row;
 }
 
