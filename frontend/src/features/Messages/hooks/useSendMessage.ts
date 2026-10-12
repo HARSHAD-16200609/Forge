@@ -10,3 +10,12 @@ export function useSendMessage(workspaceId: string, channelId: string) {
         },
     });
 }
+
+export function useSendMessageS3(workspaceId: string, channelId: string){
+      return useMutation({
+        mutationFn: async ({ content, files, mentions }: { content: string; files: File[]; mentions?: string[] }) => {
+           const uploadIds = await messageService.uploadFilesOnS3(files,channelId);
+            realtimeActions.sendChannelMessage(workspaceId, channelId, content, uploadIds, mentions ?? []);
+        },
+    });
+}

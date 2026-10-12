@@ -4,9 +4,12 @@ import { getFileType, getResourceType } from "../../db/message.schema";
 import { ConfilctError, ForbiddenError, NotFoundError } from "../../utility/errorHandling/customErrors";
 import { loggers } from "../../utility/logger/serviceLoggers";
 import { workspaceRepository } from "../Workspace/workspace.repository";
-import { messageRepository } from "./message.repository";
-import { messageService } from "./message.service";
+import { messageRepository } from "../Messages/message.repository";
+import { messageService } from "../Messages/message.service";
 import { uploadRepository, WorkspaceFileRow } from "./upload.repository";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import s3 from "../../config/S3";
 
 class UploadService {
     async uploadAttachments(attachments: Express.Multer.File[], userId: string) {
@@ -152,22 +155,40 @@ class UploadService {
         return {
             id: upload.id,
             filename: upload.filename,
-            url: upload.url,
+            url: upload.url || "",
             mimeType: upload.mimeType,
             fileSize: upload.fileSize,
             fileType: upload.fileType,
             uploadedAt: upload.uploadedAt,
             uploader: uploader
                 ? {
-                      id: uploader.id,
-                      username: uploader.username,
-                      name: uploader.name,
-                      avatar: uploader.avatar,
-                  }
+                    id: uploader.id,
+                    username: uploader.username,
+                    name: uploader.name,
+                    avatar: uploader.avatar,
+                }
                 : null,
             source,
         };
     }
+
+    async uploadOnS3(filenames: string[]) {
+        const uploadUrlPromises = filenames.map((filename) => {
+            const key = crypto.randomUUID();
+            const params = {
+                Bucket: "forge-uploads-production",
+                Key: `${key}-${filename}`
+            }
+            const command = new PutObjectCommand(params);
+
+            return getSignedUrl(s3, command, { expiresIn: 3600 });
+
+        })
+    const uploadUrls =  await Promise.all(uploadUrlPromises)
+        return { uploadUrls }
+    }
+
+    
 }
 
 

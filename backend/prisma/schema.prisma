@@ -185,25 +185,30 @@ model notification {
 }
 
 model upload {
-  id             String        @id @default(uuid())
-  fileType       fType
-  filename       String
-  messageId      String?
-  uploadedAt     DateTime      @default(now())
-  mimeType       String
-  publicId       String        @unique
-  url            String
-  fileSize       Int
-  deletedAt      DateTime?
-  uploaderId     String
-  channelId      String?
-  conversationId String?
-  channel        channel?      @relation(fields: [channelId], references: [id])
-  conversation   conversation? @relation(fields: [conversationId], references: [id])
-  message        message?      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  id               String          @id @default(uuid())
+  fileType         fType
+  filename         String
+  messageId        String?
+  uploadedAt       DateTime        @default(now())
+  mimeType         String
+  publicId         String?         @unique
+  url              String?
+  fileSize         Int
+  deletedAt        DateTime?
+  uploaderId       String
+  channelId        String?
+  conversationId   String?
+  storageProvider  StorageProvider @default(CLOUDINARY)
+  storageKey       String?
+  status           UploadStatus    @default(UPLOADED)
+  channel          channel?        @relation(fields: [channelId], references: [id])
+  conversation     conversation?   @relation(fields: [conversationId], references: [id])
+  message          message?        @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([channelId, uploadedAt])
   @@index([conversationId, uploadedAt])
+  @@index([storageProvider])
+  @@index([status])
 }
 
 model workspaceInvite {
@@ -283,6 +288,18 @@ enum fType {
   DOCUMENT
   ARCHIVE
   OTHER
+}
+
+enum StorageProvider {
+  S3
+  CLOUDINARY
+}
+
+enum UploadStatus {
+  PENDING
+  UPLOADED
+  ATTACHED
+  FAILED
 }
 
 enum Status {

@@ -105,7 +105,27 @@ class MessageService {
         const uploads = response.data.data as { id: string }[];
         return uploads.map((upload) => upload.id);
     }
+    async uploadFilesOnS3(files: File[], conversationId: string): Promise<string[]> {
+        if (files.length === 0) return [];
 
+        const filenames = files.map((file) => file.name)
+
+        const response = await api.post("/uploads/getPresignedUrl", { filenames, conversationId }, {
+            headers: { "Content-Type": "application/json" },
+        });
+
+        const uploads: string[] = response.data.data.uploadUrls
+
+        const uploadPromises = uploads.map((uploadUrl, index) => {
+            api.put(uploadUrl, files[index], {
+                headers: { "Content-Type": "multipart/form-data" },
+            })
+        })
+
+        await Promise.all(uploadPromises)
+
+        return ["s;ldkfks;ogf", "lgjl;dasjgvl"];
+    }
     async getConversationMessages(
         params: getConversationMessagesParams,
     ): Promise<paginatedMessages> {
