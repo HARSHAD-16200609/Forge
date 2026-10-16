@@ -7,10 +7,12 @@ const mocks = vi.hoisted(() => ({
     login: vi.fn(),
     setUser: vi.fn(),
     setIsLoading: vi.fn(),
+    searchParams: new URLSearchParams(),
 }));
 
 vi.mock("react-router-dom", () => ({
     useNavigate: () => mockNavigate,
+    useSearchParams: () => [mocks.searchParams],
 }));
 
 vi.mock("../../src/features/auth/hooks/useAuth", () => ({
@@ -26,6 +28,7 @@ const mockNavigate = vi.fn();
 describe("useLoginForm", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mocks.searchParams = new URLSearchParams();
     });
 
     it("navigates to /app on successful login", async () => {
@@ -41,6 +44,32 @@ describe("useLoginForm", () => {
             email: "user@test.com",
             password: "secret",
         });
+        expect(mockNavigate).toHaveBeenCalledWith("/app");
+    });
+
+    it("navigates to the redirect target after login when one is present", async () => {
+        mocks.searchParams = new URLSearchParams("redirect=/invite/wsi_abc123");
+        mocks.login.mockResolvedValue({ data: { user: { id: "1" } } });
+
+        const { result } = renderHook(() => useLoginForm());
+
+        await act(async () => {
+            await result.current.onSubmit({ email: "user@test.com", password: "secret" });
+        });
+
+        expect(mockNavigate).toHaveBeenCalledWith("/invite/wsi_abc123");
+    });
+
+    it("ignores unsafe redirect targets", async () => {
+        mocks.searchParams = new URLSearchParams("redirect=https://evil.example.com");
+        mocks.login.mockResolvedValue({ data: { user: { id: "1" } } });
+
+        const { result } = renderHook(() => useLoginForm());
+
+        await act(async () => {
+            await result.current.onSubmit({ email: "user@test.com", password: "secret" });
+        });
+
         expect(mockNavigate).toHaveBeenCalledWith("/app");
     });
 

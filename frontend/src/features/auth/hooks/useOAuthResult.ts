@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import useAuth from "./useAuth";
+import { consumeRedirectForOAuth } from "../utils/redirect";
 
 export type OAuthResult = "success" | "error" | null;
 
@@ -13,7 +14,7 @@ export function useOAuthResult(): OAuthResult {
 
     useEffect(() => {
         if (oauth === "success" && !isLoading && user) {
-            navigate("/app", { replace: true });
+            navigate(consumeRedirectForOAuth(), { replace: true });
         }
     }, [oauth, isLoading, user, navigate]);
 

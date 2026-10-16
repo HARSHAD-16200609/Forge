@@ -9,7 +9,7 @@ type AuthContextType = {
   setIsLoading: Dispatch<SetStateAction<Boolean>>;
   login:(data:LoginFormData)=>Promise<any>;
   registerUser:(data:RegisterFormData)=>Promise<any>;
-  logout:()=>void;
+  logout:()=>Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);

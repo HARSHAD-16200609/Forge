@@ -84,8 +84,13 @@ export function Members() {
                 channelId,
                 receiverId,
             }),
-        onSuccess: () => {
-            setInviteNotice({ kind: "success", text: `Invite sent to ${inviteTarget?.username ?? "member"}.` });
+        onSuccess: (result) => {
+            setInviteNotice({
+                kind: "success",
+                text: result.emailSent
+                    ? `Invite sent to ${inviteTarget?.username ?? "member"}.`
+                    : `Invite created for ${inviteTarget?.username ?? "member"}, but the email could not be sent.`,
+            });
             setInviteTarget(null);
             setMenuFor(null);
         },

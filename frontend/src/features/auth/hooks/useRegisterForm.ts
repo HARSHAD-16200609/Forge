@@ -1,11 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { RegisterFormData } from "../types";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import useAuth from "./useAuth";
+import { safeRedirect } from "../utils/redirect";
 
 export function useRegisterForm() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const redirectParam = searchParams.get("redirect");
     const {
         register,
         handleSubmit,
@@ -28,7 +31,10 @@ export function useRegisterForm() {
         try {
             await registerUser(data);
             reset();
-            navigate("/auth/login");
+            const redirect = redirectParam
+                ? `?redirect=${encodeURIComponent(safeRedirect(redirectParam))}`
+                : "";
+            navigate(`/auth/login${redirect}`);
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 setError("email", {

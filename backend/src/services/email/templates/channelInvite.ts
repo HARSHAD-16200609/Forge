@@ -16,7 +16,7 @@ export function channelInviteTemplate(input: ChannelInviteEmailInput): RenderedE
   return {
     subject: `${input.inviterName} invited you to #${input.channelName} in ${input.workspaceName}`,
     html: renderEmailLayout({
-      previewText: `${input.inviterName} invited you to #${input.channelName}`,
+      previewText: `${inviter} invited you to #${channel}`,
       heading: `Join #${channel}`,
       bodyLines: [
         `<strong>${inviter}</strong> has invited you to the private channel <strong>#${channel}</strong> in the <strong>${workspace}</strong> workspace.`,

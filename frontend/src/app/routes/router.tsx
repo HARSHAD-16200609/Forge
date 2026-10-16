@@ -13,6 +13,7 @@ import { Files } from "@/app/pages/Files";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
 import { AuthCallbackPage } from "@/features/auth/pages/AuthCallbackPage";
+import { InviteAccept } from "@/app/pages/InviteAccept";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Settings from "../pages/Settings";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
     {
         path: "/",
         Component: HomePage,
+    },
+    {
+        path: "invite/:token",
+        Component: InviteAccept,
     },
     {
         Component: ProtectedRoute,

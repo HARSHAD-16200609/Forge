@@ -1,10 +1,11 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 
 import useAuth from "@/features/auth/hooks/useAuth";
 import Swirling from "@/components/ui/Swirling";
 
 export function ProtectedRoute() {
     const { isAuthenticated, isLoading } = useAuth();
+    const location = useLocation();
 
     if (isLoading) {
         return (
@@ -15,7 +16,8 @@ export function ProtectedRoute() {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/auth/login" replace />;
+        const redirect = `${location.pathname}${location.search}`;
+        return <Navigate to={`/auth/login?redirect=${encodeURIComponent(redirect)}`} replace />;
     }
 
     return <Outlet />;

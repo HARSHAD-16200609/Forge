@@ -1,12 +1,15 @@
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { LoginFormData } from "../types";
 import axios from "axios";
 
 import useAuth from "./useAuth";
+import { safeRedirect } from "../utils/redirect";
 
 export function useLoginForm() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const redirectTo = safeRedirect(searchParams.get("redirect"));
     const { setUser, setIsLoading, login } = useAuth();
     const {
         register,
@@ -27,7 +30,7 @@ export function useLoginForm() {
             const response = await login(data);
             reset();
             setIsLoading(true);
-            navigate("/app");
+            navigate(redirectTo);
             setUser(response.data.user);
             setIsLoading(false);
 
