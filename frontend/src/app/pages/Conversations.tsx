@@ -296,7 +296,7 @@ export function Conversations({ showBack = false }: { showBack?: boolean }) {
                                     name={headerName}
                                     username={peerMember?.user.username ?? headerName}
                                     avatarUrl={peerMember?.user.avatar}
-                                    avatarSeed={(peerMember?.user as any)?.avatarSeed ?? null}
+                                    avatarSeed={peerMember?.user.avatarSeed ?? null}
                                     size="sm"
                                 />
                             )}

@@ -43,6 +43,7 @@ class ConversationService {
                 ...rest,
                 displayName: receiver?.username,
                 avatar: receiver?.avatar,
+                avatarSeed: receiver?.avatarSeed ?? null,
                 receiverId: receiver?.id
             }
 

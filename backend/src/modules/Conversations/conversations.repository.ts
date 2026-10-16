@@ -73,7 +73,8 @@ class ConversationRepository {
                                     select: {
                                         id: true,
                                         username: true,
-                                        avatar: true
+                                        avatar: true,
+                                        avatarSeed: true
                                     }
                                 }
                             }, omit: {
@@ -139,7 +140,8 @@ class ConversationRepository {
                                     select: {
                                         id: true,
                                         username: true,
-                                        avatar: true
+                                        avatar: true,
+                                        avatarSeed: true
                                     }
                                 }
                             }, omit: {

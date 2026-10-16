@@ -465,7 +465,14 @@ function DMRow({
                 isActive ? "bg-white" : "hover:bg-sidebar-accent",
             )}
         >
-            <AvatarDot avatar={dm.avatar} online={online} name={dm.displayName} type="dm" />
+            <AvatarDot
+                avatar={dm.avatar}
+                id={dm.receiverId}
+                avatarSeed={dm.avatarSeed ?? null}
+                online={online}
+                name={dm.displayName}
+                type="dm"
+            />
 
             <span
                 className={cn(
@@ -494,11 +501,15 @@ function PresenceDMRow({
 }
 export function AvatarDot({
     avatar,
+    id,
+    avatarSeed,
     online,
     name,
     type,
 }: {
     avatar?: string;
+    id?: string | null;
+    avatarSeed?: string | null;
     online: boolean;
     name?: string;
     type?: "dm" | "gdm";
@@ -516,11 +527,11 @@ export function AvatarDot({
                 </span>
             ) : (
                 <UserAvatar
-                    id={type === "dm" ? undefined : null}
+                    id={type === "dm" ? id : null}
                     name={name}
                     username={name}
                     avatarUrl={avatar}
-                    avatarSeed={null}
+                    avatarSeed={avatarSeed ?? null}
                     size="sm"
                     shape="circle"
                 />
@@ -580,31 +591,7 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
     );
 }
 
-// function MemberRow({
-//     name,
-//     online,
-//     role,
-//     initials,
-// }: {
-//     name: string;
-//     online: boolean;
-//     role: string;
-//     initials: string;
-// }) {
-//     return (
-//         <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center w-full h-9 px-2 group">
-//             <AvatarDot initials={initials} online={online} />
-//             <span className="font-['Lexend:Regular',_sans-serif] text-[14px] text-sidebar-foreground/80 truncate ml-2 flex-1">
-//                 {name}
-//             </span>
-//             {role === "Owner" && (
-//                 <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 py-0.5">
-//                     Owner
-//                 </span>
-//             )}
-//         </div>
-//     );
-// }
+
 
 function ActivityRow({ name, meta, icon }: { name: string; meta: string; icon: React.ReactNode }) {
     return (

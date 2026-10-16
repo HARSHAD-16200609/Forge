@@ -8,6 +8,7 @@ export interface WsMessageSender {
   username: string;
   name: string;
   avatar: string | null;
+  avatarSeed: string | null;
 }
 
 export interface WsMessageUpload {
@@ -47,7 +48,7 @@ export interface WsMessageDTO {
 
 export const messageDetailsInclude = {
   sender: {
-    select: { id: true, username: true, name: true, avatar: true },
+    select: { id: true, username: true, name: true, avatar: true, avatarSeed: true },
   },
   uploads: {
     select: {
@@ -65,7 +66,7 @@ export const messageDetailsInclude = {
     select: {
       emoji: true,
       reactedBy: {
-        select: { id: true, username: true, name: true, avatar: true },
+        select: { id: true, username: true, name: true, avatar: true, avatarSeed: true },
       },
     },
   },
@@ -75,7 +76,7 @@ export const messageDetailsInclude = {
       content: true,
       sentAt: true,
       sender: {
-        select: { id: true, username: true, name: true, avatar: true },
+        select: { id: true, username: true, name: true, avatar: true, avatarSeed: true },
       },
     },
   },
@@ -103,6 +104,7 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
       username: row.sender.username,
       name: row.sender.name,
       avatar: row.sender.avatar,
+      avatarSeed: row.sender.avatarSeed,
     },
     uploads: row.uploads.map((upload) => ({
       id: upload.id,
@@ -119,6 +121,7 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
         username: reaction.reactedBy.username,
         name: reaction.reactedBy.name,
         avatar: reaction.reactedBy.avatar,
+        avatarSeed: reaction.reactedBy.avatarSeed,
       },
     })),
     replies: row.replies.map((reply) => ({
@@ -130,6 +133,7 @@ export function toWsMessageDTO(row: MessageDetailsRow): WsMessageDTO {
         username: reply.sender.username,
         name: reply.sender.name,
         avatar: reply.sender.avatar,
+        avatarSeed: reply.sender.avatarSeed,
       },
     })),
   };

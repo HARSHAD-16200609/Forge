@@ -24,7 +24,7 @@ interface MessageDto {
   deletedAt: string | null;
   parentMsgId: string | null;
   entity: { type: "channel" | "conversation"; id: string };
-  sender: { id: string; username: string; name: string; avatar: string | null };
+  sender: { id: string; username: string; name: string; avatar: string | null; avatarSeed: string | null };
   uploads: unknown[];
   reactions: unknown[];
   replies: unknown[];
@@ -113,6 +113,7 @@ describe("locked message DTO contract", () => {
         username: channelScene.owner.user.username,
         name: channelScene.owner.user.name,
         avatar: null,
+        avatarSeed: null,
       },
       uploads: [],
       reactions: [],
@@ -160,6 +161,7 @@ describe("locked message DTO contract", () => {
         username: channelScene.member.user.username,
         name: channelScene.member.user.name,
         avatar: null,
+        avatarSeed: null,
       },
       uploads: [],
       reactions: [],
@@ -202,10 +204,11 @@ describe("locked message DTO contract", () => {
         username: channelScene.owner.user.username,
         name: channelScene.owner.user.name,
         avatar: null,
+        avatarSeed: null,
       },
       uploads: [],
-      reactions: [{ emoji: "👍", reactedBy: { id: channelScene.member.user.id, username: channelScene.member.user.username, name: channelScene.member.user.name, avatar: null } }],
-      replies: [{ id: replyId, content: "contract reply", sentAt: anyTime, sender: { id: channelScene.member.user.id, username: channelScene.member.user.username, name: channelScene.member.user.name, avatar: null } }],
+      reactions: [{ emoji: "👍", reactedBy: { id: channelScene.member.user.id, username: channelScene.member.user.username, name: channelScene.member.user.name, avatar: null, avatarSeed: null } }],
+      replies: [{ id: replyId, content: "contract reply", sentAt: anyTime, sender: { id: channelScene.member.user.id, username: channelScene.member.user.username, name: channelScene.member.user.name, avatar: null, avatarSeed: null } }],
     });
 
     const messages = await history(channelScene.channel.id);
@@ -245,6 +248,7 @@ describe("locked message DTO contract", () => {
         username: conversationScene.alice.user.username,
         name: conversationScene.alice.user.name,
         avatar: null,
+        avatarSeed: null,
       },
       uploads: [],
       reactions: [],

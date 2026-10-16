@@ -5,6 +5,7 @@ export interface MessageSender {
     username: string;
     name: string;
     avatar: string | null;
+    avatarSeed?: string | null;
 }
 
 export interface MessageAttachment {
@@ -66,6 +67,7 @@ export type Conversation = {
     updatedAt: string;
     displayName: string;
     avatar: string;
+    avatarSeed?: string | null;
     receiverId?: string;
 };
 
@@ -81,7 +83,7 @@ export type channelParams = {
 
 export type ConversationDetail = Conversation & {
     members: {
-        user: { id: string; username: string; avatar: string | null };
+        user: { id: string; username: string; avatar: string | null; avatarSeed?: string | null };
     }[];
     messages: Message[];
     cursor?: string;

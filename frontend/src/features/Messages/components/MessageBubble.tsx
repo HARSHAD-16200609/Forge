@@ -97,7 +97,7 @@ export function MessageBubble({
                     name={message.sender.name}
                     username={message.sender.username}
                     avatarUrl={message.sender.avatar}
-                    avatarSeed={(message.sender as any).avatarSeed ?? null}
+                    avatarSeed={message.sender.avatarSeed ?? null}
                     size="lg"
                     shape="rounded"
                 />

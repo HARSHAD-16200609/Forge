@@ -29,11 +29,11 @@ export function EmptyConversation({
                     <Users className="size-9" />
                 ) : (
                     <UserAvatar
-                        id={undefined}
+                        id={peerMember?.user.id}
                         name={peerName}
                         username={peerName}
                         avatarUrl={peerAvatar}
-                        avatarSeed={null}
+                        avatarSeed={peerMember?.user.avatarSeed ?? null}
                         size="2xl"
                         shape="circle"
                     />
