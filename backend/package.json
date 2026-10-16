@@ -59,6 +59,7 @@
     "node-cron": "^4.5.0",
     "openid-client": "^6.8.8",
     "pg": "^8.22.0",
+    "resend": "^6.33.0",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.21.1",

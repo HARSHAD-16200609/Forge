@@ -14,6 +14,7 @@ export class AuthRepository {
         avatar: userData.avatar ?? null,
         timezone: userData.timezone ?? null
       }, select: {
+        id: true,
         email: true,
         username: true
       }
@@ -88,6 +89,26 @@ export class AuthRepository {
       where: {
 
         email
+
+      }, select:
+      {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+      }
+
+    })
+
+    return user
+  }
+
+  async findUserByEmailInsensitive(email: string) {
+
+    const user = await prisma.user.findFirst({
+      where: {
+
+        email: { equals: email, mode: "insensitive" }
 
       }, select:
       {

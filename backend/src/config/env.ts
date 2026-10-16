@@ -76,6 +76,10 @@ const envSchema = z.object({
   STORAGE_FALLBACK_ENABLED: z.enum(["true", "false"]).default("true"),
   SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
   CLOUDFRONT_DOMAIN: z.union([z.string().url(), z.literal("")]).optional(),
+
+  RESEND_API_KEY: z.union([z.string().min(1), z.literal("")]).optional(),
+  MAIL_FROM: z.string().min(1).default("Forge <invites@mail.forrge.tech>"),
+  EMAIL_ENABLED: z.enum(["true", "false"]).default("true"),
 });
 
 const parsed = envSchema.safeParse(process.env);

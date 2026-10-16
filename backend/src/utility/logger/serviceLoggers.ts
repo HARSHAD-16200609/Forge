@@ -8,6 +8,7 @@ export const loggers = {
   security: logger.child({ service: "SECURITY" }),
   audit: logger.child({ service: "AUDIT" }),
   avatar: logger.child({ service: "AVATAR" }),
+  email: logger.child({ service: "EMAIL" }),
 };
 
 export function getCurrentTime():string{

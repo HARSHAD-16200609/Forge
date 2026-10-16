@@ -147,3 +147,39 @@ export const deleteExpiredChannelInvite = async () => {
         });
     }
 };
+
+export const cleanupWorkspaceInviteLinks = async () => {
+    const startedAt = new Date();
+    const staleBefore = subDays(new Date(), 30);
+
+    try {
+        const result = await prisma.workspaceInviteLink.deleteMany({
+            where: {
+                OR: [
+                    { expiresAt: { lt: staleBefore } },
+                    { revokedAt: { not: null, lt: staleBefore } },
+                ],
+            },
+        });
+
+        const finishedAt = new Date();
+
+        loggers.audit.info("CRON_DELETED_STALE_INVITE_LINKS", {
+            action: "CRON_CLEANUP_INVITE_LINKS",
+            status: "SUCCESS",
+            deletedRecords: result.count,
+            startedAt,
+            durationMs: finishedAt.getTime() - startedAt.getTime(),
+        });
+    } catch (error) {
+        const finishedAt = new Date();
+
+        loggers.audit.error("CRON_DELETED_STALE_INVITE_LINKS", {
+            action: "CRON_CLEANUP_INVITE_LINKS",
+            status: "FAILED",
+            startedAt,
+            durationMs: finishedAt.getTime() - startedAt.getTime(),
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+};

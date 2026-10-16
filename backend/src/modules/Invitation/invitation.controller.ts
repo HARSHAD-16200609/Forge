@@ -6,7 +6,7 @@ import { UserInputValidationError, UnauthorizedAccessError } from "../../utility
 import StatusCodes from "http-status-codes"
 import { inviteService } from "./invitation.service"
 import { asyncHandler } from "../../utility/errorHandling/asyncHandler"
-import { inviteTypeSchema } from "../../db/invitation.schema"
+import { inviteTypeSchema, inviteTokenSchema } from "../../db/invitation.schema"
 import { ChannelInviteSchema, ChannelParamsSchema, createChannelInviteSchema } from "../../db/channel.schema"
 
 
@@ -27,18 +27,19 @@ export const createWorkspaceInvite = asyncHandler(async (req, res) => {
     }
 
 
-    const invite = await inviteService.createWorkspaceInvite(Invite)
+    const result = await inviteService.createWorkspaceInvite(Invite)
 
     loggers.db.log("User Ivited Created SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
-        inviteId: invite?.id,
+        inviteId: result?.invite?.id,
+        emailSent: result?.emailSent,
         createdAt: new Date().toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",
         })
     })
 
-    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, invite ?? {}, "Workspace Invite Created Sucessfully"))
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, result ?? {}, "Workspace Invite Created Sucessfully"))
 
 
 })
@@ -138,18 +139,19 @@ export const createChannelInvite = asyncHandler(async (req, res) => {
     if (!InviteBody.success) throw new UserInputValidationError("Invalid Credentials", InviteBody.error.flatten().fieldErrors)
 
 
-    const invite = await inviteService.createChannelInvite(User.data.userId, Channel.data, InviteBody.data)
+    const result = await inviteService.createChannelInvite(User.data.userId, Channel.data, InviteBody.data)
 
-    loggers.db.info("User Accepted the Invite", {
+    loggers.db.info("Channel Invite Created SucessFully", {
         ip: req.ip,
         userAgent: req.get("user-agent"),
-        inviteId: invite.id,
+        inviteId: result?.invite?.id,
+        emailSent: result?.emailSent,
         createdAt: new Date().toLocaleString("en-IN", {
             timeZone: "Asia/Kolkata",
         })
     })
 
-    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, invite, "Invite Created Succesfully"))
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, result, "Invite Created Succesfully"))
 
 })
 
@@ -236,4 +238,94 @@ export const cancelChannelInvite = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, cancelleddInvite ?? {}, "Invite Revoked Succesfully"))
 
+})
+
+export const previewInviteToken = asyncHandler(async (req, res) => {
+    const Token = inviteTokenSchema.safeParse(req.params)
+    if (!Token.success) throw new UserInputValidationError("Invalid invite token", Token.error.flatten().fieldErrors)
+
+    const preview = await inviteService.previewInviteToken(Token.data.token)
+
+    loggers.db.info("Invite Token Previewed", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        kind: preview.kind,
+        createdAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, preview, "Invite fetched Succesfully"))
+})
+
+export const acceptInviteToken = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Token = inviteTokenSchema.safeParse(req.params)
+    if (!User.success) throw new UnauthorizedAccessError("Invalid UserId")
+    if (!Token.success) throw new UserInputValidationError("Invalid invite token", Token.error.flatten().fieldErrors)
+
+    const accepted = await inviteService.acceptInviteToken(User.data.userId, Token.data.token)
+
+    loggers.db.info("Invite Token Accepted", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId: User.data.userId,
+        acceptedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, accepted ?? {}, "Invite Accepted Succesfully"))
+})
+
+export const getWorkspaceInviteLink = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Workspace = idSchema.safeParse(req.params)
+    if (!User.success) throw new UnauthorizedAccessError("Invalid UserId")
+    if (!Workspace.success) throw new UserInputValidationError("Invalid WorkspaceId", Workspace.error.flatten().fieldErrors)
+
+    const link = await inviteService.getWorkspaceInviteLink(User.data.userId, Workspace.data.id)
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, link ?? {}, "Invite link fetched Succesfully"))
+})
+
+export const createWorkspaceInviteLink = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Workspace = idSchema.safeParse(req.params)
+    if (!User.success) throw new UnauthorizedAccessError("Invalid UserId")
+    if (!Workspace.success) throw new UserInputValidationError("Invalid WorkspaceId", Workspace.error.flatten().fieldErrors)
+
+    const link = await inviteService.createWorkspaceInviteLink(User.data.userId, Workspace.data.id)
+
+    loggers.db.info("Workspace Invite Link Created", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId: User.data.userId,
+        createdAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, link, "Invite link created Succesfully"))
+})
+
+export const revokeWorkspaceInviteLink = asyncHandler(async (req, res) => {
+    const User = reqUserSchema.safeParse(req.user)
+    const Workspace = idSchema.safeParse(req.params)
+    if (!User.success) throw new UnauthorizedAccessError("Invalid UserId")
+    if (!Workspace.success) throw new UserInputValidationError("Invalid WorkspaceId", Workspace.error.flatten().fieldErrors)
+
+    const result = await inviteService.revokeWorkspaceInviteLink(User.data.userId, Workspace.data.id)
+
+    loggers.db.info("Workspace Invite Link Revoked", {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        userId: User.data.userId,
+        revoked: result.revoked,
+        revokedAt: new Date().toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+        })
+    })
+
+    res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, result, "Invite link revoked Succesfully"))
 })

@@ -27,3 +27,11 @@ export const inviteTypeSchema = z.object({
 
 
 export type getInviteType = z.infer<typeof inviteTypeSchema>
+
+export const inviteTokenSchema = z.object({
+  token: z
+    .string()
+    .regex(/^(wsi|chi|wsl)_[A-Za-z0-9_-]{8,}$/, "Invalid invite token"),
+});
+
+export type inviteTokenDTO = z.infer<typeof inviteTokenSchema>

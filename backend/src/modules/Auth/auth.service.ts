@@ -13,6 +13,8 @@ import { genJwtToken, hashToken } from "../../utility/auth/jwt";
 import { env } from "../../config/env";
 import { SignOptions } from "jsonwebtoken";
 import jwt from "jsonwebtoken"
+import { inviteRepository } from "../Invitation/invitation.repository";
+import { notifyLinkedInvites } from "../Invitation/invitation.notifications";
 
 
 
@@ -33,6 +35,8 @@ class AuthService {
         try {
             User.password = hashedPass
             const user = await authRepository.createUser(User)
+
+            await this.linkPendingInvites(user.id, user.email)
 
             return user
         } catch (err) {
@@ -129,6 +133,8 @@ class AuthService {
                     email,
                     avatar: picture ?? null,
                 }, { provider, providerId });
+
+                await this.linkPendingInvites(user.id, user.email);
             } else {
                 try {
                     await authRepository.createOAuthAccount({ provider, providerId, userId: user.id });
@@ -146,6 +152,21 @@ class AuthService {
         }
 
         return this.createUserSession(userId, username, email, userMetaData)
+    }
+
+    private async linkPendingInvites(userId: string, email: string) {
+        try {
+            const linked = await inviteRepository.linkPendingInvitesByEmail(userId, email)
+
+            if (linked.wsInvites.length > 0 || linked.channelInvites.length > 0) {
+                await notifyLinkedInvites(linked)
+            }
+        } catch (err) {
+            loggers.db.warn("PENDING_INVITE_LINKING_FAILED", {
+                userId,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
     }
 
     private async generateUniqueUsername(name: string) {

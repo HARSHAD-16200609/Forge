@@ -29,6 +29,7 @@ model user {
   reactions                reaction[]
   workspaceInvitesSent     workspaceInvite[]    @relation("workspaceInvitesSent")
   workspaceInvitesReceived workspaceInvite[]    @relation("workspaceInvitesReceived")
+  inviteLinksCreated       workspaceInviteLink[] @relation("InviteLinksCreated")
   memberships              workspaceMember[]
 }
 
@@ -56,6 +57,7 @@ model workspace {
   channels      channel[]
   conversations conversation[]
   invites       workspaceInvite[]
+  inviteLinks   workspaceInviteLink[]
   members       workspaceMember[]
 }
 
@@ -216,16 +218,17 @@ model workspaceInvite {
   status        Status    @default(PENDING)
   sentAt        DateTime  @default(now())
   actorId       String
-  receiverId    String
+  receiverId    String?
   workspaceId   String
   expiresAt     DateTime
   receiverEmail String
+  token         String    @unique
   acceptedAt    DateTime?
   actor         user      @relation("workspaceInvitesSent", fields: [actorId], references: [id], onDelete: Cascade)
-  receiver      user      @relation("workspaceInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiver      user?     @relation("workspaceInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
   workspace     workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@unique([receiverId, workspaceId], where: raw("(status = 'PENDING'::\"Status\")"))
+  @@unique([receiverEmail, workspaceId], where: raw("(status = 'PENDING'::\"Status\")"))
 }
 
 model OAuthAccount {
@@ -243,16 +246,33 @@ model channelInvite {
   status        Status    @default(PENDING)
   sentAt        DateTime  @default(now())
   actorId       String
-  receiverId    String
+  receiverId    String?
   channelId     String
   expiresAt     DateTime
   receiverEmail String
+  token         String    @unique
   acceptedAt    DateTime?
   actor         user      @relation("channelInvitesSent", fields: [actorId], references: [id], onDelete: Cascade)
   channel       channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  receiver      user      @relation("channelInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiver      user?     @relation("channelInvitesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
 
-  @@unique([receiverId, channelId], where: raw("(status = 'PENDING'::\"Status\")"))
+  @@unique([receiverEmail, channelId], where: raw("(status = 'PENDING'::\"Status\")"))
+}
+
+model workspaceInviteLink {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  workspaceId String
+  createdById String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  useCount    Int       @default(0)
+  maxUses     Int?
+  createdBy   user      @relation("InviteLinksCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  workspace   workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 enum Visibility {
