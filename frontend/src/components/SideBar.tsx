@@ -7,7 +7,6 @@ import {
     Archive,
     AtSign,
     Bell,
-    Bookmark,
     Building2,
     Check,
     ChevronDown,
@@ -199,8 +198,6 @@ const navItems: NavItem[] = [
     { id: "home", label: "Home", icon: <Home size={18} /> },
     { id: "dms", label: "Direct Messages", icon: <MessageSquare size={18} /> },
     { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
-    { id: "activity", label: "Activity", icon: <Archive size={18} /> },
-    { id: "saved", label: "Saved Items", icon: <Bookmark size={18} /> },
     { id: "files", label: "Files", icon: <FileText size={18} /> },
     { id: "members", label: "Members", icon: <Users size={18} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
@@ -218,26 +215,6 @@ const navItems: NavItem[] = [
 //     { name: "Tom Lee", online: false, role: "Member", initials: "TL" },
 //     { name: "Harshad", online: true, role: "Owner", initials: "HD" },
 // ];
-
-const activityItems = [
-    { name: "Mike Johnson mentioned you", meta: "#general · 2h", icon: <AtSign size={16} /> },
-    {
-        name: "Sarah Chen reacted to your message",
-        meta: "#design-review · 4h",
-        icon: <Users size={16} />,
-    },
-    {
-        name: "Tom Lee commented in a thread",
-        meta: "#engineering · 1d",
-        icon: <MessageSquare size={16} />,
-    },
-];
-
-const savedItems = [
-    { name: "Slack onboarding doc", meta: "Saved · 1d ago" },
-    { name: "Design principles", meta: "Saved · 3d ago" },
-    { name: "Q3 roadmap notes", meta: "Saved · last week" },
-];
 
 /* ---------------------------- Left Icon Nav Rail -------------------------- */
 
@@ -593,40 +570,10 @@ function GroupDMRow({ gdm, onSelect }: { gdm: Conversation; onSelect?: () => voi
 
 
 
-function ActivityRow({ name, meta, icon }: { name: string; meta: string; icon: React.ReactNode }) {
-    return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-start gap-2 w-full px-2 py-2">
-            <span className="mt-0.5 shrink-0 text-sidebar-foreground/60 [&>svg]:size-4">
-                {icon}
-            </span>
-            <div className="min-w-0">
-                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px]">{name}</div>
-                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">{meta}</div>
-            </div>
-        </div>
-    );
-}
-
-function SavedRow({ name, meta }: { name: string; meta: string }) {
-    return (
-        <div className="rounded-lg cursor-pointer transition-colors hover:bg-sidebar-accent flex items-center gap-2 w-full px-2 py-2">
-            <span className="shrink-0 text-sidebar-foreground/60 [&>svg]:size-4">
-                <Bookmark size={16} />
-            </span>
-            <div className="min-w-0">
-                <div className="text-[13px] text-sidebar-foreground/85 leading-[18px] truncate">
-                    {name}
-                </div>
-                <div className="text-[11px] text-sidebar-foreground/40 leading-[15px]">{meta}</div>
-            </div>
-        </div>
-    );
-}
-
 type Section = {
     title: string;
     icon?: React.ReactNode;
-    kind: "channels" | "dms" | "groups" | "members" | "activity" | "saved" | "quick";
+    kind: "channels" | "dms" | "groups" | "members" | "quick";
     rows?: { label: string; meta?: string; icon?: React.ReactNode; to?: string }[];
 };
 
@@ -651,25 +598,6 @@ const sectionContent: Record<string, Section[]> = {
             title: "New Message",
             kind: "quick",
             rows: [{ label: "Compose new message", icon: <MessageSquare size={16} /> }],
-        },
-    ],
-    activity: [
-        {
-            title: "All Activity",
-            kind: "activity",
-            rows: activityItems.map((a) => ({ label: a.name, meta: a.meta, icon: a.icon })),
-        },
-    ],
-    saved: [
-        {
-            title: "Saved Items",
-            kind: "saved",
-            rows: savedItems.map((s) => ({ label: s.name, meta: s.meta })),
-        },
-        {
-            title: "Reminders",
-            kind: "quick",
-            rows: [{ label: "No reminders", icon: <Bell size={16} /> }],
         },
     ],
     members: [
@@ -790,17 +718,6 @@ function DetailSidebar({
                         }
                     />
                 );
-            case "activity":
-                return (
-                    <ActivityRow
-                        key={row.label}
-                        name={row.label}
-                        meta={row.meta || ""}
-                        icon={row.icon}
-                    />
-                );
-            case "saved":
-                return <SavedRow key={row.label} name={row.label} meta={row.meta || ""} />;
             default:
                 return null;
         }
@@ -1010,8 +927,6 @@ const sectionRouteMap: Record<string, string> = {
     home: "/app/home",
     dms: "/app/dms",
     notifications: "/app/notifications",
-    activity: "/app/activity",
-    saved: "/app/saved",
     files: "/app/files",
     members: "/app/members",
     invites: "/app/invites",
@@ -1022,8 +937,6 @@ const routeSectionMap: Record<string, string> = {
     "/app/home": "home",
     "/app/dms": "dms",
     "/app/notifications": "notifications",
-    "/app/activity": "activity",
-    "/app/saved": "saved",
     "/app/files": "files",
     "/app/members": "members",
     "/app/invites": "invites",

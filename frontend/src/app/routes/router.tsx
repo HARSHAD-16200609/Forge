@@ -7,8 +7,6 @@ import { ChannelHome } from "@/app/pages/ChannelHome";
 import { Members } from "@/app/pages/Members";
 import { Invites } from "@/app/pages/Invites";
 import { Notifications } from "@/app/pages/Notifications";
-import { Activity } from "@/app/pages/Activity";
-import { Saved } from "@/app/pages/Saved";
 import { Files } from "@/app/pages/Files";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { RegisterPage } from "@/features/auth/pages/RegisterPage";
@@ -62,14 +60,6 @@ export const router = createBrowserRouter([
                     {
                         path: "notifications",
                         Component: Notifications,
-                    },
-                    {
-                        path: "activity",
-                        Component: Activity,
-                    },
-                    {
-                        path: "saved",
-                        Component: Saved,
                     },
                     {
                         path: "files",
